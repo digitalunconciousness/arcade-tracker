@@ -1,0 +1,709 @@
+{% extends "base.html" %}
+
+{% block title %}Games List{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <h1>🎮 Arcade Games Database</h1>
+        {% if current_user.has_role('manager') %}
+        <a href="{{ url_for('add_game') }}" class="btn btn-primary">➕ Add New Game</a>
+        {% endif %}
+    </div>
+
+    <!-- Search and Filter Form -->
+    <div class="filters">
+        <form method="get" action="{{ url_for('games_list') }}">
+            <div class="filter-row">
+                <input type="text" name="search" placeholder="🔍 Search games..." value="{{ search }}" class="form-control">
+                
+                <select name="location" class="form-control">
+                    <option value="">All Locations</option>
+                    {% for loc in locations %}
+                    <option value="{{ loc }}" {% if location_filter == loc %}selected{% endif %}>{{ loc }}</option>
+                    {% endfor %}
+                </select>
+                
+                <select name="status" class="form-control">
+                    <option value="">All Statuses</option>
+                    {% for stat in statuses %}
+                    <option value="{{ stat }}" {% if status_filter == stat %}selected{% endif %}>{{ stat.replace('_', ' ') }}</option>
+                    {% endfor %}
+                </select>
+                
+                <button type="submit" class="btn btn-secondary">Filter</button>
+                <a href="{{ url_for('games_list') }}" class="btn btn-secondary">Clear</a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Bulk Actions Bar -->
+    {% if current_user.has_role('manager') %}
+    <div class="bulk-actions-bar" id="bulkActionsBar" style="display: none;">
+        <div class="bulk-actions-content">
+            <span class="selected-count">
+                <input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)">
+                <strong id="selectedCountText">0 selected</strong>
+            </span>
+            <div class="bulk-action-buttons">
+                <button onclick="bulkAction('move_to_floor')" class="bulk-btn btn-floor">📍 Move to Floor</button>
+                <button onclick="bulkAction('move_to_warehouse')" class="bulk-btn btn-warehouse">📦 Move to Warehouse</button>
+                <button onclick="bulkAction('set_working')" class="bulk-btn btn-working">✅ Set Working</button>
+                <button onclick="bulkAction('set_not_working')" class="bulk-btn btn-broken">❌ Set Not Working</button>
+                <button onclick="exportSelected()" class="bulk-btn btn-export">💾 Export Selected</button>
+                <button onclick="clearSelection()" class="bulk-btn btn-clear">Clear Selection</button>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Games Table -->
+    <div class="table-responsive">
+        <table class="maintenance-table">
+            <thead>
+                <tr>
+                    {% if current_user.has_role('manager') %}
+                    <th class="checkbox-col">
+                        <input type="checkbox" id="selectAllTop" onchange="toggleSelectAll(this)">
+                    </th>
+                    {% endif %}
+                    <th class="status-col">STATUS</th>
+                    <th class="game-col">GAME</th>
+                    <th class="location-col">LOCATION</th>
+                    <th class="plays-col">PLAYS</th>
+                    <th class="revenue-col">REVENUE</th>
+                    <th class="actions-col">ACTIONS</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for game in games %}
+                <tr>
+                    {% if current_user.has_role('manager') %}
+                    <td class="checkbox-cell">
+                        <input type="checkbox" class="game-checkbox" value="{{ game.id }}" onchange="updateBulkActions()">
+                    </td>
+                    {% endif %}
+                    <td class="status-cell">
+                        {% if game.status == 'Working' %}
+                        <span class="status-indicator status-working">Working</span>
+                        {% elif game.status == 'Being_Fixed' %}
+                        <span class="status-indicator status-fixing">Being Fixed</span>
+                        {% elif game.status == 'Not_Working' %}
+                        <span class="status-indicator status-broken">Not Working</span>
+                        {% else %}
+                        <span class="status-indicator status-retired">{{ game.status.replace('_', ' ') }}</span>
+                        {% endif %}
+                        {% if game.has_open_maintenance %}
+                        <span class="maintenance-badge" title="Has open maintenance">⚠️</span>
+                        {% endif %}
+                    </td>
+                    <td class="game-name">
+                        <strong>{{ game.name }}</strong>
+                        {% if game.manufacturer %}
+                        <br><small class="text-muted">{{ game.manufacturer }}</small>
+                        {% endif %}
+                    </td>
+                    <td>{{ game.location }}</td>
+                    <td>{{ game.total_plays }}</td>
+                    <td>${{ "%.2f"|format(game.total_revenue) }}</td>
+                    <td class="actions-cell">
+                        <a href="{{ url_for('game_detail', game_id=game.id) }}" class="action-btn btn-view" title="View Details">VIEW</a>
+                        
+                        {% if current_user.has_role('manager') %}
+                        <a href="{{ url_for('record_plays', game_id=game.id) }}" class="action-btn btn-plays" title="Record Plays">PLAYS</a>
+                        <a href="{{ url_for('maintenance', game_id=game.id) }}" class="action-btn btn-fix" title="Add Maintenance">FIX</a>
+                        <a href="{{ url_for('edit_game', game_id=game.id) }}" class="action-btn btn-edit" title="Edit Game">EDIT</a>
+                        {% endif %}
+                        
+                        {% if current_user.has_role('admin') %}
+                        <form method="post" action="{{ url_for('delete_game', game_id=game.id) }}" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete {{ game.name }}? This will delete all play records and maintenance history!');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="action-btn btn-delete" title="Delete Game">DELETE</button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="text-center no-data">No games found</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <p class="table-footer">Total: {{ games|length }} game(s)</p>
+</div>
+
+<style>
+/* Container */
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding-bottom: 15px;
+    border-bottom: 3px solid #00d9ff;
+}
+
+.page-header h1 {
+    margin: 0;
+    color: #00d9ff;
+    font-size: 28px;
+    text-shadow: 0 0 10px rgba(0, 217, 255, 0.5);
+}
+
+/* Filters */
+.filters {
+    margin-bottom: 20px;
+    padding: 20px;
+    background: linear-gradient(145deg, #1a1a2e, #16213e);
+    border-radius: 8px;
+    border: 1px solid #00d9ff;
+    box-shadow: 0 4px 15px rgba(0, 217, 255, 0.2);
+}
+
+.filter-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.filter-row .form-control {
+    flex: 1;
+    padding: 10px 15px;
+    background: #0f0f23;
+    border: 1px solid #00d9ff;
+    border-radius: 5px;
+    color: #fff;
+    font-size: 14px;
+}
+
+.filter-row .form-control:focus {
+    outline: none;
+    box-shadow: 0 0 10px rgba(0, 217, 255, 0.5);
+}
+
+.filter-row .btn-secondary {
+    padding: 10px 20px;
+    background: #00d9ff;
+    color: #000;
+    border: none;
+    border-radius: 5px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.filter-row .btn-secondary:hover {
+    background: #00b8d4;
+    box-shadow: 0 0 15px rgba(0, 217, 255, 0.6);
+}
+
+/* Bulk Actions Bar */
+.bulk-actions-bar {
+    margin-bottom: 20px;
+    padding: 15px 20px;
+    background: linear-gradient(145deg, #2d1b69, #1e3a5f);
+    border-radius: 8px;
+    border: 2px solid #9d00ff;
+    box-shadow: 0 4px 15px rgba(157, 0, 255, 0.3);
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.bulk-actions-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+}
+
+.selected-count {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #fff;
+    font-size: 16px;
+}
+
+.selected-count input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+}
+
+.bulk-action-buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.bulk-btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 5px;
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+}
+
+.btn-floor {
+    background: #00d9ff;
+    color: #000;
+}
+
+.btn-floor:hover {
+    background: #00b8d4;
+    box-shadow: 0 0 10px rgba(0, 217, 255, 0.6);
+}
+
+.btn-warehouse {
+    background: #ffc800;
+    color: #000;
+}
+
+.btn-warehouse:hover {
+    background: #e6b400;
+    box-shadow: 0 0 10px rgba(255, 200, 0, 0.6);
+}
+
+.btn-working {
+    background: #00ff64;
+    color: #000;
+}
+
+.btn-working:hover {
+    background: #00cc50;
+    box-shadow: 0 0 10px rgba(0, 255, 100, 0.6);
+}
+
+.btn-broken {
+    background: #ff3232;
+    color: #fff;
+}
+
+.btn-broken:hover {
+    background: #cc0000;
+    box-shadow: 0 0 10px rgba(255, 50, 50, 0.6);
+}
+
+.btn-export {
+    background: #9d00ff;
+    color: #fff;
+}
+
+.btn-export:hover {
+    background: #7d00cc;
+    box-shadow: 0 0 10px rgba(157, 0, 255, 0.6);
+}
+
+.btn-clear {
+    background: #666;
+    color: #fff;
+}
+
+.btn-clear:hover {
+    background: #555;
+}
+
+/* Table */
+.table-responsive {
+    overflow-x: auto;
+    margin-top: 20px;
+}
+
+.maintenance-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #0f0f23;
+    border: 2px solid #00d9ff;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0, 217, 255, 0.3);
+}
+
+.maintenance-table thead {
+    background: linear-gradient(145deg, #1e3a5f, #16213e);
+    border-bottom: 2px solid #00d9ff;
+}
+
+.maintenance-table th {
+    padding: 15px 12px;
+    text-align: left;
+    font-weight: bold;
+    color: #00d9ff;
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    border-right: 1px solid rgba(0, 217, 255, 0.2);
+}
+
+.maintenance-table th:last-child {
+    border-right: none;
+}
+
+.checkbox-col {
+    width: 40px;
+    text-align: center !important;
+}
+
+.checkbox-cell {
+    text-align: center;
+}
+
+.checkbox-cell input[type="checkbox"],
+.checkbox-col input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+.maintenance-table tbody tr {
+    border-bottom: 1px solid rgba(0, 217, 255, 0.15);
+    transition: background 0.2s;
+}
+
+.maintenance-table tbody tr:hover {
+    background: rgba(0, 217, 255, 0.05);
+}
+
+.maintenance-table tbody tr.selected {
+    background: rgba(157, 0, 255, 0.15);
+}
+
+.maintenance-table td {
+    padding: 12px;
+    color: #fff;
+    font-size: 14px;
+    vertical-align: middle;
+    border-right: 1px solid rgba(0, 217, 255, 0.1);
+}
+
+.maintenance-table td:last-child {
+    border-right: none;
+}
+
+/* Status Indicators */
+.status-cell {
+    white-space: nowrap;
+}
+
+.status-indicator {
+    display: inline-block;
+    padding: 5px 12px;
+    border-radius: 15px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.status-working {
+    background: rgba(0, 255, 100, 0.2);
+    color: #00ff64;
+    border: 1px solid #00ff64;
+}
+
+.status-fixing {
+    background: rgba(255, 200, 0, 0.2);
+    color: #ffc800;
+    border: 1px solid #ffc800;
+}
+
+.status-broken {
+    background: rgba(255, 50, 50, 0.2);
+    color: #ff3232;
+    border: 1px solid #ff3232;
+}
+
+.status-retired {
+    background: rgba(128, 128, 128, 0.2);
+    color: #888;
+    border: 1px solid #888;
+}
+
+.maintenance-badge {
+    margin-left: 8px;
+    font-size: 16px;
+}
+
+/* Game Name */
+.game-name {
+    font-weight: bold;
+}
+
+.game-name strong {
+    color: #00d9ff;
+}
+
+.text-muted {
+    color: #888 !important;
+    font-size: 12px;
+}
+
+/* Action Buttons */
+.actions-cell {
+    white-space: nowrap;
+}
+
+.action-btn {
+    display: inline-block;
+    padding: 6px 12px;
+    margin: 2px;
+    border: 1px solid;
+    border-radius: 5px;
+    font-size: 11px;
+    font-weight: bold;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+}
+
+.btn-view {
+    background: #00d9ff;
+    color: #000;
+    border-color: #00d9ff;
+}
+
+.btn-view:hover {
+    background: #00b8d4;
+    box-shadow: 0 0 10px rgba(0, 217, 255, 0.6);
+}
+
+.btn-plays {
+    background: #ff00ff;
+    color: #fff;
+    border-color: #ff00ff;
+}
+
+.btn-plays:hover {
+    background: #d400d4;
+    box-shadow: 0 0 10px rgba(255, 0, 255, 0.6);
+}
+
+.btn-fix {
+    background: #9d00ff;
+    color: #fff;
+    border-color: #9d00ff;
+}
+
+.btn-fix:hover {
+    background: #7d00cc;
+    box-shadow: 0 0 10px rgba(157, 0, 255, 0.6);
+}
+
+.btn-edit {
+    background: #00ff64;
+    color: #000;
+    border-color: #00ff64;
+}
+
+.btn-edit:hover {
+    background: #00cc50;
+    box-shadow: 0 0 10px rgba(0, 255, 100, 0.6);
+}
+
+.btn-delete {
+    background: #ff3232;
+    color: #fff;
+    border-color: #ff3232;
+}
+
+.btn-delete:hover {
+    background: #cc0000;
+    box-shadow: 0 0 10px rgba(255, 50, 50, 0.6);
+}
+
+/* No Data */
+.no-data {
+    text-align: center;
+    padding: 40px !important;
+    color: #888;
+    font-style: italic;
+}
+
+/* Footer */
+.table-footer {
+    margin-top: 15px;
+    color: #888;
+    font-size: 14px;
+    text-align: right;
+}
+
+/* Primary Button */
+.btn-primary {
+    padding: 12px 24px;
+    background: #00ff64;
+    color: #000;
+    border: none;
+    border-radius: 5px;
+    font-weight: bold;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn-primary:hover {
+    background: #00cc50;
+    box-shadow: 0 0 15px rgba(0, 255, 100, 0.6);
+}
+</style>
+
+<script>
+function updateBulkActions() {
+    const checkboxes = document.querySelectorAll('.game-checkbox:checked');
+    const count = checkboxes.length;
+    const bulkBar = document.getElementById('bulkActionsBar');
+    const countText = document.getElementById('selectedCountText');
+    
+    if (count > 0) {
+        bulkBar.style.display = 'block';
+        countText.textContent = `${count} selected`;
+        
+        // Highlight selected rows
+        document.querySelectorAll('.game-checkbox').forEach(cb => {
+            const row = cb.closest('tr');
+            if (cb.checked) {
+                row.classList.add('selected');
+            } else {
+                row.classList.remove('selected');
+            }
+        });
+    } else {
+        bulkBar.style.display = 'none';
+        document.querySelectorAll('tr.selected').forEach(row => {
+            row.classList.remove('selected');
+        });
+    }
+    
+    // Update "select all" checkboxes
+    const allCheckboxes = document.querySelectorAll('.game-checkbox');
+    const selectAllTop = document.getElementById('selectAllTop');
+    const selectAll = document.getElementById('selectAll');
+    
+    if (selectAllTop) {
+        selectAllTop.checked = (count > 0 && count === allCheckboxes.length);
+    }
+    if (selectAll) {
+        selectAll.checked = (count > 0 && count === allCheckboxes.length);
+    }
+}
+
+function toggleSelectAll(checkbox) {
+    const checkboxes = document.querySelectorAll('.game-checkbox');
+    checkboxes.forEach(cb => {
+        cb.checked = checkbox.checked;
+    });
+    updateBulkActions();
+}
+
+function getSelectedGameIds() {
+    const checkboxes = document.querySelectorAll('.game-checkbox:checked');
+    return Array.from(checkboxes).map(cb => cb.value);
+}
+
+function bulkAction(action) {
+    const gameIds = getSelectedGameIds();
+    
+    if (gameIds.length === 0) {
+        alert('Please select at least one game');
+        return;
+    }
+    
+    let confirmMsg = '';
+    switch(action) {
+        case 'move_to_floor':
+            confirmMsg = `Move ${gameIds.length} game(s) to Floor?`;
+            break;
+        case 'move_to_warehouse':
+            confirmMsg = `Move ${gameIds.length} game(s) to Warehouse?`;
+            break;
+        case 'set_working':
+            confirmMsg = `Set ${gameIds.length} game(s) status to Working?`;
+            break;
+        case 'set_not_working':
+            confirmMsg = `Set ${gameIds.length} game(s) status to Not Working?`;
+            break;
+    }
+    
+    if (!confirm(confirmMsg)) {
+        return;
+    }
+    
+    // Create form and submit
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '{{ url_for("bulk_update_games") }}';
+    
+    // Add CSRF token
+    const csrfInput = document.createElement('input');
+    csrfInput.type = 'hidden';
+    csrfInput.name = 'csrf_token';
+    csrfInput.value = '{{ csrf_token() }}';
+    form.appendChild(csrfInput);
+    
+    // Add action
+    const actionInput = document.createElement('input');
+    actionInput.type = 'hidden';
+    actionInput.name = 'action';
+    actionInput.value = action;
+    form.appendChild(actionInput);
+    
+    // Add game IDs
+    gameIds.forEach(id => {
+        const idInput = document.createElement('input');
+        idInput.type = 'hidden';
+        idInput.name = 'game_ids';
+        idInput.value = id;
+        form.appendChild(idInput);
+    });
+    
+    document.body.appendChild(form);
+    form.submit();
+}
+
+function exportSelected() {
+    const gameIds = getSelectedGameIds();
+    
+    if (gameIds.length === 0) {
+        alert('Please select at least one game');
+        return;
+    }
+    
+    // Create URL with game IDs as query parameters
+    const params = new URLSearchParams();
+    gameIds.forEach(id => params.append('game_ids', id));
+    
+    window.location.href = '{{ url_for("export_selected_games") }}?' + params.toString();
+}
+
+function clearSelection() {
+    document.querySelectorAll('.game-checkbox').forEach(cb => {
+        cb.checked = false;
+    });
+    const selectAllTop = document.getElementById('selectAllTop');
+    const selectAll = document.getElementById('selectAll');
+    if (selectAllTop) selectAllTop.checked = false;
+    if (selectAll) selectAll.checked = false;
+    updateBulkActions();
+}
+</script>
+{% endblock %}

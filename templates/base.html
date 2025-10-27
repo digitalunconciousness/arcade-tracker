@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {% if config.WTF_CSRF_ENABLED %}
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    {% endif %}
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#00d9ff">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Arcade Tracker">
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='icon-192.png') }}">
+    
+    <title>{% block title %}Arcade Tracker{% endblock %}</title>
+    <script src="{{ url_for('static', filename='js/chart.min.js') }}"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/cyberpunk.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css') }}">
+    
+    <script>
+        // Theme management
+        try {
+            const theme = localStorage.getItem('theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', theme);
+        } catch {
+            document.documentElement.setAttribute('data-theme', 'dark');
+        }
+
+        function toggleTheme() {
+            const html = document.documentElement;
+            const current = html.getAttribute('data-theme') || 'dark';
+            const next = current === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', next);
+            try { localStorage.setItem('theme', next); } catch {}
+            const icon = document.querySelector('.theme-icon');
+            if (icon) icon.textContent = next === 'dark' ? '🌙' : '☀️';
+        }
+    </script>
+
+    <!-- Service Worker -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/static/service-worker.js');
+            });
+        }
+    </script>
+
+    <style>
+        /* === Light Theme === */
+        [data-theme="light"] body { background: #f5f5f5; color: #000; }
+        [data-theme="light"] .nav { background: #fff; border-color: #ccc; }
+        [data-theme="light"] .nav a { color: #000; }
+        [data-theme="light"] .nav-dropdown-menu a { color: #000; }
+        [data-theme="light"] .theme-toggle { background: linear-gradient(145deg, #ffd700, #ffa500); border: 3px solid #000; }
+
+        /* === Theme Toggle Button === */
+        .theme-toggle {
+            position: fixed;
+            bottom: 25px;
+            right: 25px;
+            width: 55px;
+            height: 55px;
+            border-radius: 50%;
+            background: linear-gradient(145deg, #00d9ff, #0088cc);
+            border: 3px solid #fff;
+            color: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(0, 217, 255, 0.5);
+            transition: all 0.3s ease;
+            z-index: 9999;
+        }
+        .theme-toggle:hover { transform: scale(1.1); }
+
+        /* === Navbar === */
+        .nav {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 20px;
+            background: rgba(0, 15, 25, 0.8);
+            border-bottom: 2px solid #00ffff;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+            flex-wrap: wrap;
+        }
+
+        .nav-links, .nav-user {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .nav a {
+            color: #00ffff;
+            text-decoration: none;
+            margin: 8px 12px;
+            transition: color 0.3s ease;
+        }
+        .nav a:hover { color: #ff00ff; }
+
+        .nav-dropdown {
+            position: relative;
+        }
+        .nav-dropdown-toggle::after {
+            content: " ▾";
+            font-size: 0.9em;
+        }
+
+        /* === Dropdown Menu === */
+        .nav-dropdown-menu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: rgba(0, 20, 40, 0.95);
+            border: 1px solid #00ffff;
+            border-radius: 6px;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+            min-width: 180px;
+            z-index: 999;
+            overflow: hidden;
+        }
+
+        .nav-dropdown.open > .nav-dropdown-menu { display: block; animation: dropdownFade 0.25s ease forwards; }
+        .nav-dropdown-menu a {
+            display: block;
+            padding: 10px 14px;
+            color: #00ffff;
+        }
+        .nav-dropdown-menu a:hover {
+            background: rgba(0, 255, 255, 0.15);
+            color: #ff00ff;
+        }
+        @keyframes dropdownFade {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* === Mobile Menu === */
+        .nav-toggle {
+            display: none;
+            background: none;
+            border: none;
+            color: #00ffff;
+            font-size: 28px;
+            cursor: pointer;
+        }
+        .nav.open .nav-links { display: block; }
+
+        @media (max-width: 768px) {
+            .nav {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .nav-links {
+                display: none;
+                width: 100%;
+                flex-direction: column;
+                margin-top: 10px;
+                border-top: 1px solid rgba(0, 255, 255, 0.2);
+            }
+            .nav-links a, .nav-dropdown-toggle {
+                display: block;
+                width: 100%;
+                padding: 12px 16px;
+                border-bottom: 1px solid rgba(0, 255, 255, 0.1);
+            }
+            .nav-dropdown-menu {
+                position: static;
+                border: none;
+                box-shadow: none;
+                background: rgba(0, 10, 20, 0.7);
+            }
+            .nav-dropdown-menu a { padding-left: 30px; }
+            .nav-toggle { display: block; align-self: flex-end; }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <nav class="nav">
+            <button class="nav-toggle" onclick="document.querySelector('.nav').classList.toggle('open')">☰</button>
+
+            {% if current_user.is_authenticated %}
+            <div class="nav-links">
+                <a href="{{ url_for('home') }}" {% if request.endpoint == 'home' %}class="active"{% endif %}>Dashboard</a>
+
+                <!-- Games Dropdown -->
+                <div class="nav-dropdown">
+                    <a href="{{ url_for('games_list') }}" class="nav-dropdown-toggle">Games</a>
+                    <div class="nav-dropdown-menu">
+                        <a href="{{ url_for('games_list') }}">All Games</a>
+                        {% if current_user.has_role('manager') %}
+                        <a href="{{ url_for('add_game') }}">Add Game</a>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Maintenance -->
+                {% if current_user.has_role('operator') %}
+                <div class="nav-dropdown">
+                    <a href="{{ url_for('maintenance_orders') }}" class="nav-dropdown-toggle">Maintenance</a>
+                    <div class="nav-dropdown-menu">
+                        <a href="{{ url_for('maintenance_orders') }}">All Work Orders</a>
+                        {% if current_user.has_role('manager') %}
+                        <a href="{{ url_for('maintenance_reports') }}">Maintenance Reports</a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Graphs -->
+                {% if current_user.has_role('manager') %}
+                <div class="nav-dropdown">
+                    <a href="{{ url_for('graphs') }}" class="nav-dropdown-toggle">Graphs</a>
+                    <div class="nav-dropdown-menu">
+                        <a href="{{ url_for('graphs') }}">Performance Graphs</a>
+                        <a href="{{ url_for('reports') }}">Reports</a>
+                        <a href="{{ url_for('revenue_reports') }}">Revenue Reports</a>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Inventory -->
+                {% if current_user.has_role('operator') %}
+                <div class="nav-dropdown">
+                    <a href="{{ url_for('inventory_list') }}" class="nav-dropdown-toggle">Inventory</a>
+                    <div class="nav-dropdown-menu">
+                        <a href="{{ url_for('inventory_list') }}">All Items</a>
+                        <a href="{{ url_for('request_inventory') }}">Request Items</a>
+                        <a href="{{ url_for('inventory_requests_list') }}">View Requests</a>
+                        {% if current_user.has_role('manager') %}
+                        <a href="{{ url_for('add_inventory_item') }}">Add Item</a>
+                        <a href="{{ url_for('low_stock_alerts') }}">Low Stock Alerts</a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Admin -->
+                {% if current_user.has_role('admin') %}
+                <div class="nav-dropdown">
+                    <a href="#" class="nav-dropdown-toggle">Admin</a>
+                    <div class="nav-dropdown-menu">
+                        <a href="{{ url_for('backup_management') }}">Backups</a>
+                        <a href="{{ url_for('storage_admin') }}">Storage</a>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- User Menu -->
+            <div class="nav-user">
+                <div class="nav-dropdown user-dropdown">
+                    <a href="#" class="nav-dropdown-toggle user-info-toggle">
+                        {% if current_user.profile_picture %}
+                        <img src="{{ url_for('static', filename='profile_pics/' + current_user.profile_picture) }}" class="nav-profile-pic" style="width: 24px; height: 24px; border-radius: 50%; margin-right: 8px; vertical-align: middle;">
+                        {% endif %}
+                        {{ current_user.username }}
+                    </a>
+                    <div class="nav-dropdown-menu nav-dropdown-menu-right">
+                        <div class="user-role-info">{{ current_user.role.title() }}</div>
+                        <a href="{{ url_for('profile') }}">👤 Profile</a>
+                        <a href="{{ url_for('logout') }}">🚪 Logout</a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </nav>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </div>
+
+    <button onclick="toggleTheme()" class="theme-toggle" title="Toggle theme">
+        <span class="theme-icon">🌙</span>
+    </button>
+
+    <script>
+    // === Mobile Dropdown Handling ===
+    document.addEventListener("DOMContentLoaded", function() {
+        document.querySelectorAll(".nav-dropdown-toggle").forEach(toggle => {
+            toggle.addEventListener("click", function(e) {
+                const parent = this.parentElement;
+                if (window.innerWidth <= 768) {
+                    e.preventDefault();
+                    parent.classList.toggle("open");
+                    document.querySelectorAll(".nav-dropdown").forEach(drop => {
+                        if (drop !== parent) drop.classList.remove("open");
+                    });
+                }
+            });
+        });
+        document.addEventListener("click", e => {
+            if (!e.target.closest(".nav-dropdown")) {
+                document.querySelectorAll(".nav-dropdown").forEach(drop => drop.classList.remove("open"));
+            }
+        });
+    });
+    </script>
+</body>
+</html>

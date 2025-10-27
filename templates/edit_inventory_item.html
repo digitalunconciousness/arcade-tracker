@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Inventory Item - {{ item.name }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>Edit Inventory Item</h1>
+    
+    <form method="POST" action="{{ url_for('edit_inventory_item', item_id=item.id) }}">
+        {{ form.hidden_tag() }}
+        
+        <div class="form-group">
+            <label for="name">Item Name *</label>
+            {{ form.name(class="form-control", value=item.name) }}
+            {% if form.name.errors %}
+                <div class="error">
+                    {% for error in form.name.errors %}<p>{{ error }}</p>{% endfor %}
+                </div>
+            {% endif %}
+        </div>
+        
+        <div class="form-group">
+            <label for="description">Description</label>
+            {{ form.description(class="form-control", rows=3) }}
+            {% if form.description.errors %}
+                <div class="error">
+                    {% for error in form.description.errors %}<p>{{ error }}</p>{% endfor %}
+                </div>
+            {% endif %}
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group col-md-6">
+                <label for="stock_quantity">Stock Quantity *</label>
+                {{ form.stock_quantity(class="form-control", type="number", min="0") }}
+                {% if form.stock_quantity.errors %}
+                    <div class="error">
+                        {% for error in form.stock_quantity.errors %}<p>{{ error }}</p>{% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+            
+            <div class="form-group col-md-6">
+                <label for="minimum_stock">Minimum Stock Level *</label>
+                {{ form.minimum_stock(class="form-control", type="number", min="0") }}
+                {% if form.minimum_stock.errors %}
+                    <div class="error">
+                        {% for error in form.minimum_stock.errors %}<p>{{ error }}</p>{% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label for="unit_price">Unit Price ($) *</label>
+            {{ form.unit_price(class="form-control", type="number", step="0.01", min="0") }}
+            {% if form.unit_price.errors %}
+                <div class="error">
+                    {% for error in form.unit_price.errors %}<p>{{ error }}</p>{% endfor %}
+                </div>
+            {% endif %}
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group col-md-6">
+                <label for="supplier">Supplier</label>
+                {{ form.supplier(class="form-control") }}
+                {% if form.supplier.errors %}
+                    <div class="error">
+                        {% for error in form.supplier.errors %}<p>{{ error }}</p>{% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+            
+            <div class="form-group col-md-6">
+                <label for="part_number">Part Number</label>
+                {{ form.part_number(class="form-control") }}
+                {% if form.part_number.errors %}
+                    <div class="error">
+                        {% for error in form.part_number.errors %}<p>{{ error }}</p>{% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label for="compatible_games">Compatible Games</label>
+            {{ form.compatible_games(class="form-control", multiple=True, size=10) }}
+            <small class="form-text text-muted">Hold Ctrl (Windows) or Cmd (Mac) to select multiple games</small>
+            {% if form.compatible_games.errors %}
+                <div class="error">
+                    {% for error in form.compatible_games.errors %}<p>{{ error }}</p>{% endfor %}
+                </div>
+            {% endif %}
+        </div>
+        
+        <div class="form-group">
+            <label for="notes">Notes</label>
+            {{ form.notes(class="form-control", rows=3) }}
+            {% if form.notes.errors %}
+                <div class="error">
+                    {% for error in form.notes.errors %}<p>{{ error }}</p>{% endfor %}
+                </div>
+            {% endif %}
+        </div>
+        
+        <div class="form-actions">
+            {{ form.submit(class="btn btn-primary") }}
+            <a href="{{ url_for('inventory_detail', item_id=item.id) }}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

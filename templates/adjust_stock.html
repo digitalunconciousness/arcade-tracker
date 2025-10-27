@@ -1,0 +1,388 @@
+{% extends "base.html" %}
+
+{% block title %}Adjust Stock: {{ item.name }} - Arcade Tracker{% endblock %}
+
+{% block content %}
+<div class="header-section">
+    <h1>📦 Adjust Stock: {{ item.name }}</h1>
+    <div class="header-actions">
+        <a href="{{ url_for('inventory_detail', item_id=item.id) }}" class="btn btn-secondary">← Back to Item</a>
+    </div>
+</div>
+
+<div class="form-container">
+    <div class="current-stock-info">
+        <h2>Current Stock Information</h2>
+        <div class="stock-stats">
+            <div class="stock-stat">
+                <label>Current Stock</label>
+                <div class="value {% if item.is_low_stock() %}warning{% endif %}">{{ item.stock_quantity }}</div>
+            </div>
+            <div class="stock-stat">
+                <label>Minimum Stock</label>
+                <div class="value">{{ item.minimum_stock }}</div>
+            </div>
+            <div class="stock-stat">
+                <label>Unit Price</label>
+                <div class="value">${{ "%.2f"|format(item.unit_price) }}</div>
+            </div>
+        </div>
+    </div>
+
+    <form method="POST" class="adjustment-form">
+        {{ form.hidden_tag() }}
+        
+        <div class="form-section">
+            <h2>Stock Adjustment</h2>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    {{ form.adjustment_type.label(class="form-label") }}
+                    {{ form.adjustment_type(class="form-input", id="adjustment_type") }}
+                    {% if form.adjustment_type.errors %}
+                        <div class="form-errors">
+                            {% for error in form.adjustment_type.errors %}
+                                <span class="error">{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    <small class="form-help" id="type_help">Select the type of stock adjustment</small>
+                </div>
+                
+                <div class="form-group">
+                    {{ form.quantity.label(class="form-label") }}
+                    {{ form.quantity(class="form-input", id="quantity_input") }}
+                    {% if form.quantity.errors %}
+                        <div class="form-errors">
+                            {% for error in form.quantity.errors %}
+                                <span class="error">{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    <small class="form-help" id="quantity_help">Enter the quantity to adjust</small>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                {{ form.reason.label(class="form-label") }}
+                {{ form.reason(class="form-input", placeholder="Optional: Reason for adjustment") }}
+                {% if form.reason.errors %}
+                    <div class="form-errors">
+                        {% for error in form.reason.errors %}
+                            <span class="error">{{ error }}</span>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+            
+            <div class="preview-section" id="preview_section" style="display: none;">
+                <h3>Preview</h3>
+                <div class="preview-content">
+                    <div class="preview-item">
+                        <label>Current Stock:</label>
+                        <span id="current_stock">{{ item.stock_quantity }}</span>
+                    </div>
+                    <div class="preview-item">
+                        <label>Adjustment:</label>
+                        <span id="adjustment_preview">+0</span>
+                    </div>
+                    <div class="preview-item">
+                        <label>New Stock:</label>
+                        <span id="new_stock" class="preview-result">{{ item.stock_quantity }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-actions">
+            {{ form.submit(class="btn btn-primary", id="submit_btn") }}
+            <a href="{{ url_for('inventory_detail', item_id=item.id) }}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const adjustmentType = document.getElementById('adjustment_type');
+    const quantityInput = document.getElementById('quantity_input');
+    const previewSection = document.getElementById('preview_section');
+    const currentStock = {{ item.stock_quantity }};
+    
+    function updatePreview() {
+        const type = adjustmentType.value;
+        const quantity = parseInt(quantityInput.value) || 0;
+        
+        if (!type || quantity <= 0) {
+            previewSection.style.display = 'none';
+            return;
+        }
+        
+        previewSection.style.display = 'block';
+        
+        let adjustment = 0;
+        let newStock = currentStock;
+        
+        switch(type) {
+            case 'added':
+                adjustment = quantity;
+                newStock = currentStock + quantity;
+                document.getElementById('adjustment_preview').textContent = '+' + quantity;
+                document.getElementById('adjustment_preview').className = 'positive';
+                break;
+            case 'removed':
+            case 'used':
+                adjustment = -quantity;
+                newStock = Math.max(0, currentStock - quantity);
+                document.getElementById('adjustment_preview').textContent = '-' + quantity;
+                document.getElementById('adjustment_preview').className = 'negative';
+                break;
+            case 'adjusted':
+                adjustment = quantity - currentStock;
+                newStock = quantity;
+                document.getElementById('adjustment_preview').textContent = (adjustment >= 0 ? '+' : '') + adjustment;
+                document.getElementById('adjustment_preview').className = adjustment >= 0 ? 'positive' : 'negative';
+                break;
+        }
+        
+        document.getElementById('new_stock').textContent = newStock;
+        
+        // Update submit button text based on type
+        const submitBtn = document.getElementById('submit_btn');
+        switch(type) {
+            case 'added':
+                submitBtn.textContent = 'Add Stock';
+                break;
+            case 'removed':
+                submitBtn.textContent = 'Remove Stock';
+                break;
+            case 'used':
+                submitBtn.textContent = 'Mark as Used';
+                break;
+            case 'adjusted':
+                submitBtn.textContent = 'Adjust Stock';
+                break;
+            default:
+                submitBtn.textContent = 'Update Stock';
+        }
+        
+        // Update help text
+        const typeHelp = document.getElementById('type_help');
+        const quantityHelp = document.getElementById('quantity_help');
+        
+        switch(type) {
+            case 'added':
+                typeHelp.textContent = 'Adding new stock (received inventory)';
+                quantityHelp.textContent = 'How many items are you adding?';
+                break;
+            case 'removed':
+                typeHelp.textContent = 'Removing stock (damaged, lost, etc.)';
+                quantityHelp.textContent = 'How many items are you removing?';
+                break;
+            case 'used':
+                typeHelp.textContent = 'Items used in repairs/maintenance';
+                quantityHelp.textContent = 'How many items were used?';
+                break;
+            case 'adjusted':
+                typeHelp.textContent = 'Set exact stock quantity (inventory count)';
+                quantityHelp.textContent = 'What is the actual stock count?';
+                break;
+        }
+    }
+    
+    adjustmentType.addEventListener('change', updatePreview);
+    quantityInput.addEventListener('input', updatePreview);
+    
+    // Initial update
+    updatePreview();
+});
+</script>
+
+<style>
+.form-container {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.current-stock-info {
+    background: var(--card-bg);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 24px;
+    border: 1px solid var(--border-color);
+}
+
+.current-stock-info h2 {
+    margin: 0 0 16px 0;
+    color: var(--primary-color);
+}
+
+.stock-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 16px;
+}
+
+.stock-stat {
+    text-align: center;
+    padding: 12px;
+    background: var(--input-bg);
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+}
+
+.stock-stat label {
+    display: block;
+    font-size: 0.9em;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+}
+
+.stock-stat .value {
+    font-size: 1.3em;
+    font-weight: bold;
+    color: var(--text-color);
+}
+
+.stock-stat .value.warning {
+    color: var(--warning-color);
+}
+
+.adjustment-form {
+    background: var(--card-bg);
+    border-radius: 8px;
+    padding: 24px;
+    border: 1px solid var(--border-color);
+}
+
+.form-section h2 {
+    margin: 0 0 20px 0;
+    color: var(--primary-color);
+    border-bottom: 2px solid var(--primary-color);
+    padding-bottom: 8px;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.form-group {
+    margin-bottom: 16px;
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+.form-input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: var(--input-bg);
+    color: var(--text-color);
+    font-size: 14px;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.form-help {
+    display: block;
+    margin-top: 4px;
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+
+.form-errors {
+    margin-top: 4px;
+}
+
+.form-errors .error {
+    display: block;
+    color: var(--error-color);
+    font-size: 12px;
+}
+
+.preview-section {
+    margin-top: 20px;
+    padding: 16px;
+    background: var(--input-bg);
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+}
+
+.preview-section h3 {
+    margin: 0 0 12px 0;
+    color: var(--primary-color);
+}
+
+.preview-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+}
+
+.preview-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.preview-item label {
+    font-size: 0.9em;
+    color: var(--text-secondary);
+}
+
+.preview-item span {
+    font-weight: bold;
+    font-size: 1.1em;
+}
+
+.positive {
+    color: var(--success-color);
+}
+
+.negative {
+    color: var(--error-color);
+}
+
+.preview-result {
+    color: var(--primary-color);
+    font-size: 1.3em !important;
+}
+
+.form-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    padding-top: 24px;
+    border-top: 1px solid var(--border-color);
+    margin-top: 24px;
+}
+
+@media (max-width: 600px) {
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .stock-stats {
+        grid-template-columns: 1fr;
+    }
+    
+    .preview-content {
+        flex-direction: column;
+        gap: 8px;
+    }
+}
+</style>
+{% endblock %}

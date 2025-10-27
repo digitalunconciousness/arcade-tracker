@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Photos - {{ maintenance.game.name }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title mb-0">
+                        <i class="fas fa-camera"></i>
+                        Upload Photos for Maintenance Record
+                    </h2>
+                    <small class="text-muted">{{ maintenance.game.name }}</small>
+                </div>
+                
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <strong>Issue:</strong> {{ maintenance.issue_description }}
+                    </div>
+                    
+                    <form method="POST" enctype="multipart/form-data" class="mt-4">
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="mb-3">
+                            <label for="photos" class="form-label">Maintenance Photos</label>
+                            <input type="file" 
+                                   name="photos" 
+                                   id="photos" 
+                                   class="form-control" 
+                                   accept="image/*" 
+                                   multiple 
+                                   capture="environment">
+                            <div class="form-text">
+                                📱 On mobile: Tap to use camera or select from gallery<br>
+                                💻 On desktop: Select photos from your computer<br>
+                                Supported formats: JPG, PNG, GIF. Maximum file size: 16MB each.
+                            </div>
+                        </div>
+                        
+                        <!-- Alternative single file upload for testing -->
+                        <div class="mb-3">
+                            <label for="single_photo" class="form-label">Alternative: Single Photo Upload</label>
+                            <input type="file" 
+                                   name="photos" 
+                                   id="single_photo" 
+                                   class="form-control" 
+                                   accept="image/*" 
+                                   capture="environment">
+                            <div class="form-text text-muted">
+                                Try this if the multiple file upload doesn't work on your device
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('view_maintenance', maintenance_id=maintenance.id) }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Back to Record
+                            </a>
+                            <input type="submit" value="Upload Photos" class="btn btn-primary">
+                        </div>
+                    </form>
+                    
+                    <!-- Existing Photos Section -->
+                    {% if maintenance.get_photos() %}
+                    <hr class="my-4">
+                    <h5><i class="fas fa-images"></i> Current Photos</h5>
+                    <div class="row">
+                        {% for photo in maintenance.get_photos() %}
+                        <div class="col-md-3 mb-3">
+                            <div class="card">
+                                <img src="{{ url_for('static', filename='maintenance_photos/' + photo) }}" 
+                                     class="card-img-top" style="height: 150px; object-fit: cover;" 
+                                     data-bs-toggle="modal" 
+                                     data-bs-target="#photoModal{{ loop.index }}"
+                                     style="cursor: pointer;">
+                                <div class="card-body p-2">
+                                    <small class="text-muted">{{ photo }}</small>
+                                    {% if current_user.has_role('manager') %}
+                                    <form method="POST" action="{{ url_for('delete_maintenance_photo', maintenance_id=maintenance.id, filename=photo) }}" 
+                                          class="mt-2" onsubmit="return confirm('Are you sure you want to delete this photo?')">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            <i class="fas fa-trash-alt"></i> Delete
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <!-- Photo Modal -->
+                            <div class="modal fade" id="photoModal{{ loop.index }}" tabindex="-1">
+                                <div class="modal-dialog modal-lg">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">{{ photo }}</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body text-center">
+                                            <img src="{{ url_for('static', filename='maintenance_photos/' + photo) }}" 
+                                                 class="img-fluid" style="max-height: 70vh;">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Improved mobile file upload handling
+document.addEventListener('DOMContentLoaded', function() {
+    const fileInput = document.querySelector('input[name="photos"]');
+    const form = document.querySelector('form');
+    const submitBtn = document.querySelector('input[type="submit"]');
+    
+    if (fileInput) {
+        fileInput.addEventListener('change', function(e) {
+            const files = e.target.files;
+            console.log('Files selected:', files.length);
+            
+            if (files.length > 0) {
+                let preview = '<div class="mt-3 alert alert-success"><strong>Files selected:</strong><ul class="mb-0">';
+                let totalSize = 0;
+                
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    const sizeMB = (file.size / 1024 / 1024).toFixed(2);
+                    totalSize += file.size;
+                    preview += `<li>${file.name} (${sizeMB} MB)</li>`;
+                    console.log(`File ${i}: ${file.name}, Size: ${sizeMB}MB, Type: ${file.type}`);
+                }
+                
+                preview += '</ul>';
+                
+                // Check total size
+                const totalSizeMB = (totalSize / 1024 / 1024).toFixed(2);
+                if (totalSize > 16 * 1024 * 1024) {
+                    preview += `<div class="text-warning mt-2">Warning: Total size (${totalSizeMB} MB) exceeds 16MB limit</div>`;
+                }
+                
+                preview += '</div>';
+                
+                // Remove existing preview
+                const existingPreview = document.querySelector('.file-preview');
+                if (existingPreview) {
+                    existingPreview.remove();
+                }
+                
+                // Add new preview
+                const previewDiv = document.createElement('div');
+                previewDiv.className = 'file-preview';
+                previewDiv.innerHTML = preview;
+                e.target.closest('.mb-3').appendChild(previewDiv);
+                
+                // Enable submit button
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = `Upload ${files.length} Photo${files.length > 1 ? 's' : ''}`;
+                }
+            } else {
+                // Remove preview if no files
+                const existingPreview = document.querySelector('.file-preview');
+                if (existingPreview) {
+                    existingPreview.remove();
+                }
+                
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.textContent = 'Upload Photos';
+                }
+            }
+        });
+        
+        // Form submission debugging
+        form.addEventListener('submit', function(e) {
+            const files = fileInput.files;
+            console.log('Form submitting with files:', files.length);
+            
+            if (files.length === 0) {
+                e.preventDefault();
+                alert('Please select at least one image file to upload.');
+                return false;
+            }
+            
+            // Show loading state
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Uploading...';
+            }
+        });
+    }
+    
+    // Initially disable submit if no files
+    if (submitBtn && fileInput && fileInput.files.length === 0) {
+        submitBtn.disabled = true;
+    }
+});
+</script>
+{% endblock %}

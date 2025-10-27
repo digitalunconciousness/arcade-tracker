@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+
+{% block title %}Storage Management{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>💾 Storage Management</h1>
+    
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h3>📊 Storage Usage</h3>
+                </div>
+                <div class="card-body">
+                    <div class="storage-stats">
+                        <div class="stat-item">
+                            <strong>Current Usage:</strong> 
+                            {{ "%.1f"|format(stats.current_size_mb) }}MB / {{ stats.max_size_mb }}MB
+                        </div>
+                        
+                        <div class="progress-bar-container">
+                            <div class="progress-bar" style="width: {{ stats.usage_percent|round }}%">
+                                {{ "%.1f"|format(stats.usage_percent) }}%
+                            </div>
+                        </div>
+                        
+                        <div class="stat-item">
+                            <strong>Total Files:</strong> {{ stats.file_count }}
+                        </div>
+                        
+                        <div class="stat-item">
+                            <strong>Maintenance Records:</strong> 
+                            {{ stats.records_with_photos }} with photos / {{ stats.total_records }} total
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h3>🧹 Cleanup Tools</h3>
+                </div>
+                <div class="card-body">
+                    <p>Remove old photos that are no longer referenced by maintenance records.</p>
+                    
+                    <form method="POST" action="{{ url_for('admin_cleanup_photos') }}" 
+                          onsubmit="return confirm('This will permanently delete unreferenced photos older than 1 year. Continue?')">
+                        <button type="submit" class="btn btn-warning">
+                            🗑️ Clean Up Old Photos
+                        </button>
+                    </form>
+                    
+                    <hr>
+                    
+                    <h5>Storage Optimization Tips:</h5>
+                    <ul class="tips-list">
+                        <li>Photos are automatically compressed to 1200x1200px max</li>
+                        <li>JPEG quality set to 85% for size reduction</li>
+                        <li>Limit of {{ app.config.get('MAX_PHOTOS_PER_RECORD', 10) }} photos per record</li>
+                        <li>Old unreferenced photos are cleaned up periodically</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    {% if stats.usage_percent > 80 %}
+    <div class="alert alert-warning">
+        <strong>⚠️ Warning:</strong> Storage usage is above 80%. Consider running cleanup or increasing storage limits.
+    </div>
+    {% endif %}
+    
+    {% if stats.usage_percent > 95 %}
+    <div class="alert alert-danger">
+        <strong>🚨 Critical:</strong> Storage nearly full! Photo uploads may fail.
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.storage-stats {
+    margin: 20px 0;
+}
+
+.stat-item {
+    margin: 10px 0;
+    padding: 8px;
+    background: rgba(0, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+.progress-bar-container {
+    width: 100%;
+    height: 30px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 15px;
+    margin: 15px 0;
+    overflow: hidden;
+    border: 1px solid var(--neon-cyan);
+}
+
+.progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--neon-green) 0%, var(--neon-orange) 70%, #ff4444 90%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    color: black;
+    transition: width 0.3s ease;
+}
+
+.tips-list {
+    color: var(--text-secondary);
+    margin: 10px 0;
+}
+
+.tips-list li {
+    margin: 5px 0;
+    padding-left: 10px;
+}
+
+.card {
+    background: var(--dark-card);
+    border: 1px solid var(--neon-cyan);
+    border-radius: 8px;
+    margin: 20px 0;
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.1);
+}
+
+.card-header {
+    padding: 15px;
+    border-bottom: 1px solid rgba(0, 255, 255, 0.3);
+}
+
+.card-header h3 {
+    margin: 0;
+    color: var(--neon-cyan);
+}
+
+.card-body {
+    padding: 20px;
+}
+
+.row {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.col-md-6 {
+    flex: 1;
+    min-width: 300px;
+}
+</style>
+{% endblock %}

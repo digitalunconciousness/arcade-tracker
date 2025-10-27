@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Record Plays for {{ game.name }}</h1>
+
+{% if last_coin_count > 0 %}
+<div class="info-box" style="background: #17a2b8; color: white; padding: 10px; margin-bottom: 20px; border-radius: 5px;">
+    <strong>Last recorded coin count:</strong> {{ last_coin_count }}
+    <br>Enter the current coin count from the machine to calculate new plays.
+</div>
+{% endif %}
+
+<form method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+    <div class="form-group">
+        <label for="coin_count">Current Coin Count *</label>
+        <input type="number" id="coin_count" name="coin_count" required min="{{ last_coin_count }}" 
+               placeholder="e.g., 25087">
+        <small class="form-text">Enter the total coin count shown on the machine</small>
+    </div>
+    
+    <div class="form-group">
+        <label for="date">Date *</label>
+        <input type="date" id="date" name="date" required value="{{ today().strftime('%Y-%m-%d') }}">
+    </div>
+    
+    <div class="form-group">
+        <label for="notes">Notes (optional)</label>
+        <textarea id="notes" name="notes" rows="3" placeholder="Any notes about this play count..."></textarea>
+    </div>
+    
+    <div style="display: flex; gap: 10px; align-items: center; margin-top: 20px;">
+        <button type="submit" class="btn btn-success">📊 Record Plays</button>
+        <a href="{{ url_for('game_detail', game_id=game.id) }}" class="btn" style="background: #6c757d; color: white; text-decoration: none;">Cancel</a>
+    </div>
+</form>
+
+<script>
+    // Set today's date as default
+    document.addEventListener('DOMContentLoaded', function() {
+        const dateInput = document.getElementById('date');
+        if (!dateInput.value) {
+            const today = new Date().toISOString().split('T')[0];
+            dateInput.value = today;
+        }
+    });
+</script>
+{% endblock %}

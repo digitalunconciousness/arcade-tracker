@@ -1,0 +1,527 @@
+/* ================================================
+   MOBILE RESPONSIVE CSS FOR ARCADE TRACKER
+   Add this to your existing cyberpunk.css or create
+   a new responsive.css file and include it after
+   cyberpunk.css in base.html
+   ================================================ */
+
+/* ================================================
+   BASE MOBILE OPTIMIZATIONS
+   ================================================ */
+
+/* Prevent horizontal scroll */
+html, body {
+    overflow-x: hidden;
+    max-width: 100vw;
+}
+
+/* Make all containers responsive */
+* {
+    box-sizing: border-box;
+}
+
+/* ================================================
+   CONTAINER & LAYOUT
+   ================================================ */
+
+@media (max-width: 768px) {
+    .container {
+        padding: 10px !important;
+        margin: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+    
+    /* Reduce padding on page sections */
+    .page-header {
+        padding: 15px 0 !important;
+        margin-bottom: 15px !important;
+    }
+    
+    .page-header h1 {
+        font-size: 24px !important;
+        margin-bottom: 10px !important;
+    }
+    
+    .page-header p {
+        font-size: 14px !important;
+    }
+}
+
+/* ================================================
+   NAVIGATION - MOBILE MENU
+   ================================================ */
+
+@media (max-width: 968px) {
+    .nav {
+        flex-direction: column !important;
+        padding: 10px !important;
+    }
+    
+    .nav-links {
+        flex-direction: column !important;
+        width: 100% !important;
+        gap: 0 !important;
+    }
+    
+    .nav-links > a,
+    .nav-dropdown {
+        width: 100% !important;
+        display: block !important;
+        padding: 12px 15px !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+    }
+    
+    /* Dropdown menus on mobile */
+    .nav-dropdown-toggle::after {
+        content: ' ▾';
+        float: right;
+    }
+    
+    .nav-dropdown-menu {
+        position: static !important;
+        width: 100% !important;
+        box-shadow: none !important;
+        background: rgba(0, 0, 0, 0.3) !important;
+        margin-top: 0 !important;
+        padding-left: 20px !important;
+    }
+    
+    .nav-dropdown-menu a {
+        padding: 10px 15px !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+    }
+    
+    /* User dropdown */
+    .nav-user {
+        width: 100% !important;
+        margin-top: 10px !important;
+        border-top: 2px solid rgba(0, 217, 255, 0.3) !important;
+        padding-top: 10px !important;
+    }
+    
+    .user-dropdown {
+        width: 100% !important;
+    }
+    
+    .nav-dropdown-menu-right {
+        right: auto !important;
+        left: 0 !important;
+        width: 100% !important;
+    }
+}
+
+/* ================================================
+   TABLES - RESPONSIVE SCROLLING
+   ================================================ */
+
+@media (max-width: 968px) {
+    /* Wrapper for horizontal scroll */
+    .table-responsive {
+        display: block;
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        margin-bottom: 20px;
+    }
+    
+    /* Make tables scrollable if not wrapped */
+    table,
+    .maintenance-table {
+        display: block;
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        white-space: nowrap;
+    }
+    
+    /* Adjust table typography */
+    table th,
+    table td,
+    .maintenance-table th,
+    .maintenance-table td {
+        font-size: 12px !important;
+        padding: 8px 6px !important;
+    }
+    
+    /* Make specific columns more compact */
+    .maintenance-table .game-name {
+        max-width: 120px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    /* Hide less important columns on very small screens */
+    @media (max-width: 480px) {
+        .hide-mobile {
+            display: none !important;
+        }
+    }
+}
+
+/* Alternative: Card layout for tables on mobile */
+@media (max-width: 768px) {
+    .table-card-mobile {
+        display: block !important;
+    }
+    
+    .table-card-mobile thead {
+        display: none !important;
+    }
+    
+    .table-card-mobile tbody {
+        display: block !important;
+    }
+    
+    .table-card-mobile tr {
+        display: block !important;
+        margin-bottom: 15px !important;
+        padding: 15px !important;
+        background: rgba(0, 0, 0, 0.3) !important;
+        border-radius: 8px !important;
+        border: 1px solid rgba(0, 217, 255, 0.3) !important;
+    }
+    
+    .table-card-mobile td {
+        display: block !important;
+        text-align: left !important;
+        padding: 8px 0 !important;
+        border: none !important;
+    }
+    
+    .table-card-mobile td::before {
+        content: attr(data-label);
+        font-weight: bold;
+        display: inline-block;
+        width: 120px;
+        color: #00d9ff;
+    }
+}
+
+/* ================================================
+   FORMS & INPUTS
+   ================================================ */
+
+@media (max-width: 768px) {
+    /* Prevent iOS zoom on input focus */
+    input[type="text"],
+    input[type="password"],
+    input[type="email"],
+    input[type="number"],
+    input[type="date"],
+    select,
+    textarea,
+    .form-control {
+        font-size: 16px !important;
+        width: 100% !important;
+    }
+    
+    /* Stack form groups vertically */
+    .form-group {
+        margin-bottom: 15px !important;
+    }
+    
+    /* Make labels full width */
+    label {
+        display: block !important;
+        width: 100% !important;
+        margin-bottom: 5px !important;
+    }
+    
+    /* Full width buttons */
+    .btn,
+    .btn-primary,
+    .btn-secondary,
+    button[type="submit"],
+    input[type="submit"] {
+        width: 100% !important;
+        margin-bottom: 10px !important;
+        padding: 12px !important;
+    }
+    
+    /* Button groups stack vertically */
+    .button-group {
+        flex-direction: column !important;
+    }
+    
+    .button-group .btn {
+        margin-right: 0 !important;
+        margin-bottom: 10px !important;
+    }
+}
+
+/* ================================================
+   FILTERS & SEARCH
+   ================================================ */
+
+@media (max-width: 768px) {
+    .filters {
+        padding: 15px !important;
+        margin-bottom: 15px !important;
+    }
+    
+    .filters form {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 10px !important;
+    }
+    
+    .filters input,
+    .filters select {
+        width: 100% !important;
+        margin-bottom: 10px !important;
+    }
+    
+    /* Search bar */
+    .search-bar {
+        flex-direction: column !important;
+    }
+    
+    .search-bar input {
+        width: 100% !important;
+        margin-bottom: 10px !important;
+    }
+}
+
+/* ================================================
+   CARDS & GAME TILES
+   ================================================ */
+
+@media (max-width: 768px) {
+    /* Stack cards vertically */
+    .games-grid,
+    .card-grid {
+        grid-template-columns: 1fr !important;
+        gap: 15px !important;
+    }
+    
+    .game-card,
+    .card {
+        width: 100% !important;
+        margin-bottom: 15px !important;
+    }
+    
+    /* Adjust card images */
+    .game-card img {
+        max-height: 200px !important;
+        object-fit: cover !important;
+    }
+}
+
+/* ================================================
+   DASHBOARD STATS
+   ================================================ */
+
+@media (max-width: 768px) {
+    .stats-grid {
+        grid-template-columns: 1fr !important;
+        gap: 10px !important;
+    }
+    
+    .stat-card {
+        padding: 15px !important;
+    }
+    
+    .stat-card h3 {
+        font-size: 16px !important;
+    }
+    
+    .stat-card .stat-value {
+        font-size: 24px !important;
+    }
+}
+
+/* ================================================
+   ALERTS & NOTIFICATIONS
+   ================================================ */
+
+@media (max-width: 768px) {
+    .alert {
+        padding: 12px !important;
+        font-size: 14px !important;
+        margin-bottom: 10px !important;
+    }
+    
+    .flash-message {
+        font-size: 14px !important;
+        padding: 10px !important;
+    }
+}
+
+/* ================================================
+   MAINTENANCE RECORDS
+   ================================================ */
+
+@media (max-width: 768px) {
+    .maintenance-record {
+        padding: 15px !important;
+        margin-bottom: 15px !important;
+    }
+    
+    .work-log {
+        padding: 10px !important;
+        margin-bottom: 10px !important;
+    }
+    
+    /* Photo grid */
+    .photo-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 10px !important;
+    }
+}
+
+/* ================================================
+   BULK ACTIONS BAR
+   ================================================ */
+
+@media (max-width: 768px) {
+    .bulk-actions-bar {
+        flex-direction: column !important;
+        padding: 15px !important;
+        gap: 10px !important;
+    }
+    
+    .bulk-actions-bar .selected-count {
+        margin-bottom: 10px !important;
+    }
+    
+    .bulk-actions-bar select,
+    .bulk-actions-bar button {
+        width: 100% !important;
+    }
+}
+
+/* ================================================
+   MODALS & POPUPS
+   ================================================ */
+
+@media (max-width: 768px) {
+    .modal-content {
+        width: 95% !important;
+        margin: 10px auto !important;
+        padding: 20px !important;
+    }
+    
+    .modal-header h2 {
+        font-size: 20px !important;
+    }
+}
+
+/* ================================================
+   CHARTS & GRAPHS
+   ================================================ */
+
+@media (max-width: 768px) {
+    canvas {
+        max-width: 100% !important;
+        height: auto !important;
+    }
+    
+    .chart-container {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+    }
+}
+
+/* ================================================
+   FLOATING ACTION BUTTONS
+   ================================================ */
+
+@media (max-width: 768px) {
+    .theme-toggle {
+        width: 50px !important;
+        height: 50px !important;
+        bottom: 20px !important;
+        right: 20px !important;
+        font-size: 22px !important;
+    }
+    
+    #installPrompt {
+        bottom: 85px !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        width: 90% !important;
+        max-width: 300px !important;
+        padding: 12px 20px !important;
+    }
+    
+    #installPrompt button {
+        font-size: 13px !important;
+        padding: 8px 12px !important;
+    }
+}
+
+/* ================================================
+   UTILITY CLASSES
+   ================================================ */
+
+/* Hide on mobile */
+@media (max-width: 768px) {
+    .desktop-only {
+        display: none !important;
+    }
+}
+
+/* Show only on mobile */
+.mobile-only {
+    display: none !important;
+}
+
+@media (max-width: 768px) {
+    .mobile-only {
+        display: block !important;
+    }
+}
+
+/* Text sizing */
+@media (max-width: 768px) {
+    .text-sm-mobile {
+        font-size: 12px !important;
+    }
+    
+    .text-md-mobile {
+        font-size: 14px !important;
+    }
+    
+    .text-lg-mobile {
+        font-size: 16px !important;
+    }
+}
+
+/* Spacing utilities */
+@media (max-width: 768px) {
+    .p-mobile-0 { padding: 0 !important; }
+    .p-mobile-1 { padding: 5px !important; }
+    .p-mobile-2 { padding: 10px !important; }
+    .p-mobile-3 { padding: 15px !important; }
+    
+    .m-mobile-0 { margin: 0 !important; }
+    .m-mobile-1 { margin: 5px !important; }
+    .m-mobile-2 { margin: 10px !important; }
+    .m-mobile-3 { margin: 15px !important; }
+}
+
+/* ================================================
+   PRINT STYLES
+   ================================================ */
+
+@media print {
+    .nav,
+    .theme-toggle,
+    #installPrompt,
+    .filters,
+    .btn,
+    button {
+        display: none !important;
+    }
+    
+    body {
+        background: white !important;
+        color: black !important;
+    }
+    
+    .container {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+}

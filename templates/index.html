@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1 class="glitch" data-text="SYSTEM CONTROL CENTER">SYSTEM CONTROL CENTER</h1>
+
+<div class="stats">
+    <div class="stat-card">
+        <span class="stat-number">{{ total_games }}</span>
+        <div class="stat-label">Total Games</div>
+    </div>
+    <div class="stat-card">
+        <span class="stat-number">{{ floor_games|length }}</span>
+        <div class="stat-label">Games on Floor</div>
+    </div>
+    {% if current_user.has_role('manager') %}
+    <div class="stat-card">
+        <span class="stat-number">${{ "%.2f"|format(total_revenue) }}</span>
+        <div class="stat-label">Total Revenue</div>
+    </div>
+    {% endif %}
+    <div class="stat-card">
+        <span class="stat-number">{{ total_plays }}</span>
+        <div class="stat-label">Total Plays</div>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin: 30px 0;">
+    <div class="card">
+        {% if current_user.has_role('manager') %}
+            <h2>🚨 Critical Systems - Require Attention</h2>
+            {% if worst_performers %}
+            <table class="table critical-table">
+                <thead>
+                    <tr>
+                        <th>Game Name</th>
+                        <th>Daily Revenue</th>
+                        <th>Total Revenue</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for game, daily_rev in worst_performers %}
+                    <tr class="performance-bad">
+                        <td><a href="{{ url_for('game_detail', game_id=game.id) }}">{{ game.name }}</a></td>
+                        <td class="revenue-text" style="color: #ff6666;">${{ "%.2f"|format(daily_rev) }}</td>
+                        <td class="revenue-text" style="color: #ff6666;">${{ "%.2f"|format(game.total_revenue) }}</td>
+                        <td>
+                            {% if current_user.has_role('manager') %}
+                                <a href="{{ url_for('record_plays', game_id=game.id) }}" class="btn btn-success" style="font-size: 12px; padding: 5px 10px;">Record Plays</a>
+                            {% else %}
+                                <a href="{{ url_for('game_detail', game_id=game.id) }}" class="btn" style="font-size: 12px; padding: 5px 10px;">View Game</a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p>No floor games to analyze yet.</p>
+            {% endif %}
+        {% else %}
+            <h2>📝 Recent Activities</h2>
+            {% if recent_records %}
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Game</th>
+                        <th>Plays Added</th>
+                        <th>Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in recent_records[:5] %}
+                    <tr>
+                        <td><a href="{{ url_for('game_detail', game_id=record.game_id) }}">{{ record.game.name }}</a></td>
+                        <td>{{ record.plays_count }} plays</td>
+                        <td>{{ record.date_recorded.strftime('%Y-%m-%d') }}</td>
+                        <td>
+                            {% if current_user.has_role('manager') %}
+                                <a href="{{ url_for('record_plays', game_id=record.game_id) }}" class="btn btn-success" style="font-size: 12px; padding: 5px 10px;">Record More</a>
+                            {% else %}
+                                <a href="{{ url_for('game_detail', game_id=record.game_id) }}" class="btn" style="font-size: 12px; padding: 5px 10px;">View Game</a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p>No recent play records. Start recording some plays!</p>
+            {% endif %}
+        {% endif %}
+    </div>
+    
+    <div class="card">
+        <h2>⚡ Active Floor Systems</h2>
+        {% if floor_games %}
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Game Name</th>
+                    <th>Position</th>
+                    {% if current_user.has_role('manager') %}<th>Revenue</th>{% endif %}
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for game in floor_games[:10] %}
+                <tr>
+                    <td><a href="{{ url_for('game_detail', game_id=game.id) }}">{{ game.name }}</a></td>
+                    <td>{{ game.floor_position or 'Not Set' }}</td>
+                    {% if current_user.has_role('manager') %}<td>${{ "%.2f"|format(game.total_revenue) }}</td>{% endif %}
+                    <td>
+                        <span style="color: {{ 'green' if game.status == 'Working' else 'red' if game.status == 'Not_Working' else 'orange' }}">
+                            {{ game.status.replace('_', ' ') }}
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p>No games on the floor. <a href="{{ url_for('add_game') }}">Add games and set them to Floor location!</a></p>
+        {% endif %}
+    </div>
+</div>
+
+{% if current_user.has_role('manager') %}
+<div style="text-align: center; margin: 40px 0;">
+    <a href="{{ url_for('graphs') }}" class="btn btn-success" style="font-size: 18px; padding: 15px 30px; margin: 10px;">📈 System Analytics</a>
+    <a href="{{ url_for('reports') }}" class="btn" style="font-size: 18px; padding: 15px 30px; margin: 10px;">📄 Detailed Reports</a>
+    <a href="{{ url_for('export_report') }}" class="btn btn-warning" style="font-size: 18px; padding: 15px 30px; margin: 10px;">💾 Export Data</a>
+</div>
+{% endif %}
+{% endblock %}

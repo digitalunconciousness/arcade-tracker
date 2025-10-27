@@ -1,0 +1,10 @@
+# Additional requirements for cloud storage functionality
+# Install with: pip install -r requirements_cloud.txt
+
+# AWS S3 Support
+boto3>=1.28.0
+botocore>=1.31.0
+
+# Alternative cloud providers (choose one)
+# google-cloud-storage>=2.10.0  # For Google Cloud Storage
+# azure-storage-blob>=12.17.0   # For Azure Blob Storage

@@ -1,0 +1,241 @@
+{% extends "base.html" %}
+
+{% block title %}Add Inventory Item - Arcade Tracker{% endblock %}
+
+{% block content %}
+<div class="header-section">
+    <h1>📦 Add Inventory Item</h1>
+    <div class="header-actions">
+        <a href="{{ url_for('inventory_list') }}" class="btn btn-secondary">← Back to Inventory</a>
+    </div>
+</div>
+
+<form method="POST" class="form-container">
+    {{ form.hidden_tag() }}
+    
+    <div class="form-section">
+        <h2>Basic Information</h2>
+        
+        <div class="form-group">
+            {{ form.name.label(class="form-label") }}
+            {{ form.name(class="form-input") }}
+            {% if form.name.errors %}
+                <div class="form-errors">
+                    {% for error in form.name.errors %}
+                        <span class="error">{{ error }}</span>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+        
+        <div class="form-group">
+            {{ form.description.label(class="form-label") }}
+            {{ form.description(class="form-input", rows=3) }}
+            {% if form.description.errors %}
+                <div class="form-errors">
+                    {% for error in form.description.errors %}
+                        <span class="error">{{ error }}</span>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="form-section">
+        <h2>Stock & Pricing</h2>
+        
+        <div class="form-row">
+            <div class="form-group">
+                {{ form.stock_quantity.label(class="form-label") }}
+                {{ form.stock_quantity(class="form-input") }}
+                {% if form.stock_quantity.errors %}
+                    <div class="form-errors">
+                        {% for error in form.stock_quantity.errors %}
+                            <span class="error">{{ error }}</span>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                {{ form.minimum_stock.label(class="form-label") }}
+                {{ form.minimum_stock(class="form-input") }}
+                {% if form.minimum_stock.errors %}
+                    <div class="form-errors">
+                        {% for error in form.minimum_stock.errors %}
+                            <span class="error">{{ error }}</span>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                {{ form.unit_price.label(class="form-label") }}
+                {{ form.unit_price(class="form-input", step="0.01") }}
+                {% if form.unit_price.errors %}
+                    <div class="form-errors">
+                        {% for error in form.unit_price.errors %}
+                            <span class="error">{{ error }}</span>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="form-section">
+        <h2>Supplier Information</h2>
+        
+        <div class="form-row">
+            <div class="form-group">
+                {{ form.supplier.label(class="form-label") }}
+                {{ form.supplier(class="form-input") }}
+                {% if form.supplier.errors %}
+                    <div class="form-errors">
+                        {% for error in form.supplier.errors %}
+                            <span class="error">{{ error }}</span>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                {{ form.part_number.label(class="form-label") }}
+                {{ form.part_number(class="form-input") }}
+                {% if form.part_number.errors %}
+                    <div class="form-errors">
+                        {% for error in form.part_number.errors %}
+                            <span class="error">{{ error }}</span>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="form-section">
+        <h2>Game Compatibility</h2>
+        
+        <div class="form-group">
+            {{ form.compatible_games.label(class="form-label") }}
+            <div class="multi-select-container">
+                {{ form.compatible_games(class="form-input", multiple=true, size=8) }}
+            </div>
+            <small class="form-help">Hold Ctrl (Cmd on Mac) to select multiple games</small>
+            {% if form.compatible_games.errors %}
+                <div class="form-errors">
+                    {% for error in form.compatible_games.errors %}
+                        <span class="error">{{ error }}</span>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="form-section">
+        <h2>Additional Notes</h2>
+        
+        <div class="form-group">
+            {{ form.notes.label(class="form-label") }}
+            {{ form.notes(class="form-input", rows=3) }}
+            {% if form.notes.errors %}
+                <div class="form-errors">
+                    {% for error in form.notes.errors %}
+                        <span class="error">{{ error }}</span>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="form-actions">
+        {{ form.submit(class="btn btn-primary") }}
+        <a href="{{ url_for('inventory_list') }}" class="btn btn-secondary">Cancel</a>
+    </div>
+</form>
+
+<style>
+.form-container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.form-section {
+    background: var(--card-bg);
+    border-radius: 8px;
+    padding: 24px;
+    margin-bottom: 24px;
+    border: 1px solid var(--border-color);
+}
+
+.form-section h2 {
+    margin: 0 0 20px 0;
+    color: var(--primary-color);
+    border-bottom: 2px solid var(--primary-color);
+    padding-bottom: 8px;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+}
+
+.form-group {
+    margin-bottom: 16px;
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+.form-input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: var(--input-bg);
+    color: var(--text-color);
+    font-size: 14px;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.multi-select-container select {
+    height: auto !important;
+}
+
+.form-help {
+    display: block;
+    margin-top: 4px;
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+
+.form-errors {
+    margin-top: 4px;
+}
+
+.form-errors .error {
+    display: block;
+    color: var(--error-color);
+    font-size: 12px;
+}
+
+.form-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    padding-top: 24px;
+    border-top: 1px solid var(--border-color);
+    margin-top: 24px;
+}
+</style>
+{% endblock %}

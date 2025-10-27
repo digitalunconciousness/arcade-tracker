@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Inventory Requests</h1>
+
+<div style="margin: 20px 0;">
+    <a href="{{ url_for('request_inventory') }}" class="btn btn-success">+ New Request</a>
+    <a href="{{ url_for('inventory_list') }}" class="btn" style="background: #6c757d; color: white; text-decoration: none;">Back to Inventory</a>
+</div>
+
+<!-- Pending Requests -->
+<h2>Pending Requests ({{ pending_requests|length }})</h2>
+
+{% if pending_requests %}
+<table class="table">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Item</th>
+            <th>Quantity</th>
+            <th>Urgency</th>
+            <th>Requested By</th>
+            <th>Date</th>
+            <th>Reason</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for req in pending_requests %}
+        <tr>
+            <td>#{{ req.id }}</td>
+            <td>
+                {{ req.item_name }}
+                {% if not req.item_id %}
+                    <span style="color: var(--neon-orange); font-size: 10px;">(NEW ITEM)</span>
+                {% endif %}
+            </td>
+            <td>{{ req.quantity_requested }}</td>
+            <td>
+                {% if req.urgency == 'Urgent' %}
+                    <span style="color: #ff4444; font-weight: bold;">⚠️ URGENT</span>
+                {% elif req.urgency == 'High' %}
+                    <span style="color: #ffaa00; font-weight: bold;">High</span>
+                {% elif req.urgency == 'Normal' %}
+                    <span style="color: var(--neon-cyan);">Normal</span>
+                {% else %}
+                    <span style="color: #888;">Low</span>
+                {% endif %}
+            </td>
+            <td>{{ req.requested_by.username }}</td>
+            <td>{{ req.date_requested.strftime('%Y-%m-%d') }}</td>
+            <td style="max-width: 200px;">{{ req.reason or '-' }}</td>
+            <td style="white-space: nowrap;">
+                <div style="display: flex; gap: 4px;">
+                    {% if current_user.role in ['admin', 'manager'] %}
+                        <!-- Manager/Admin controls -->
+                        <button onclick="openUpdateModal({{ req.id }}, '{{ req.item_name }}', {{ req.quantity_requested }})" 
+                                class="btn" style="background: var(--neon-purple); font-size: 10px; padding: 4px 8px;">
+                            Update
+                        </button>
+                    {% endif %}
+                    
+                    {% if req.requested_by_id == current_user.id %}
+                        <!-- User can delete their own pending requests -->
+                        <form method="POST" action="{{ url_for('delete_inventory_request', request_id=req.id) }}" style="display: inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                            <button type="submit" onclick="return confirm('Delete this request?')" 
+                                    class="btn" style="background: #ff4444; color: white; font-size: 10px; padding: 4px 8px;">
+                                Delete
+                            </button>
+                        </form>
+                    {% endif %}
+                </div>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>No pending requests.</p>
+{% endif %}
+
+<!-- All Requests History -->
+<h2 style="margin-top: 40px;">Request History</h2>
+
+{% if all_requests %}
+<table class="table">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Item</th>
+            <th>Quantity</th>
+            <th>Status</th>
+            <th>Requested By</th>
+            <th>Date Requested</th>
+            <th>Date Fulfilled</th>
+            <th>Notes</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for req in all_requests %}
+        <tr>
+            <td>#{{ req.id }}</td>
+            <td>{{ req.item_name }}</td>
+            <td>{{ req.quantity_requested }}</td>
+            <td>
+                {% if req.status == 'Pending' %}
+                    <span style="color: #ffaa00;">⏳ Pending</span>
+                {% elif req.status == 'Approved' %}
+                    <span style="color: var(--neon-cyan);">✓ Approved</span>
+                {% elif req.status == 'Ordered' %}
+                    <span style="color: var(--neon-purple);">📦 Ordered</span>
+                {% elif req.status == 'Received' %}
+                    <span style="color: var(--neon-green);">✅ Received</span>
+                {% elif req.status == 'Rejected' %}
+                    <span style="color: #ff4444;">✗ Rejected</span>
+                {% endif %}
+            </td>
+            <td>{{ req.requested_by.username }}</td>
+            <td>{{ req.date_requested.strftime('%Y-%m-%d') }}</td>
+            <td>{{ req.date_fulfilled.strftime('%Y-%m-%d') if req.date_fulfilled else '-' }}</td>
+            <td style="max-width: 200px;">{{ req.notes or '-' }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>No request history.</p>
+{% endif %}
+
+<!-- Update Request Modal (for managers/admins) -->
+<div id="updateModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000;">
+    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--dark-card); padding: 30px; border-radius: 8px; border: 2px solid var(--neon-cyan); max-width: 500px; width: 90%;">
+        <h3>Update Request</h3>
+        <p><strong>Item:</strong> <span id="modalItemName"></span></p>
+        <p><strong>Quantity:</strong> <span id="modalQuantity"></span></p>
+        
+        <form id="updateForm" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <div class="form-group">
+                <label for="modalStatus">Status *</label>
+                <select id="modalStatus" name="status" required>
+                    <option value="Pending">Pending</option>
+                    <option value="Approved">Approved</option>
+                    <option value="Ordered">Ordered</option>
+                    <option value="Received">Received</option>
+                    <option value="Rejected">Rejected</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="modalNotes">Notes</label>
+                <textarea id="modalNotes" name="notes" rows="3" placeholder="Add notes about this request..."></textarea>
+            </div>
+            
+            <div style="text-align: right; margin-top: 20px;">
+                <button type="button" onclick="closeUpdateModal()" class="btn" style="background: #6c757d; margin-right: 10px;">Cancel</button>
+                <button type="submit" class="btn btn-success">Update</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openUpdateModal(requestId, itemName, quantity) {
+    document.getElementById('modalItemName').textContent = itemName;
+    document.getElementById('modalQuantity').textContent = quantity;
+    document.getElementById('updateForm').action = `/inventory/requests/${requestId}/update`;
+    document.getElementById('updateModal').style.display = 'block';
+}
+
+function closeUpdateModal() {
+    document.getElementById('updateModal').style.display = 'none';
+}
+</script>
+{% endblock %}

@@ -1,0 +1,307 @@
+{% extends "base.html" %}
+
+{% block title %}Login - Arcade Tracker{% endblock %}
+
+{% block content %}
+<div class="background-animated">
+    <div class="auth-container">
+        <div class="auth-form glass">
+            <h2 class="glow-title">🎮 Sign In</h2>
+            <form method="POST">
+                {{ form.hidden_tag() }}
+                
+                <div class="form-group">
+                    {{ form.username.label(class="form-label") }}
+                    {{ form.username(class="form-control") }}
+                    {% for error in form.username.errors %}
+                        <span class="error">{{ error }}</span>
+                    {% endfor %}
+                </div>
+                
+                <div class="form-group">
+                    {{ form.password.label(class="form-label") }}
+                    {{ form.password(class="form-control") }}
+                    {% for error in form.password.errors %}
+                        <span class="error">{{ error }}</span>
+                    {% endfor %}
+                </div>
+
+                <!-- Remember Me Checkbox -->
+                <div class="form-group form-check">
+                    {{ form.remember(class="form-check-input") }}
+                    {{ form.remember.label(class="form-check-label") }}
+                </div>
+                
+                <div class="form-group">
+                    {{ form.submit(class="btn btn-primary") }}
+                </div>
+            </form>
+            
+            <div class="auth-help">
+                <p>Need an account? Contact your administrator.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* === Background Animation === */
+.background-animated {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(-45deg, #001020, #001830, #002040, #001830, #001020);
+    background-size: 400% 400%;
+    animation: backgroundShift 20s ease infinite;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+@keyframes backgroundShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* === Layout === */
+.auth-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 60vh;
+    padding: 20px;
+}
+
+/* === Glass Form with Neon Pulse === */
+.auth-form {
+    background: rgba(0, 20, 40, 0.4);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    padding: 40px;
+    border-radius: 12px;
+    border: 2px solid #00ffff;
+    box-shadow: 0 0 25px rgba(0, 255, 255, 0.3);
+    max-width: 400px;
+    width: 100%;
+    position: relative;
+    animation: borderPulse 3s infinite alternate;
+}
+
+.auth-form.glass::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 12px;
+    background: linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.2) 0%,
+        rgba(255, 255, 255, 0) 30%,
+        rgba(255, 255, 255, 0) 70%,
+        rgba(255, 255, 255, 0.15) 100%
+    );
+    pointer-events: none;
+    opacity: 0.6;
+}
+
+/* === Neon Border Pulse === */
+@keyframes borderPulse {
+    0% {
+        border-color: #00ffff;
+        box-shadow: 0 0 15px rgba(0, 255, 255, 0.3), 0 0 25px rgba(255, 0, 255, 0.2);
+    }
+    100% {
+        border-color: #ff00ff;
+        box-shadow: 0 0 25px rgba(255, 0, 255, 0.5), 0 0 45px rgba(0, 255, 255, 0.4);
+    }
+}
+
+/* === Title Glow + Shimmer Sweep === */
+.glow-title {
+    text-align: center;
+    color: #00ffff;
+    margin-bottom: 30px;
+    position: relative;
+    text-shadow: 0 0 10px rgba(0, 255, 255, 0.6);
+    animation: titleGlow 3s infinite alternate;
+    overflow: hidden;
+}
+
+@keyframes titleGlow {
+    0% {
+        color: #00ffff;
+        text-shadow: 0 0 8px rgba(0, 255, 255, 0.6), 0 0 15px rgba(0, 255, 255, 0.4);
+    }
+    100% {
+        color: #ff00ff;
+        text-shadow: 0 0 12px rgba(255, 0, 255, 0.8), 0 0 25px rgba(255, 0, 255, 0.5);
+    }
+}
+
+/* Shimmer sweep effect */
+.glow-title::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -75%;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(
+        120deg,
+        rgba(255, 255, 255, 0.0) 0%,
+        rgba(255, 255, 255, 0.3) 50%,
+        rgba(255, 255, 255, 0.0) 100%
+    );
+    transform: skewX(-20deg);
+    animation: titleShimmer 5s infinite;
+}
+
+@keyframes titleShimmer {
+    0% { left: -75%; }
+    30% { left: 125%; }
+    100% { left: 125%; }
+}
+
+/* === Form Fields === */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-label {
+    display: block;
+    color: #00ffff;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.form-control {
+    width: 100%;
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.7);
+    border: 1px solid #00ffff;
+    border-radius: 6px;
+    color: #ffffff;
+    font-size: 16px;
+    transition: all 0.3s ease;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: #ff00ff;
+    box-shadow: 0 0 10px rgba(255, 0, 255, 0.4);
+}
+
+/* === Perfect Square Remember Me Checkbox === */
+.form-check {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 20px;
+}
+
+.form-check-input {
+    all: unset;
+    width: 20px;
+    height: 20px;
+    flex: 0 0 20px;
+    border: 2px solid #00ffff;
+    border-radius: 4px;
+    background-color: rgba(0, 0, 0, 0.8);
+    display: inline-block;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-sizing: border-box;
+    vertical-align: middle;
+}
+
+.form-check-input:hover {
+    box-shadow: 0 0 6px rgba(255, 0, 255, 0.4);
+}
+
+.form-check-input:checked {
+    background: linear-gradient(45deg, #00ffff, #ff00ff);
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.6);
+}
+
+.form-check-input:checked::after {
+    content: '✓';
+    position: absolute;
+    top: 1px;
+    left: 4px;
+    font-size: 14px;
+    color: #000;
+    text-shadow: 0 0 6px rgba(255, 255, 255, 0.8);
+}
+
+.form-check-label {
+    color: #00ffff;
+    font-weight: 600;
+    text-shadow: 0 0 6px rgba(0, 255, 255, 0.4);
+    cursor: pointer;
+    user-select: none;
+    margin: 0;
+    line-height: 1;
+}
+
+/* === Button Styling === */
+.btn {
+    padding: 12px 30px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    text-transform: uppercase;
+    transition: all 0.3s ease;
+}
+
+.btn-primary {
+    background: linear-gradient(45deg, #00ffff, #ff00ff) !important;
+    color: #000 !important;
+    width: 100%;
+    text-shadow: none !important;
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+    animation: pulseGlow 2.5s infinite alternate;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 30px rgba(255, 0, 255, 0.8);
+}
+
+@keyframes pulseGlow {
+    0% {
+        box-shadow: 0 0 10px rgba(0, 255, 255, 0.4),
+                    0 0 20px rgba(255, 0, 255, 0.3);
+        filter: brightness(1);
+    }
+    100% {
+        box-shadow: 0 0 25px rgba(0, 255, 255, 0.8),
+                    0 0 45px rgba(255, 0, 255, 0.7);
+        filter: brightness(1.2);
+    }
+}
+
+/* === Misc === */
+.auth-help {
+    text-align: center;
+    margin-top: 20px;
+    color: #888;
+    font-size: 14px;
+}
+
+.error {
+    color: #ff3366;
+    font-size: 14px;
+    display: block;
+    margin-top: 5px;
+}
+</style>
+{% endblock %}

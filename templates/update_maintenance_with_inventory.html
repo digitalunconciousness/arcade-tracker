@@ -1,0 +1,234 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>🔧 Work Order #{{ maintenance.id }}: {{ maintenance.game.name }}</h1>
+
+<div style="background: var(--dark-card); padding: 20px; border-radius: 8px; border: 1px solid var(--neon-cyan); margin-bottom: 30px;">
+    <h3>📋 Original Request</h3>
+    <p><strong>Reported:</strong> {{ maintenance.date_reported.strftime('%Y-%m-%d %H:%M') }}</p>
+    <p><strong>Issue:</strong> {{ maintenance.issue_description }}</p>
+    {% if maintenance.fix_description %}
+    <p><strong>Current Diagnosis:</strong> {{ maintenance.fix_description }}</p>
+    {% endif %}
+    {% if maintenance.work_logs %}
+    <p><strong>Previous Work Entries:</strong> {{ maintenance.work_logs|length }} entries logged</p>
+    <a href="{{ url_for('view_maintenance', maintenance_id=maintenance.id) }}" class="btn" style="background: var(--neon-purple); font-size: 12px; padding: 5px 10px; margin-top: 10px;">📋 View All Work History</a>
+    {% endif %}
+</div>
+
+<div style="background: var(--dark-card); padding: 20px; border-radius: 8px; border: 1px solid var(--neon-orange); margin-bottom: 20px;">
+    <h3 style="color: var(--neon-orange); margin-top: 0;">➕ Log New Work Entry</h3>
+    <p style="color: var(--text-secondary); margin-bottom: 0;">Each time you update this form, a new timestamped work entry will be created.</p>
+</div>
+
+<form method="POST">
+    {% if config.WTF_CSRF_ENABLED %}
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+    {% endif %}
+    <div class="form-group">
+        <label for="status">Current Status *</label>
+        <select id="status" name="status" required>
+            <option value="Open" {{ 'selected' if maintenance.status == 'Open' else '' }}>Open</option>
+            <option value="In_Progress" {{ 'selected' if maintenance.status == 'In_Progress' else '' }}>In Progress</option>
+            <option value="Fixed" {{ 'selected' if maintenance.status == 'Fixed' else '' }}>Fixed</option>
+            <option value="Deferred" {{ 'selected' if maintenance.status == 'Deferred' else '' }}>Deferred</option>
+        </select>
+    </div>
+    
+    <div class="form-group">
+        <label for="technician">Assigned Technician</label>
+        <input type="text" id="technician" name="technician" value="{{ maintenance.technician or '' }}" placeholder="Who is working on this?">
+    </div>
+    
+    <div class="form-group">
+        <label for="fix_description">Updated Diagnosis / Assessment</label>
+        <textarea id="fix_description" name="fix_description" rows="3" placeholder="Update your diagnosis as you learn more...">{{ maintenance.fix_description or '' }}</textarea>
+        <small style="color: var(--text-secondary); font-size: 12px;">Initial assessment - what you think is wrong</small>
+    </div>
+    
+    <div class="form-group">
+        <label for="work_notes">Work Description *</label>
+        <textarea id="work_notes" name="work_notes" rows="5" placeholder="What work did you perform during this session? Be specific about steps taken, problems found, solutions tried..." required></textarea>
+        <small style="color: var(--text-secondary); font-size: 12px;">📝 This will create a new timestamped work log entry</small>
+    </div>
+    
+    <div class="form-group">
+        <label for="parts_used">Parts / Materials Used (This Session)</label>
+        <textarea id="parts_used" name="parts_used" rows="3" placeholder="List any parts, components, or materials used during this work session..."></textarea>
+        <small style="color: var(--text-secondary); font-size: 12px;">🔧 Include part numbers, quantities, suppliers if applicable to this work session</small>
+    </div>
+    
+    <!-- Inventory Selection Section -->
+    <div style="background: var(--dark-card); padding: 20px; border-radius: 8px; border: 1px solid var(--neon-green); margin: 20px 0;">
+        <h3 style="color: var(--neon-green); margin-top: 0;">📦 Inventory Items Used</h3>
+        <p style="color: var(--text-secondary); margin-bottom: 15px;">Select inventory items used during this work session. Stock will be automatically updated.</p>
+        
+        <div id="inventory-items">
+            {% for i in range(5) %}
+            <div class="inventory-item-row" style="display: flex; gap: 15px; margin-bottom: 15px; align-items: end;">
+                <div style="flex: 2;">
+                    <label for="inventory_item_{{ i }}">Item {{ i + 1 }}</label>
+                    <select id="inventory_item_{{ i }}" name="inventory_item_{{ i }}" onchange="updateItemInfo({{ i }})">
+                        <option value="">-- Select Item --</option>
+                        {% for item in inventory_items %}
+                        <option value="{{ item.id }}" data-stock="{{ item.stock_quantity }}" data-price="{{ item.unit_price }}">
+                            {{ item.name }} (Stock: {{ item.stock_quantity }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div style="flex: 1;">
+                    <label for="inventory_quantity_{{ i }}">Quantity</label>
+                    <input type="number" id="inventory_quantity_{{ i }}" name="inventory_quantity_{{ i }}" min="0" max="999" placeholder="0">
+                </div>
+                <div style="flex: 1;">
+                    <label>Available</label>
+                    <div id="available_{{ i }}" style="padding: 8px; color: var(--text-secondary); font-size: 12px;">-</div>
+                </div>
+                <div style="flex: 1;">
+                    <label>Est. Cost</label>
+                    <div id="cost_{{ i }}" style="padding: 8px; color: var(--neon-yellow); font-size: 12px;">$0.00</div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <div style="text-align: right; margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--neon-green);">
+            <strong style="color: var(--neon-yellow);">Total Inventory Cost: <span id="total-cost">$0.00</span></strong>
+        </div>
+    </div>
+    
+    <div class="form-row" style="display: flex; gap: 20px;">
+        <div class="form-group" style="flex: 1;">
+            <label for="time_spent">Time Spent (Hours)</label>
+            <input type="number" id="time_spent" name="time_spent" step="0.25" min="0" placeholder="2.5">
+            <small style="color: var(--text-secondary); font-size: 12px;">⏱️ How long did this work session take?</small>
+        </div>
+        
+        <div class="form-group" style="flex: 1;">
+            <label for="work_cost">Cost for This Work ($)</label>
+            <input type="number" id="work_cost" name="work_cost" step="0.01" min="0" placeholder="25.50">
+            <small style="color: var(--text-secondary); font-size: 12px;">💰 Cost incurred during this specific work session</small>
+        </div>
+    </div>
+    
+    <div class="form-group">
+        <label for="cost">Update Total Order Cost ($)</label>
+        <input type="number" id="cost" name="cost" step="0.01" min="0" value="{{ maintenance.cost or '' }}" placeholder="Total cumulative cost">
+        <small style="color: var(--text-secondary); font-size: 12px;">🧾 Overall cost for the entire work order (inventory costs will be added automatically)</small>
+    </div>
+    
+    <div style="display: flex; gap: 10px; align-items: center; margin-top: 20px;">
+        <button type="submit" class="btn btn-warning">📝 Log Work Entry</button>
+        <a href="{{ url_for('maintenance_orders') }}" class="btn" style="background: #6c757d; color: white; text-decoration: none;">Cancel</a>
+        <a href="{{ url_for('game_detail', game_id=maintenance.game_id) }}" class="btn" style="background: var(--neon-cyan); color: black; text-decoration: none;">View Game</a>
+    </div>
+</form>
+
+<script>
+function updateItemInfo(index) {
+    const select = document.getElementById(`inventory_item_${index}`);
+    const quantityInput = document.getElementById(`inventory_quantity_${index}`);
+    const availableDiv = document.getElementById(`available_${index}`);
+    const costDiv = document.getElementById(`cost_${index}`);
+    
+    if (select.value) {
+        const option = select.selectedOptions[0];
+        const stock = parseInt(option.dataset.stock);
+        const price = parseFloat(option.dataset.price);
+        
+        availableDiv.textContent = stock;
+        quantityInput.max = stock;
+        
+        // Update cost when quantity changes
+        quantityInput.oninput = function() {
+            const quantity = parseInt(this.value) || 0;
+            const cost = quantity * price;
+            costDiv.textContent = `$${cost.toFixed(2)}`;
+            updateTotalCost();
+        };
+        
+        // Reset quantity and cost
+        quantityInput.value = '';
+        costDiv.textContent = '$0.00';
+    } else {
+        availableDiv.textContent = '-';
+        costDiv.textContent = '$0.00';
+        quantityInput.max = 999;
+        quantityInput.oninput = null;
+    }
+    updateTotalCost();
+}
+
+function updateTotalCost() {
+    let total = 0;
+    for (let i = 0; i < 5; i++) {
+        const costDiv = document.getElementById(`cost_${i}`);
+        const costText = costDiv.textContent.replace('$', '');
+        const cost = parseFloat(costText) || 0;
+        total += cost;
+    }
+    document.getElementById('total-cost').textContent = `$${total.toFixed(2)}`;
+}
+</script>
+
+<style>
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 700;
+    color: var(--neon-cyan);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    text-shadow: 0 0 5px var(--neon-cyan);
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--neon-cyan);
+    border-radius: 4px;
+    background: var(--dark-card);
+    color: var(--text-primary);
+    font-family: 'Share Tech Mono', monospace;
+    transition: all 0.3s ease;
+    box-sizing: border-box;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: var(--neon-pink);
+    box-shadow: 0 0 15px rgba(255, 0, 255, 0.5);
+}
+
+.form-group small {
+    display: block;
+    margin-top: 5px;
+    font-style: italic;
+}
+
+textarea {
+    resize: vertical;
+    min-height: 60px;
+}
+
+.inventory-item-row select,
+.inventory-item-row input {
+    font-size: 12px;
+    padding: 8px;
+}
+
+.inventory-item-row label {
+    font-size: 12px;
+    margin-bottom: 4px;
+}
+</style>
+{% endblock %}

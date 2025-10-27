@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}User Profile{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h4>Profile Information</h4>
+                </div>
+                <div class="card-body text-center">
+                    {% if current_user.profile_picture %}
+                        <img src="{{ url_for('static', filename='profile_pics/' + current_user.profile_picture) }}" 
+                             alt="Profile Picture" 
+                             class="img-thumbnail rounded-circle mb-3"
+                             style="width: 150px; height: 150px; object-fit: cover;">
+                    {% else %}
+                        <div class="bg-secondary rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center" 
+                             style="width: 150px; height: 150px;">
+                            <i class="fas fa-user fa-5x text-white"></i>
+                        </div>
+                    {% endif %}
+                    
+                    <h5>{{ current_user.username }}</h5>
+                    <p class="text-muted">{{ current_user.role.title() }}</p>
+                    
+                    <div class="row text-center">
+                        <div class="col">
+                            <small class="text-muted">Member Since</small><br>
+                            <strong>{{ current_user.created_at.strftime('%b %d, %Y') }}</strong>
+                        </div>
+                        <div class="col">
+                            <small class="text-muted">Last Login</small><br>
+                            <strong>
+                                {% if current_user.last_login %}
+                                    {{ current_user.last_login.strftime('%b %d, %Y') }}
+                                {% else %}
+                                    Never
+                                {% endif %}
+                            </strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4>Update Profile</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST" enctype="multipart/form-data">
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="form-group">
+                            {{ form.profile_picture.label(class="form-label") }}
+                            {{ form.profile_picture(class="form-control-file") }}
+                            {% for error in form.profile_picture.errors %}
+                                <div class="text-danger">{{ error }}</div>
+                            {% endfor %}
+                            <small class="form-text text-muted">
+                                Supported formats: PNG, JPG, JPEG, GIF. Maximum size: 16MB.
+                            </small>
+                        </div>
+                        
+                        <div class="form-group">
+                            {{ form.submit(class="btn btn-primary") }}
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h4>Account Actions</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <a href="{{ url_for('change_password') }}" class="btn btn-outline-primary btn-block">
+                                <i class="fas fa-key"></i> Change Password
+                            </a>
+                        </div>
+                        <div class="col-md-6">
+                            {% if current_user.has_role('admin') %}
+                            <a href="{{ url_for('manage_users') }}" class="btn btn-outline-secondary btn-block">
+                                <i class="fas fa-users"></i> Manage Users
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
