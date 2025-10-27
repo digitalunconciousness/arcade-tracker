@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+
+{% block title %}Inventory Management - Arcade Tracker{% endblock %}
+
+{% block content %}
+<div class="header-section">
+    <h1>Inventory Management</h1>
+    <div class="header-actions">
+        {% if current_user.has_role('operator') %}
+            <a href="{{ url_for('request_inventory') }}" class="btn" style="background: var(--neon-purple); color: white;">Request Items</a>
+            <a href="{{ url_for('inventory_requests_list') }}" class="btn" style="background: var(--neon-cyan); color: black;">
+                My Requests
+                {% if pending_requests_count > 0 %}
+                    ({{ pending_requests_count }})
+                {% endif %}
+            </a>
+        {% endif %}
+        {% if current_user.has_role('manager') %}
+            <a href="{{ url_for('add_inventory_item') }}" class="btn btn-primary">+ Add Item</a>
+        {% endif %}
+        {% if low_stock_count > 0 %}
+            <a href="{{ url_for('low_stock_alerts') }}" class="btn btn-warning">
+                Low Stock Alerts ({{ low_stock_count }})
+            </a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <h3>Total Items</h3>
+        <div class="stat-value">{{ items|length }}</div>
+    </div>
+    <div class="stat-card">
+        <h3>Low Stock Items</h3>
+        <div class="stat-value warning">{{ low_stock_count }}</div>
+    </div>
+    <div class="stat-card">
+        <h3>Total Inventory Value</h3>
+        <div class="stat-value">${{ "%.2f"|format(total_value) }}</div>
+    </div>
+</div>
+
+<!-- Search and Filter Section -->
+<div class="search-section">
+    <form method="GET" class="search-form">
+        <div class="search-inputs">
+            <input type="text" name="search" value="{{ search }}" placeholder="Search items, descriptions, part numbers..." class="search-input">
+            <label class="checkbox-label">
+                <input type="checkbox" name="low_stock" {% if low_stock_only %}checked{% endif %}> Show only low stock items
+            </label>
+        </div>
+        <button type="submit" class="btn btn-primary">🔍 Search</button>
+        {% if search or low_stock_only %}
+            <a href="{{ url_for('inventory_list') }}" class="btn btn-secondary">Clear</a>
+        {% endif %}
+    </form>
+</div>
+
+<!-- Inventory Table -->
+<div class="table-responsive">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Item Name</th>
+                <th>Stock</th>
+                <th>Min Stock</th>
+                <th>Unit Price</th>
+                <th>Total Value</th>
+                <th>Supplier</th>
+                <th>Part Number</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in items %}
+            <tr {% if item.is_low_stock() %}class="warning-row"{% endif %}>
+                <td>
+                    <div class="item-name">
+                        <a href="{{ url_for('inventory_detail', item_id=item.id) }}">{{ item.name }}</a>
+                        {% if item.is_low_stock() %}
+                            <span class="badge badge-warning">⚠️ Low Stock</span>
+                        {% endif %}
+                    </div>
+                    {% if item.description %}
+                        <div class="item-description">{{ item.description[:60] }}{% if item.description|length > 60 %}...{% endif %}</div>
+                    {% endif %}
+                </td>
+                <td>
+                    <span class="stock-quantity {% if item.is_low_stock() %}low-stock{% endif %}">
+                        {{ item.stock_quantity }}
+                    </span>
+                </td>
+                <td>{{ item.minimum_stock }}</td>
+                <td>${{ "%.2f"|format(item.unit_price) }}</td>
+                <td>${{ "%.2f"|format(item.total_value()) }}</td>
+                <td>{{ item.supplier or '-' }}</td>
+                <td>{{ item.part_number or '-' }}</td>
+                <td>
+                    <div class="action-buttons">
+                        <a href="{{ url_for('inventory_detail', item_id=item.id) }}" class="btn btn-sm btn-info">View</a>
+                        {% if current_user.has_role('operator') %}
+                            <a href="{{ url_for('adjust_stock', item_id=item.id) }}" class="btn btn-sm btn-secondary">Adjust Stock</a>
+                        {% endif %}
+                        {% if current_user.has_role('manager') %}
+                            <a href="{{ url_for('edit_inventory_item', item_id=item.id) }}" class="btn btn-sm btn-warning">Edit</a>
+                        {% endif %}
+                    </div>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="8" class="text-center">
+                    {% if search or low_stock_only %}
+                        No items found matching your criteria.
+                    {% else %}
+                        No inventory items found. <a href="{{ url_for('add_inventory_item') }}">Add your first item</a>.
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<style>
+.warning-row {
+    background-color: rgba(255, 193, 7, 0.1);
+}
+
+.item-name a {
+    font-weight: bold;
+    color: var(--primary-color);
+    text-decoration: none;
+}
+
+.item-name a:hover {
+    text-decoration: underline;
+}
+
+.item-description {
+    font-size: 0.9em;
+    color: var(--text-secondary);
+    margin-top: 4px;
+}
+
+.stock-quantity.low-stock {
+    color: var(--warning-color);
+    font-weight: bold;
+}
+
+.badge {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 0.8em;
+    margin-left: 8px;
+}
+
+.badge-warning {
+    background-color: var(--warning-color);
+    color: white;
+}
+
+.search-section {
+    margin: 20px 0;
+    padding: 20px;
+    background: var(--card-bg);
+    border-radius: 8px;
+}
+
+.search-inputs {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.search-input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: var(--input-bg);
+    color: var(--text-color);
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+}
+</style>
+{% endblock %}

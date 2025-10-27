@@ -1,0 +1,245 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>📊 Performance Reports & Analytics</h1>
+
+<div style="text-align: center; margin: 20px 0;">
+    <a href="{{ url_for('export_report') }}" class="btn" style="background: #dc3545; font-size: 16px; padding: 12px 24px;">📄 Revenue Report (PDF)</a>
+    <a href="{{ url_for('export_csv') }}" class="btn" style="background: #28a745; font-size: 16px; padding: 12px 24px; margin-left: 15px;">📋 Export CSV Data</a>
+</div>
+
+<!-- Maintenance Reports Section -->
+<div style="background: var(--dark-card); padding: 20px; border-radius: 8px; border: 1px solid var(--neon-purple); margin: 30px 0; box-shadow: 0 0 15px rgba(128, 0, 255, 0.3);">
+    <h2 style="color: var(--neon-purple); margin-top: 0;">🔧 Maintenance Reports</h2>
+    <p style="color: var(--text-secondary); margin-bottom: 20px;">Generate maintenance analytics and export reports.</p>
+    
+    <div style="display: flex; gap: 20px; align-items: center; flex-wrap: wrap; margin-bottom: 20px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <label for="timeRange" style="color: var(--text-primary); font-weight: bold;">Time Range:</label>
+            <select id="timeRange" style="padding: 8px 12px; background: var(--dark-nav); color: var(--text-primary); border: 1px solid var(--neon-cyan); border-radius: 4px; font-family: inherit;">
+                <option value="7">Last Week</option>
+                <option value="30" selected>Last Month</option>
+                <option value="90">Last Quarter</option>
+                <option value="365">Last Year</option>
+                <option value="9999">All Time</option>
+            </select>
+        </div>
+        
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <button onclick="viewMaintenanceReport()" class="btn" style="background: var(--neon-cyan); color: black; padding: 8px 16px;">
+                📈 View Report
+            </button>
+            <button onclick="exportMaintenanceReport('all')" class="btn" style="background: var(--neon-orange); color: black; padding: 8px 16px;">
+                📋 Export All
+            </button>
+            <button onclick="exportMaintenanceReport('open')" class="btn" style="background: #ff4444; color: white; padding: 8px 16px;">
+                🚨 Export Open
+            </button>
+            <button onclick="exportMaintenanceReport('closed')" class="btn" style="background: var(--neon-green); color: black; padding: 8px 16px;">
+                ✅ Export Closed
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+function viewMaintenanceReport() {
+    const days = document.getElementById('timeRange').value;
+    window.open(`{{ url_for('maintenance_reports') }}?days=${days}`, '_blank');
+}
+
+function exportMaintenanceReport(type) {
+    const days = document.getElementById('timeRange').value;
+    window.open(`{{ url_for('export_maintenance_report') }}?type=${type}&days=${days}`, '_blank');
+}
+</script>
+
+<div style="display: flex; gap: 40px; margin: 30px 0;">
+    <div style="flex: 1;">
+        <h2 style="color: red;">🚨 WORST Performers - Replace These!</h2>
+        {% if worst_performers %}
+        <table class="table critical-table">
+            <thead>
+                <tr>
+                    <th>Rank</th>
+                    <th>Game</th>
+                    <th>Daily Revenue</th>
+                    <th>Total Revenue</th>
+                    <th>Recommendation</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for performer in worst_performers %}
+                <tr class="performance-bad" style="border-left: {{ '4px solid #ff4444' if loop.index <= 3 else '2px solid #ff6666' }};">
+                    <td style="color: var(--text-primary); font-weight: bold;">{{ loop.index }}</td>
+                    <td><a href="{{ url_for('game_detail', game_id=performer.game.id) }}" style="color: var(--neon-cyan); font-weight: bold;">{{ performer.game.name }}</a></td>
+                    <td class="revenue-text" style="color: #ff6666;">${{ "%.2f"|format(performer.daily_revenue) }}</td>
+                    <td class="revenue-text" style="color: #ff6666;">${{ "%.2f"|format(performer.total_revenue) }}</td>
+                    <td style="font-weight: bold; color: #ff4444; text-transform: uppercase;">
+                        {% if loop.index <= 3 %}🚨 REPLACE IMMEDIATELY{% else %}⚠️ Consider Replacement{% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p>No floor games to analyze yet.</p>
+        {% endif %}
+    </div>
+    
+    <div style="flex: 1;">
+        <h2 style="color: green;">⭐ TOP Performers - Keep These!</h2>
+        {% if top_performers %}
+        <table class="table" style="border: 2px solid var(--neon-green); box-shadow: 0 0 15px rgba(0, 255, 0, 0.3);">
+            <thead>
+                <tr style="background: linear-gradient(45deg, var(--neon-green), #00cc00);">
+                    <th style="color: var(--dark-bg); text-shadow: none;">Rank</th>
+                    <th style="color: var(--dark-bg); text-shadow: none;">Game</th>
+                    <th style="color: var(--dark-bg); text-shadow: none;">Daily Revenue</th>
+                    <th style="color: var(--dark-bg); text-shadow: none;">Total Revenue</th>
+                    <th style="color: var(--dark-bg); text-shadow: none;">Top History</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for performer in top_performers %}
+                <tr class="performance-good" style="border-left: {{ '4px solid var(--neon-green)' if loop.index <= 3 else '2px solid #66ff66' }};">
+                    <td style="color: var(--text-primary); font-weight: bold;">{{ loop.index }}</td>
+                    <td><a href="{{ url_for('game_detail', game_id=performer.game.id) }}" style="color: var(--neon-green); font-weight: bold;">{{ performer.game.name }}</a></td>
+                    <td class="revenue-text" style="color: #66ff66;">${{ "%.2f"|format(performer.daily_revenue) }}</td>
+                    <td class="revenue-text" style="color: #66ff66;">${{ "%.2f"|format(performer.total_revenue) }}</td>
+                    <td style="color: var(--text-secondary); font-weight: 500;">
+                        {% if loop.index <= 3 %}⭐ {% endif %}Top5: {{ performer.game.times_in_top_5 }}x, Top10: {{ performer.game.times_in_top_10 }}x
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p>No top performers yet.</p>
+        {% endif %}
+    </div>
+</div>
+
+<div style="margin: 40px 0;">
+    <h2>📈 Daily Revenue Trend (Last 30 Days)</h2>
+    <canvas id="revenueChart" width="400" height="200"></canvas>
+</div>
+
+<div style="display: flex; gap: 40px; margin: 30px 0;">
+    <div style="flex: 1;">
+        <h2>📊 Revenue by Game (Top 10)</h2>
+        <canvas id="gameRevenueChart" width="400" height="300"></canvas>
+    </div>
+    
+    <div style="flex: 1;">
+        <h2>📋 Quick Stats</h2>
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-number">${{ daily_revenue.values()|sum if daily_revenue else 0 }}</div>
+                <div>Revenue (30 Days)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">${{ (daily_revenue.values()|sum / daily_revenue|length)|round(2) if daily_revenue else 0 }}</div>
+                <div>Avg Daily Revenue</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{ floor_games_count }}</div>
+                <div>Floor Games</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{ worst_performers[:3]|length }}</div>
+                <div>Games to Replace</div>
+            </div>
+        </div>
+        
+        <h3 style="margin-top: 30px;">💡 Management Recommendations</h3>
+        <div style="background: var(--dark-card); padding: 15px; border-left: 4px solid var(--neon-orange); border-radius: 4px; border: 1px solid var(--neon-orange); box-shadow: 0 0 15px rgba(255, 128, 0, 0.3); color: var(--text-primary);">
+            {% if worst_performers %}
+            <p><strong>Immediate Action Required:</strong></p>
+            <ul>
+                {% for performer in worst_performers[:3] %}
+                <li>Replace "{{ performer.game.name }}" - Only ${{ "%.2f"|format(performer.daily_revenue) }}/day</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+            <p><strong>Revenue Opportunity:</strong> Replacing worst 3 games could increase daily revenue by an estimated $15-30/day.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+// Daily Revenue Chart
+const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+const dailyRevenueData = {{ daily_revenue|tojson|safe }};
+
+const sortedDates = Object.keys(dailyRevenueData).sort();
+const revenueValues = sortedDates.map(date => dailyRevenueData[date]);
+
+new Chart(revenueCtx, {
+    type: 'line',
+    data: {
+        labels: sortedDates,
+        datasets: [{
+            label: 'Daily Revenue ($)',
+            data: revenueValues,
+            borderColor: 'rgb(75, 192, 192)',
+            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+            tension: 0.1
+        }]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    callback: function(value) {
+                        return '$' + value;
+                    }
+                }
+            }
+        }
+    }
+});
+
+// Game Revenue Chart
+const gameCtx = document.getElementById('gameRevenueChart').getContext('2d');
+const topPerformers = {{ top_performers|tojson|safe }};
+
+const gameNames = topPerformers.map(p => p.game.name.substring(0, 15) + (p.game.name.length > 15 ? '...' : ''));
+const gameRevenues = topPerformers.map(p => p.total_revenue);
+
+new Chart(gameCtx, {
+    type: 'bar',
+    data: {
+        labels: gameNames,
+        datasets: [{
+            label: 'Total Revenue ($)',
+            data: gameRevenues,
+            backgroundColor: [
+                '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
+                '#FF9F40', '#FF6384', '#C9CBCF', '#4BC0C0', '#FF6384'
+            ]
+        }]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    callback: function(value) {
+                        return '$' + value;
+                    }
+                }
+            }
+        },
+        plugins: {
+            legend: {
+                display: false
+            }
+        }
+    }
+});
+</script>
+{% endblock %}

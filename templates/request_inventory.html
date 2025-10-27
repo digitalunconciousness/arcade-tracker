@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Request Inventory Items</h1>
+
+<form method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+    
+    <div class="form-group">
+        <label>Request Type</label>
+        <select id="item_type" name="item_type" onchange="toggleItemFields()" required>
+            <option value="existing">Existing Item (More Stock)</option>
+            <option value="new">New Item (Not in Inventory)</option>
+        </select>
+    </div>
+    
+    <div class="form-group" id="existing_item_group">
+        <label for="item_id">Select Item</label>
+        <select id="item_id" name="item_id" onchange="fillItemName()">
+            <option value="">-- Select Existing Item --</option>
+            {% for item in existing_items %}
+            <option value="{{ item.id }}" data-name="{{ item.name }}">
+                {{ item.name }} (Current Stock: {{ item.stock_quantity }})
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+    
+    <div class="form-group">
+        <label for="item_name">Item Name *</label>
+        <input type="text" id="item_name" name="item_name" required placeholder="Enter item name">
+    </div>
+    
+    <div class="form-group">
+        <label for="quantity">Quantity Requested *</label>
+        <input type="number" id="quantity" name="quantity" min="1" required placeholder="How many do you need?">
+    </div>
+    
+    <div class="form-group">
+        <label for="urgency">Urgency</label>
+        <select id="urgency" name="urgency">
+            <option value="Low">Low - Can wait</option>
+            <option value="Normal" selected>Normal</option>
+            <option value="High">High - Needed soon</option>
+            <option value="Urgent">Urgent - Needed ASAP</option>
+        </select>
+    </div>
+    
+    <div class="form-group">
+        <label for="reason">Reason / Notes</label>
+        <textarea id="reason" name="reason" rows="3" placeholder="Why do you need this item?"></textarea>
+    </div>
+    
+    <div style="display: flex; gap: 10px; align-items: center; margin-top: 20px;">
+        <button type="submit" class="btn btn-success">Submit Request</button>
+        <a href="{{ url_for('inventory_list') }}" class="btn" style="background: #6c757d; color: white; text-decoration: none;">Cancel</a>
+    </div>
+</form>
+
+<script>
+function toggleItemFields() {
+    const itemType = document.getElementById('item_type').value;
+    const existingGroup = document.getElementById('existing_item_group');
+    const itemNameInput = document.getElementById('item_name');
+    const itemSelect = document.getElementById('item_id');
+    
+    if (itemType === 'existing') {
+        existingGroup.style.display = 'block';
+        itemNameInput.setAttribute('readonly', 'readonly');
+        itemNameInput.style.background = '#444';
+    } else {
+        existingGroup.style.display = 'none';
+        itemNameInput.removeAttribute('readonly');
+        itemNameInput.style.background = '';
+        itemNameInput.value = '';
+        itemSelect.value = '';
+    }
+}
+
+function fillItemName() {
+    const select = document.getElementById('item_id');
+    const itemName = document.getElementById('item_name');
+    const selectedOption = select.options[select.selectedIndex];
+    
+    if (selectedOption.value) {
+        itemName.value = selectedOption.getAttribute('data-name');
+    } else {
+        itemName.value = '';
+    }
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    toggleItemFields();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Game Management</h1>
+
+{% if current_user.has_role('manager') or current_user.has_role('admin') %}
+<div style="margin-bottom: 20px;">
+    <a href="{{ url_for('add_game') }}" class="btn">Add New Game</a>
+</div>
+{% endif %}
+
+<!-- Search and Filter Controls -->
+<div style="margin-bottom: 20px; padding: 15px; background: rgba(0, 255, 255, 0.1); border: 1px solid var(--neon-cyan); border-radius: 8px;">
+    <form method="GET" style="display: flex; gap: 15px; flex-wrap: wrap; align-items: end;">
+        <div class="form-group" style="margin: 0; min-width: 200px;">
+            <label for="search" style="font-size: 12px;">Search Games</label>
+            <input type="text" id="search" name="search" value="{{ search }}" placeholder="Search by name..." style="padding: 8px;">
+        </div>
+        
+        <div class="form-group" style="margin: 0; min-width: 120px;">
+            <label for="status" style="font-size: 12px;">Status Filter</label>
+            <select id="status" name="status" style="padding: 8px;">
+                <option value="">All Statuses</option>
+                {% for status in statuses %}
+                    <option value="{{ status }}" {{ 'selected' if status == status_filter else '' }}>{{ status.replace('_', ' ') }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <input type="hidden" name="tab" value="{{ view_tab }}">
+        <button type="submit" class="btn" style="padding: 8px 15px;">🔍 Filter</button>
+        {% if search or status_filter %}
+            <a href="{{ url_for('games_list', tab=view_tab) }}" class="btn" style="padding: 8px 15px; background: #666;">Clear</a>
+        {% endif %}
+    </form>
+</div>
+
+<!-- Tab Navigation -->
+<div class="tab-container" style="margin-bottom: 20px;">
+    <div class="tab-buttons" style="display: flex; border-bottom: 2px solid var(--neon-cyan); margin-bottom: 20px;">
+        <a href="{{ url_for('games_list', tab='floor', search=search, status=status_filter) }}" 
+           class="tab-button {{ 'active' if view_tab == 'floor' else '' }}"
+           style="padding: 12px 24px; text-decoration: none; border-bottom: 3px solid {{ 'var(--neon-cyan)' if view_tab == 'floor' else 'transparent' }}; color: {{ 'var(--neon-cyan)' if view_tab == 'floor' else 'var(--text-primary)' }};">
+            🎮 Floor Games ({{ floor_games|length }})
+        </a>
+        <a href="{{ url_for('games_list', tab='warehouse', search=search, status=status_filter) }}" 
+           class="tab-button {{ 'active' if view_tab == 'warehouse' else '' }}"
+           style="padding: 12px 24px; text-decoration: none; border-bottom: 3px solid {{ 'var(--neon-cyan)' if view_tab == 'warehouse' else 'transparent' }}; color: {{ 'var(--neon-cyan)' if view_tab == 'warehouse' else 'var(--text-primary)' }};">
+            📦 Warehouse Games ({{ warehouse_games|length }})
+        </a>
+        {% if other_games %}
+        <a href="{{ url_for('games_list', tab='other', search=search, status=status_filter) }}" 
+           class="tab-button {{ 'active' if view_tab == 'other' else '' }}"
+           style="padding: 12px 24px; text-decoration: none; border-bottom: 3px solid {{ 'var(--neon-cyan)' if view_tab == 'other' else 'transparent' }}; color: {{ 'var(--neon-cyan)' if view_tab == 'other' else 'var(--text-primary)' }};">
+            🚚 Other Locations ({{ other_games|length }})
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Floor Games Tab -->
+{% if view_tab == 'floor' %}
+    <div class="tab-content">
+        <h2 style="color: var(--neon-cyan); margin-bottom: 15px;">🎮 Games on Floor</h2>
+        {% if floor_games %}
+            {% set games = floor_games %}
+            {% include 'games_table.html' %}
+        {% else %}
+            <p>No floor games found. {% if current_user.has_role('manager') %}<a href="{{ url_for('add_game') }}">Add a game</a> and set its location to "Floor".{% endif %}</p>
+        {% endif %}
+    </div>
+{% endif %}
+
+<!-- Warehouse Games Tab -->
+{% if view_tab == 'warehouse' %}
+    <div class="tab-content">
+        <h2 style="color: var(--neon-orange); margin-bottom: 15px;">📦 Games in Warehouse</h2>
+        {% if warehouse_games %}
+            {% set games = warehouse_games %}
+            {% include 'games_table.html' %}
+        {% else %}
+            <p>No warehouse games found. {% if current_user.has_role('manager') %}<a href="{{ url_for('add_game') }}">Add a game</a> and keep its location as "Warehouse".{% endif %}</p>
+        {% endif %}
+    </div>
+{% endif %}
+
+<!-- Other Games Tab -->
+{% if view_tab == 'other' and other_games %}
+    <div class="tab-content">
+        <h2 style="color: var(--neon-purple); margin-bottom: 15px;">🚚 Other Locations</h2>
+        {% if other_games %}
+            {% set games = other_games %}
+            {% include 'games_table.html' %}
+        {% else %}
+            <p>No games found in other locations.</p>
+        {% endif %}
+    </div>
+{% endif %}
+
+<style>
+.tab-button:hover {
+    background: rgba(0, 255, 255, 0.1);
+    border-radius: 4px 4px 0 0;
+}
+
+.tab-button.active {
+    background: rgba(0, 255, 255, 0.1);
+    font-weight: bold;
+}
+</style>
+
+{% endblock %}

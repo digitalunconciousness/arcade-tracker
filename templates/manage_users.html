@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% block title %}Manage Users - Arcade Tracker{% endblock %}
+
+{% block content %}
+<div class="background-animated">
+    <div class="glass-container">
+        <h2 class="glow-title">👥 Manage Users</h2>
+
+        <table class="neon-table">
+            <thead>
+                <tr>
+                    <th>Username</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr>
+                    <td>{{ user.username }}</td>
+                    <td>{{ user.email }}</td>
+                    <td>{{ user.role.title() }}</td>
+                    <td>
+                        {% if user.is_active %}
+                            <span class="status active">Active</span>
+                        {% else %}
+                            <span class="status inactive">Disabled</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <form method="POST" action="{{ url_for('manage_users') }}" style="display:inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="user_id" value="{{ user.id }}">
+                            <button type="submit"
+                                    onclick="return confirm('{{ '{} user {}'.format('Disable' if user.is_active else 'Enable', user.username) }}?')"
+                                    class="btn-outline-cyan">
+                                {{ '🚫 Disable' if user.is_active else '✅ Enable' }}
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+.background-animated {
+    min-height: 100vh;
+    background: linear-gradient(-45deg, #000010, #001030, #002050, #000820);
+    background-size: 400% 400%;
+    animation: backgroundShift 20s ease infinite;
+    padding: 40px 20px;
+}
+@keyframes backgroundShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+.glass-container {
+    max-width: 900px;
+    margin: 0 auto;
+    background: rgba(0, 30, 60, 0.5);
+    border: 2px solid #00ffff;
+    border-radius: 12px;
+    padding: 30px;
+    backdrop-filter: blur(12px);
+    box-shadow: 0 0 25px rgba(0, 255, 255, 0.3);
+}
+
+.glow-title {
+    text-align: center;
+    color: #00ffff;
+    margin-bottom: 25px;
+    text-shadow: 0 0 15px rgba(0,255,255,0.6);
+    animation: glowShift 3s infinite alternate;
+}
+@keyframes glowShift {
+    0% { color: #00ffff; text-shadow: 0 0 10px #00ffff; }
+    100% { color: #ff00ff; text-shadow: 0 0 20px #ff00ff; }
+}
+
+.neon-table {
+    width: 100%;
+    border-collapse: collapse;
+    color: #fff;
+    font-size: 0.95em;
+}
+.neon-table th, .neon-table td {
+    border: 1px solid rgba(0, 255, 255, 0.3);
+    padding: 10px 14px;
+    text-align: left;
+}
+.neon-table th {
+    color: #00ffff;
+    text-transform: uppercase;
+    font-weight: bold;
+    border-bottom: 2px solid #00ffff;
+}
+.neon-table tr:nth-child(even) {
+    background: rgba(255, 255, 255, 0.05);
+}
+.status.active {
+    color: #00ffcc;
+    font-weight: bold;
+}
+.status.inactive {
+    color: #ff6666;
+    font-weight: bold;
+}
+
+.btn-outline-cyan {
+    border: 1px solid #00ffff;
+    color: #00ffff;
+    background: transparent;
+    border-radius: 6px;
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+.btn-outline-cyan:hover {
+    background: #00ffff;
+    color: #000;
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.8);
+}
+</style>
+{% endblock %}

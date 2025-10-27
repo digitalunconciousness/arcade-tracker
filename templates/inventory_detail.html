@@ -1,0 +1,329 @@
+{% extends "base.html" %}
+
+{% block title %}{{ item.name }} - Inventory - Arcade Tracker{% endblock %}
+
+{% block content %}
+<div class="header-section">
+    <h1>📦 {{ item.name }}</h1>
+    <div class="header-actions">
+        <a href="{{ url_for('inventory_list') }}" class="btn btn-secondary">← Back to Inventory</a>
+        {% if current_user.has_role('operator') %}
+            <a href="{{ url_for('adjust_stock', item_id=item.id) }}" class="btn btn-primary">Adjust Stock</a>
+        {% endif %}
+        {% if current_user.has_role('manager') %}
+            <a href="{{ url_for('edit_inventory_item', item_id=item.id) }}" class="btn btn-warning">Edit Item</a>
+        {% endif %}
+    </div>
+</div>
+
+{% if item.is_low_stock() %}
+<div class="alert alert-warning">
+    ⚠️ <strong>Low Stock Alert:</strong> This item is at or below the minimum stock level.
+</div>
+{% endif %}
+
+<div class="detail-container">
+    <div class="detail-main">
+        <div class="info-card">
+            <h2>Item Details</h2>
+            
+            <div class="detail-grid">
+                <div class="detail-item">
+                    <label>Description</label>
+                    <div class="detail-value">{{ item.description or 'No description provided' }}</div>
+                </div>
+                
+                <div class="detail-item">
+                    <label>Part Number</label>
+                    <div class="detail-value">{{ item.part_number or 'N/A' }}</div>
+                </div>
+                
+                <div class="detail-item">
+                    <label>Supplier</label>
+                    <div class="detail-value">{{ item.supplier or 'N/A' }}</div>
+                </div>
+                
+                <div class="detail-item">
+                    <label>Date Added</label>
+                    <div class="detail-value">{{ item.date_added.strftime('%B %d, %Y') }}</div>
+                </div>
+                
+                {% if item.last_restocked %}
+                <div class="detail-item">
+                    <label>Last Restocked</label>
+                    <div class="detail-value">{{ item.last_restocked.strftime('%B %d, %Y') }}</div>
+                </div>
+                {% endif %}
+                
+                {% if item.notes %}
+                <div class="detail-item full-width">
+                    <label>Notes</label>
+                    <div class="detail-value">{{ item.notes }}</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        {% if item.compatible_games %}
+        <div class="info-card">
+            <h2>Compatible Games</h2>
+            <div class="game-list">
+                {% for game in item.compatible_games %}
+                <div class="game-item">
+                    <a href="{{ url_for('game_detail', game_id=game.id) }}">{{ game.name }}</a>
+                    <span class="game-location">({{ game.location }})</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        
+        <div class="info-card">
+            <h2>Stock History</h2>
+            {% if recent_history %}
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th>Change</th>
+                            <th>Previous</th>
+                            <th>New</th>
+                            <th>Reason</th>
+                            <th>User</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for history in recent_history %}
+                        <tr>
+                            <td>{{ history.timestamp.strftime('%m/%d/%Y %H:%M') }}</td>
+                            <td>
+                                <span class="change-type change-{{ history.change_type }}">
+                                    {{ history.change_type.title() }}
+                                </span>
+                            </td>
+                            <td class="change-quantity {% if history.quantity_change > 0 %}positive{% else %}negative{% endif %}">
+                                {% if history.quantity_change > 0 %}+{% endif %}{{ history.quantity_change }}
+                            </td>
+                            <td>{{ history.previous_quantity }}</td>
+                            <td>{{ history.new_quantity }}</td>
+                            <td>{{ history.reason or 'No reason provided' }}</td>
+                            <td>{{ history.user.username }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="no-data">No stock history available.</p>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="detail-sidebar">
+        <div class="stats-card">
+            <h3>Stock Information</h3>
+            
+            <div class="stat-item">
+                <label>Current Stock</label>
+                <div class="stat-value {% if item.is_low_stock() %}warning{% endif %}">
+                    {{ item.stock_quantity }}
+                </div>
+            </div>
+            
+            <div class="stat-item">
+                <label>Minimum Stock</label>
+                <div class="stat-value">{{ item.minimum_stock }}</div>
+            </div>
+            
+            <div class="stat-item">
+                <label>Unit Price</label>
+                <div class="stat-value">${{ "%.2f"|format(item.unit_price) }}</div>
+            </div>
+            
+            <div class="stat-item">
+                <label>Total Value</label>
+                <div class="stat-value">${{ "%.2f"|format(item.total_value()) }}</div>
+            </div>
+        </div>
+        
+        {% if active_alert %}
+        <div class="alert-card">
+            <h3>⚠️ Active Low Stock Alert</h3>
+            <p>Triggered: {{ active_alert.alert_triggered.strftime('%m/%d/%Y %H:%M') }}</p>
+            {% if current_user.has_role('manager') %}
+            <form method="POST" action="{{ url_for('resolve_low_stock_alert', alert_id=active_alert.id) }}">
+                <button type="submit" class="btn btn-sm btn-success">Mark as Resolved</button>
+            </form>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.detail-container {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 24px;
+    margin-top: 20px;
+}
+
+.detail-main {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.detail-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.info-card, .stats-card, .alert-card {
+    background: var(--card-bg);
+    border-radius: 8px;
+    padding: 20px;
+    border: 1px solid var(--border-color);
+}
+
+.info-card h2, .stats-card h3, .alert-card h3 {
+    margin: 0 0 16px 0;
+    color: var(--primary-color);
+}
+
+.detail-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 16px;
+}
+
+.detail-item.full-width {
+    grid-column: 1 / -1;
+}
+
+.detail-item label {
+    display: block;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+    font-size: 0.9em;
+}
+
+.detail-value {
+    color: var(--text-color);
+}
+
+.game-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.game-item {
+    padding: 8px 12px;
+    background: var(--input-bg);
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
+}
+
+.game-item a {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.game-item a:hover {
+    text-decoration: underline;
+}
+
+.game-location {
+    color: var(--text-secondary);
+    font-size: 0.9em;
+    margin-left: 8px;
+}
+
+.stat-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.stat-item:last-child {
+    border-bottom: none;
+}
+
+.stat-item label {
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.stat-value {
+    font-weight: bold;
+    font-size: 1.1em;
+}
+
+.stat-value.warning {
+    color: var(--warning-color);
+}
+
+.change-type {
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.8em;
+    text-transform: uppercase;
+    font-weight: bold;
+}
+
+.change-added {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.change-removed, .change-used {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.change-adjusted {
+    background-color: #d1ecf1;
+    color: #0c5460;
+}
+
+.change-quantity.positive {
+    color: var(--success-color);
+    font-weight: bold;
+}
+
+.change-quantity.negative {
+    color: var(--error-color);
+    font-weight: bold;
+}
+
+.alert-card {
+    background: rgba(255, 193, 7, 0.1);
+    border-color: var(--warning-color);
+}
+
+.no-data {
+    text-align: center;
+    color: var(--text-secondary);
+    font-style: italic;
+    padding: 20px 0;
+}
+
+@media (max-width: 768px) {
+    .detail-container {
+        grid-template-columns: 1fr;
+    }
+    
+    .detail-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+{% endblock %}

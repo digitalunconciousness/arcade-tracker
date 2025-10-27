@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>All Games</h1>
+
+{% if current_user.has_role('manager') or current_user.has_role('admin') %}
+<a href="{{ url_for('add_game') }}" class="btn">Add New Game</a>
+{% endif %}
+
+{% if games %}
+<table class="table" id="gamesTable" style="--table-cell-padding: 8px 8px;">
+<style>
+#gamesTable th {
+    padding: 10px 8px !important;
+    font-size: 12px;
+}
+#gamesTable td {
+    padding: 6px 8px !important;
+    font-size: 13px;
+    vertical-align: middle;
+}
+</style>
+    <thead>
+        <tr>
+            <th onclick="sortTable(0)" style="cursor: pointer;" title="Click to sort">🟢 Status</th>
+            <th onclick="sortTable(1)" style="cursor: pointer;" title="Click to sort">Name ↕️</th>
+            <th onclick="sortTable(2)" style="cursor: pointer;" title="Click to sort">Manufacturer ↕️</th>
+            <th onclick="sortTable(3)" style="cursor: pointer;" title="Click to sort">Year ↕️</th>
+            <th onclick="sortTable(4)" style="cursor: pointer;" title="Click to sort">Genre ↕️</th>
+            <th onclick="sortTable(5)" style="cursor: pointer;" title="Click to sort">Location ↕️</th>
+            <th onclick="sortTable(6)" style="cursor: pointer;" title="Click to sort">Total Plays ↕️</th>
+            <th onclick="sortTable(7)" style="cursor: pointer;" title="Click to sort">Date Added ↕️</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for game in games %}
+        <tr style="height: 45px;">
+            <td style="text-align: center; width: 80px; padding: 6px 8px;">
+                <div style="display: flex; align-items: center; justify-content: center; gap: 4px;">
+                    {% if game.status == 'Working' %}
+                        <div style="width: 10px; height: 10px; border-radius: 50%; background-color: #00ff00; box-shadow: 0 0 6px rgba(0, 255, 0, 0.6);" title="Working"></div>
+                    {% elif game.status == 'Being_Fixed' %}
+                        <div style="width: 10px; height: 10px; border-radius: 50%; background-color: #ffff00; box-shadow: 0 0 6px rgba(255, 255, 0, 0.6);" title="Being Fixed"></div>
+                    {% elif game.status == 'Not_Working' %}
+                        <div style="width: 10px; height: 10px; border-radius: 50%; background-color: #ff0000; box-shadow: 0 0 6px rgba(255, 0, 0, 0.6);" title="Not Working"></div>
+                    {% else %}
+                        <div style="width: 10px; height: 10px; border-radius: 50%; background-color: #666666; box-shadow: 0 0 6px rgba(102, 102, 102, 0.6);" title="{{ game.status }}"></div>
+                    {% endif %}
+                    {% if game.has_open_maintenance %}
+                        <span style="font-size: 12px; color: var(--neon-orange);" title="Has open maintenance request">🔧</span>
+                    {% endif %}
+                </div>
+                <small style="display: block; margin-top: 1px; color: var(--text-secondary); font-size: 9px;">{{ game.status.replace('_', ' ') }}</small>
+            </td>
+            <td style="padding: 6px 8px;"><a href="{{ url_for('game_detail', game_id=game.id) }}">{{ game.name }}</a></td>
+            <td style="padding: 6px 8px;">{{ game.manufacturer or 'N/A' }}</td>
+            <td style="padding: 6px 8px;">{{ game.year or 'N/A' }}</td>
+            <td style="padding: 6px 8px;">{{ game.genre or 'N/A' }}</td>
+            <td style="padding: 6px 8px;">{{ game.location or 'N/A' }}</td>
+            <td style="padding: 6px 8px;">{{ game.total_plays }}</td>
+            <td style="padding: 6px 8px;">{{ game.date_added.strftime('%Y-%m-%d') }}</td>
+            <td style="padding: 8px; white-space: nowrap;">
+                <div style="display: flex; gap: 4px; align-items: center;">
+                    {% if current_user.has_role('operator') %}
+                        <a href="{{ url_for('maintenance', game_id=game.id) }}" class="btn" style="background: var(--neon-orange); font-size: 10px; padding: 4px 8px; margin: 0; min-width: 50px; text-align: center;">🔧 Fix</a>
+                    {% elif current_user.has_role('manager') %}
+                        <a href="{{ url_for('record_plays', game_id=game.id) }}" class="btn btn-success" style="font-size: 10px; padding: 4px 8px; margin: 0; min-width: 60px; text-align: center;">📈 Plays</a>
+                        <a href="{{ url_for('edit_game', game_id=game.id) }}" class="btn" style="background: var(--neon-purple); font-size: 10px; padding: 4px 8px; margin: 0; min-width: 45px; text-align: center;">✏️ Edit</a>
+                        <a href="{{ url_for('maintenance', game_id=game.id) }}" class="btn" style="background: var(--neon-orange); font-size: 10px; padding: 4px 8px; margin: 0; min-width: 50px; text-align: center;">🔧 Fix</a>
+                    {% elif current_user.has_role('admin') %}
+                        <a href="{{ url_for('record_plays', game_id=game.id) }}" class="btn btn-success" style="font-size: 10px; padding: 4px 8px; margin: 0; min-width: 60px; text-align: center;">📈 Plays</a>
+                        <a href="{{ url_for('edit_game', game_id=game.id) }}" class="btn" style="background: var(--neon-purple); font-size: 10px; padding: 4px 8px; margin: 0; min-width: 45px; text-align: center;">✏️ Edit</a>
+                        <a href="{{ url_for('maintenance', game_id=game.id) }}" class="btn" style="background: var(--neon-orange); font-size: 10px; padding: 4px 8px; margin: 0; min-width: 50px; text-align: center;">🔧 Fix</a>
+                        <button onclick="confirmDelete({{ game.id }}, '{{ game.name }}')" class="btn" style="background: #ff4444; color: white; font-size: 10px; padding: 4px 8px; margin: 0; min-width: 50px; text-align: center;">🗑️ Delete</button>
+                    {% endif %}
+                </div>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>No games found. <a href="{{ url_for('add_game') }}">Add your first game!</a></p>
+{% endif %}
+
+<script>
+let sortDirection = {}; // Track sort direction for each column
+
+function sortTable(columnIndex) {
+    const table = document.getElementById('gamesTable');
+    const tbody = table.getElementsByTagName('tbody')[0];
+    const rows = Array.from(tbody.getElementsByTagName('tr'));
+    
+    // Toggle sort direction for this column
+    sortDirection[columnIndex] = sortDirection[columnIndex] === 'asc' ? 'desc' : 'asc';
+    const isAscending = sortDirection[columnIndex] === 'asc';
+    
+    // Sort the rows
+    rows.sort((a, b) => {
+        let aValue = a.getElementsByTagName('td')[columnIndex].textContent.trim();
+        let bValue = b.getElementsByTagName('td')[columnIndex].textContent.trim();
+        
+        // Handle numeric columns (Year, Total Plays)
+        if (columnIndex === 3 || columnIndex === 6 || columnIndex === 7) {
+            // For year and plays, convert to numbers (handle N/A as 0)
+            if (columnIndex === 3) {
+                aValue = aValue === 'N/A' ? 0 : parseInt(aValue) || 0;
+                bValue = bValue === 'N/A' ? 0 : parseInt(bValue) || 0;
+            } else if (columnIndex === 6) {
+                aValue = parseInt(aValue) || 0;
+                bValue = parseInt(bValue) || 0;
+            } else if (columnIndex === 7) {
+                // Date sorting
+                aValue = new Date(aValue);
+                bValue = new Date(bValue);
+            }
+            
+            if (isAscending) {
+                return aValue - bValue;
+            } else {
+                return bValue - aValue;
+            }
+        } else {
+            // String sorting
+            if (isAscending) {
+                return aValue.localeCompare(bValue);
+            } else {
+                return bValue.localeCompare(aValue);
+            }
+        }
+    });
+    
+    // Clear the tbody and add sorted rows
+    tbody.innerHTML = '';
+    rows.forEach(row => tbody.appendChild(row));
+    
+    // Update header to show sort direction
+    updateHeaders(columnIndex, isAscending);
+}
+
+function updateHeaders(sortedColumn, isAscending) {
+    const headers = document.querySelectorAll('#gamesTable th[onclick]');
+    headers.forEach((header, index) => {
+        const baseText = header.textContent.replace(' ↕️', '').replace(' ↑', '').replace(' ↓', '');
+        if (index === sortedColumn) {
+            header.textContent = baseText + (isAscending ? ' ↑' : ' ↓');
+            header.style.color = 'var(--neon-cyan)';
+        } else {
+            header.textContent = baseText + ' ↕️';
+            header.style.color = '';
+        }
+    });
+}
+
+function confirmDelete(gameId, gameName) {
+    if (confirm(`Are you sure you want to delete "${gameName}"? This will also delete all associated play records and maintenance records. This action cannot be undone.`)) {
+        // Create a form to submit the delete request
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/delete_game/${gameId}`;
+        
+        // Add CSRF token if available
+        const csrfToken = document.querySelector('meta[name=csrf-token]');
+        if (csrfToken) {
+            const tokenInput = document.createElement('input');
+            tokenInput.type = 'hidden';
+            tokenInput.name = 'csrf_token';
+            tokenInput.value = csrfToken.getAttribute('content');
+            form.appendChild(tokenInput);
+        }
+        
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+</script>
+{% endblock %}

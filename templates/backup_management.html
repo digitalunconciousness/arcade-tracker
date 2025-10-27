@@ -1,0 +1,234 @@
+{% extends "base.html" %}
+{% block title %}Backup Management - Arcade Tracker{% endblock %}
+
+{% block content %}
+<div class="background-animated">
+    <div class="glass-container">
+        <h2 class="glow-title">💾 Backup Management</h2>
+
+        <!-- Create Backup -->
+        <div class="actions">
+            <form method="POST" action="{{ url_for('create_backup') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn-glow cyan">
+                    <i class="fas fa-save"></i> Create Backup
+                </button>
+            </form>
+        </div>
+
+        <!-- Backups Table -->
+        <table class="neon-table">
+            <thead>
+                <tr>
+                    <th>Filename</th>
+                    <th>Date Created</th>
+                    <th>Size</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for backup in backups %}
+                <tr>
+                    <td>{{ backup.filename }}</td>
+                    <td>{{ backup.date_created }}</td>
+                    <td>{{ backup.size }} MB</td>
+                    <td>
+                        <!-- Restore -->
+                        <form method="POST" action="{{ url_for('restore_backup') }}" class="inline-form" onsubmit="return showRestoreOverlay('{{ backup.filename }}')">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="backup_file" value="{{ backup.filename }}">
+                            <button type="submit" class="btn-glow magenta">
+                                <i class="fas fa-undo"></i> Restore
+                            </button>
+                        </form>
+
+                        <!-- Delete -->
+                        <form method="POST" action="{{ url_for('delete_backup') }}" class="inline-form" onsubmit="return confirm('Delete backup {{ backup.filename }}?')">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="backup_file" value="{{ backup.filename }}">
+                            <button type="submit" class="btn-glow danger">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Neon Overlay -->
+    <div id="restoreOverlay" class="restore-overlay">
+        <div class="overlay-content">
+            <div class="spinner"></div>
+            <h3 class="overlay-text">Restoring Backup...</h3>
+        </div>
+    </div>
+</div>
+
+<!-- Overlay Script -->
+<script>
+function showRestoreOverlay(filename) {
+    if (!confirm(`Restore from ${filename}?`)) {
+        return false;
+    }
+    const overlay = document.getElementById('restoreOverlay');
+    overlay.style.display = 'flex';
+    setTimeout(() => {
+        overlay.classList.add('active');
+    }, 50);
+    return true;
+}
+</script>
+
+<style>
+/* ===== BACKGROUND ===== */
+.background-animated {
+    min-height: 100vh;
+    background: linear-gradient(-45deg, #000010, #001030, #002050, #000820);
+    background-size: 400% 400%;
+    animation: backgroundShift 20s ease infinite;
+    padding: 40px 20px;
+}
+@keyframes backgroundShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* ===== GLASS CONTAINER ===== */
+.glass-container {
+    max-width: 900px;
+    margin: 0 auto;
+    background: rgba(0, 30, 60, 0.5);
+    border: 2px solid #00ffff;
+    border-radius: 12px;
+    padding: 30px;
+    backdrop-filter: blur(12px);
+    box-shadow: 0 0 25px rgba(0, 255, 255, 0.3);
+}
+
+/* ===== TITLE ===== */
+.glow-title {
+    text-align: center;
+    color: #00ffff;
+    margin-bottom: 25px;
+    text-shadow: 0 0 15px rgba(0,255,255,0.6);
+    animation: glowShift 3s infinite alternate;
+}
+@keyframes glowShift {
+    0% { color: #00ffff; text-shadow: 0 0 10px #00ffff; }
+    100% { color: #ff00ff; text-shadow: 0 0 20px #ff00ff; }
+}
+
+/* ===== ACTIONS ===== */
+.actions {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+/* ===== BUTTONS ===== */
+.btn-glow {
+    border: none;
+    border-radius: 6px;
+    padding: 10px 20px;
+    font-weight: bold;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: #000;
+}
+.btn-glow.cyan {
+    background: linear-gradient(45deg, #00ffff, #00aaff);
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.6);
+}
+.btn-glow.cyan:hover {
+    box-shadow: 0 0 25px rgba(0, 255, 255, 0.8);
+    transform: translateY(-2px);
+}
+.btn-glow.magenta {
+    background: linear-gradient(45deg, #ff00ff, #cc00cc);
+    box-shadow: 0 0 15px rgba(255, 0, 255, 0.6);
+}
+.btn-glow.magenta:hover {
+    box-shadow: 0 0 25px rgba(255, 0, 255, 0.8);
+    transform: translateY(-2px);
+}
+.btn-glow.danger {
+    background: linear-gradient(45deg, #ff4444, #cc0000);
+    box-shadow: 0 0 15px rgba(255, 50, 50, 0.6);
+}
+.btn-glow.danger:hover {
+    box-shadow: 0 0 25px rgba(255, 50, 50, 0.8);
+    transform: translateY(-2px);
+}
+
+/* ===== TABLE ===== */
+.neon-table {
+    width: 100%;
+    border-collapse: collapse;
+    color: #fff;
+}
+.neon-table th, .neon-table td {
+    border: 1px solid rgba(0, 255, 255, 0.3);
+    padding: 10px 14px;
+}
+.neon-table th {
+    color: #00ffff;
+    border-bottom: 2px solid #00ffff;
+    text-transform: uppercase;
+    font-weight: bold;
+}
+.neon-table tr:nth-child(even) {
+    background: rgba(255, 255, 255, 0.05);
+}
+.inline-form {
+    display: inline-block;
+}
+
+/* ===== RESTORE OVERLAY ===== */
+.restore-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 20, 0.8);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+.restore-overlay.active {
+    display: flex;
+    opacity: 1;
+}
+.overlay-content {
+    text-align: center;
+}
+.spinner {
+    border: 4px solid rgba(255, 255, 255, 0.2);
+    border-top: 4px solid #00ffff;
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 20px;
+}
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+.overlay-text {
+    color: #00ffff;
+    text-shadow: 0 0 20px rgba(0, 255, 255, 0.8);
+    font-size: 1.3em;
+    animation: fadePulse 2s infinite alternate;
+}
+@keyframes fadePulse {
+    0% { opacity: 0.8; color: #00ffff; }
+    100% { opacity: 1; color: #ff00ff; }
+}
+</style>
+{% endblock %}

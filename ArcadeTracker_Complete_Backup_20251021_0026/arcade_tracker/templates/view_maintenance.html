@@ -1,0 +1,508 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="work-order-header">
+    <div class="header-left">
+        <h1>🔧 Work Order #{{ maintenance.id }}</h1>
+        <h2>{{ maintenance.game.name }}</h2>
+    </div>
+    <div class="header-right">
+        <div class="status-badge status-{{ maintenance.status.lower().replace('_', '-') }}">
+            {% if maintenance.status == 'Open' %}🔴 Open
+            {% elif maintenance.status == 'In_Progress' %}🟡 In Progress
+            {% elif maintenance.status == 'Fixed' %}✅ Fixed
+            {% elif maintenance.status == 'Deferred' %}⏸️ Deferred
+            {% endif %}
+        </div>
+        {% if maintenance.status in ['Open', 'In_Progress'] and current_user.has_role('manager') %}
+        <a href="{{ url_for('update_maintenance', maintenance_id=maintenance.id) }}" class="btn btn-warning">
+            ✏️ Update Work Order
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="work-order-content">
+    <div class="work-order-section">
+        <h3>📋 Original Request</h3>
+        <div class="info-grid">
+            <div class="info-item">
+                <strong>Reported:</strong> {{ maintenance.date_reported.strftime('%Y-%m-%d %H:%M') }}
+            </div>
+            <div class="info-item">
+                <strong>Game:</strong> 
+                <a href="{{ url_for('game_detail', game_id=maintenance.game_id) }}" class="game-link">
+                    {{ maintenance.game.name }}
+                </a>
+            </div>
+            <div class="info-item">
+                <strong>Location:</strong> {{ maintenance.game.location }}
+                {% if maintenance.game.floor_position %}
+                    - {{ maintenance.game.floor_position }}
+                {% elif maintenance.game.warehouse_section %}
+                    - {{ maintenance.game.warehouse_section }}
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="description-box">
+            <h4>Issue Description</h4>
+            <p>{{ maintenance.issue_description }}</p>
+        </div>
+    </div>
+
+    <div class="work-order-section">
+        <h3>🔍 Diagnosis & Assessment</h3>
+        {% if maintenance.fix_description %}
+        <div class="description-box">
+            <p>{{ maintenance.fix_description }}</p>
+        </div>
+        {% else %}
+        <p class="no-data">No diagnosis recorded yet</p>
+        {% endif %}
+    </div>
+
+    <div class="work-order-section">
+        <h3>🛠️ Work History & Progress</h3>
+        {% if maintenance.work_logs %}
+        <div class="work-log-timeline">
+            {% for work_log in maintenance.work_logs %}
+            <div class="work-log-entry">
+                <div class="work-log-header">
+                    <div class="work-log-meta">
+                        <span class="timestamp">🕰️ {{ work_log.timestamp.strftime('%Y-%m-%d %H:%M') }}</span>
+                        <span class="technician">👷 {{ work_log.user.username }}</span>
+                        {% if work_log.time_spent %}
+                        <span class="time-spent">⏱️ {{ work_log.time_spent }}h</span>
+                        {% endif %}
+                        {% if work_log.cost_incurred %}
+                        <span class="work-cost">💰 ${{ "%.2f"|format(work_log.cost_incurred) }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="work-log-content">
+                    <div class="work-description">
+                        <pre>{{ work_log.work_description }}</pre>
+                    </div>
+                    {% if work_log.parts_used %}
+                    <div class="parts-used">
+                        <strong>🔧 Parts Used:</strong>
+                        <pre>{{ work_log.parts_used }}</pre>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="no-data">No work entries logged yet</p>
+        {% endif %}
+    </div>
+
+    <div class="work-order-section">
+        <h3>👨‍🔧 Assignment & Cost</h3>
+        <div class="info-grid">
+            <div class="info-item">
+                <strong>Assigned Technician:</strong> 
+                {{ maintenance.technician or 'Not assigned' }}
+            </div>
+            <div class="info-item">
+                <strong>Estimated/Final Cost:</strong> 
+                ${{ "%.2f"|format(maintenance.cost or 0) }}
+            </div>
+            {% if maintenance.date_fixed %}
+            <div class="info-item">
+                <strong>Date Fixed:</strong> {{ maintenance.date_fixed.strftime('%Y-%m-%d %H:%M') }}
+            </div>
+            <div class="info-item">
+                <strong>Resolution Time:</strong> 
+                {{ ((maintenance.date_fixed.date() - maintenance.date_reported.date()).days) }} days
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="work-order-actions">
+    <a href="{{ url_for('maintenance_orders') }}" class="btn btn-secondary">
+        📋 Back to All Orders
+    </a>
+    <a href="{{ url_for('game_detail', game_id=maintenance.game_id) }}" class="btn btn-primary">
+        🎮 View Game Details
+    </a>
+    {% if maintenance.status in ['Open', 'In_Progress'] and current_user.has_role('manager') %}
+    <button onclick="openCloseModal({{ maintenance.id }}, '{{ maintenance.game.name|replace("'", "\\'") }}', '{{ maintenance.issue_description|replace("'", "\\'") }}')" 
+            class="btn btn-success">✅ Close Work Order</button>
+    {% endif %}
+</div>
+
+<!-- Close Maintenance Modal (reuse from maintenance_orders.html) -->
+<div id="closeModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000;">
+    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--dark-card); padding: 30px; border-radius: 8px; border: 2px solid var(--neon-cyan); max-width: 500px; width: 90%;">
+        <h3>🔧 Close Maintenance Order</h3>
+        <p><strong>Game:</strong> <span id="modalGameName"></span></p>
+        <p><strong>Issue:</strong> <span id="modalIssue"></span></p>
+        
+        <form id="closeForm" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <div class="form-group">
+                <label for="modalStatus">Final Status *</label>
+                <select id="modalStatus" name="status" required>
+                    <option value="Fixed">✅ Fixed</option>
+                    <option value="Deferred">⏸️ Deferred</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="modalFixDescription">Fix Description</label>
+                <textarea id="modalFixDescription" name="fix_description" rows="3" placeholder="Describe what was done to fix the issue..."></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="modalTechnician">Technician</label>
+                <input type="text" id="modalTechnician" name="technician" value="{{ maintenance.technician or '' }}" placeholder="Who fixed this?">
+            </div>
+            
+            <div class="form-group">
+                <label for="modalCost">Cost ($)</label>
+                <input type="number" id="modalCost" name="cost" step="0.01" min="0" value="{{ maintenance.cost or '' }}" placeholder="0.00">
+            </div>
+            
+            <div style="text-align: right; margin-top: 20px;">
+                <button type="button" onclick="closeCloseModal()" class="btn" style="background: #6c757d; margin-right: 10px;">Cancel</button>
+                <button type="submit" class="btn btn-success">💾 Close Order</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+.work-order-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 20px 0;
+    border-bottom: 2px solid var(--neon-cyan);
+    margin-bottom: 30px;
+}
+
+.header-left h1 {
+    color: var(--neon-cyan);
+    text-shadow: 0 0 10px var(--neon-cyan);
+    margin: 0 0 10px 0;
+    font-size: 28px;
+}
+
+.header-left h2 {
+    color: var(--text-primary);
+    margin: 0;
+    font-size: 24px;
+}
+
+.header-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 15px;
+}
+
+.status-badge {
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-weight: bold;
+    text-transform: uppercase;
+    font-size: 14px;
+    letter-spacing: 1px;
+}
+
+.status-open {
+    background: #ff4444;
+    color: white;
+}
+
+.status-in-progress {
+    background: #ffaa00;
+    color: black;
+}
+
+.status-fixed {
+    background: var(--neon-green);
+    color: black;
+}
+
+.status-deferred {
+    background: #888;
+    color: white;
+}
+
+.work-order-content {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+    margin-bottom: 40px;
+}
+
+.work-order-section {
+    background: var(--dark-card);
+    border: 1px solid var(--neon-cyan);
+    border-radius: 8px;
+    padding: 25px;
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.1);
+}
+
+.work-order-section h3 {
+    color: var(--neon-cyan);
+    text-shadow: 0 0 5px var(--neon-cyan);
+    margin: 0 0 20px 0;
+    font-size: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(0, 255, 255, 0.3);
+}
+
+.work-order-section h4 {
+    color: var(--text-primary);
+    margin: 0 0 10px 0;
+    font-size: 16px;
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.info-item {
+    color: var(--text-secondary);
+}
+
+.info-item strong {
+    color: var(--text-primary);
+}
+
+.game-link {
+    color: var(--neon-cyan);
+    text-decoration: none;
+}
+
+.game-link:hover {
+    color: var(--neon-pink);
+    text-shadow: 0 0 5px var(--neon-pink);
+}
+
+.description-box {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 20px;
+    border-radius: 8px;
+    border-left: 4px solid var(--neon-cyan);
+    margin-top: 15px;
+}
+
+.description-box p {
+    color: var(--text-primary);
+    margin: 0;
+    line-height: 1.6;
+    white-space: pre-wrap;
+}
+
+.work-notes pre,
+.parts-list pre {
+    color: var(--text-primary);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 14px;
+    line-height: 1.5;
+    margin: 0;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.no-data {
+    color: var(--text-secondary);
+    font-style: italic;
+    margin: 0;
+}
+
+.work-log-timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.work-log-entry {
+    background: rgba(0, 20, 40, 0.6);
+    border: 1px solid var(--neon-purple);
+    border-radius: 8px;
+    padding: 20px;
+    border-left: 4px solid var(--neon-purple);
+    box-shadow: 0 0 10px rgba(139, 69, 255, 0.1);
+    transition: all 0.3s ease;
+}
+
+.work-log-entry:hover {
+    border-left-color: var(--neon-pink);
+    box-shadow: 0 0 15px rgba(255, 0, 255, 0.2);
+}
+
+.work-log-header {
+    border-bottom: 1px solid rgba(139, 69, 255, 0.3);
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+}
+
+.work-log-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    align-items: center;
+}
+
+.work-log-meta span {
+    background: rgba(0, 0, 0, 0.5);
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: bold;
+    border: 1px solid rgba(139, 69, 255, 0.5);
+}
+
+.timestamp {
+    color: var(--neon-cyan);
+    border-color: var(--neon-cyan) !important;
+}
+
+.technician {
+    color: var(--neon-orange);
+    border-color: var(--neon-orange) !important;
+}
+
+.time-spent {
+    color: var(--neon-green);
+    border-color: var(--neon-green) !important;
+}
+
+.work-cost {
+    color: var(--neon-pink);
+    border-color: var(--neon-pink) !important;
+}
+
+.work-log-content {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.work-description pre {
+    background: rgba(0, 0, 0, 0.4);
+    padding: 15px;
+    border-radius: 6px;
+    border-left: 3px solid var(--neon-cyan);
+    color: var(--text-primary);
+    font-size: 14px;
+    line-height: 1.5;
+    margin: 0;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.parts-used {
+    background: rgba(255, 165, 0, 0.1);
+    padding: 12px;
+    border-radius: 6px;
+    border-left: 3px solid var(--neon-orange);
+}
+
+.parts-used strong {
+    color: var(--neon-orange);
+    display: block;
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+
+.parts-used pre {
+    color: var(--text-secondary);
+    font-size: 13px;
+    margin: 0;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.work-order-actions {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    padding: 20px 0;
+    border-top: 1px solid rgba(0, 255, 255, 0.3);
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 700;
+    color: var(--neon-cyan);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    text-shadow: 0 0 5px var(--neon-cyan);
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--neon-cyan);
+    border-radius: 4px;
+    background: var(--dark-card);
+    color: var(--text-primary);
+    font-family: 'Share Tech Mono', monospace;
+    transition: all 0.3s ease;
+    box-sizing: border-box;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: var(--neon-pink);
+    box-shadow: 0 0 15px rgba(255, 0, 255, 0.5);
+}
+
+@media (max-width: 768px) {
+    .work-order-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 20px;
+    }
+    
+    .header-right {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+    
+    .info-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .work-order-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}
+</style>
+
+<script>
+function openCloseModal(maintenanceId, gameName, issue) {
+    document.getElementById('modalGameName').textContent = gameName;
+    document.getElementById('modalIssue').textContent = issue;
+    document.getElementById('closeForm').action = `/close_maintenance/${maintenanceId}`;
+    document.getElementById('closeModal').style.display = 'block';
+}
+
+function closeCloseModal() {
+    document.getElementById('closeModal').style.display = 'none';
+}
+</script>
+{% endblock %}

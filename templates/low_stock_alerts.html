@@ -1,0 +1,335 @@
+{% extends "base.html" %}
+
+{% block title %}Low Stock Alerts - Arcade Tracker{% endblock %}
+
+{% block content %}
+<div class="header-section">
+    <h1>⚠️ Low Stock Alerts</h1>
+    <div class="header-actions">
+        <a href="{{ url_for('inventory_list') }}" class="btn btn-secondary">← Back to Inventory</a>
+    </div>
+</div>
+
+<div class="alerts-container">
+    {% if active_alerts %}
+    <div class="alert-section">
+        <h2>🔴 Active Alerts</h2>
+        <div class="alerts-grid">
+            {% for alert in active_alerts %}
+            <div class="alert-card active">
+                <div class="alert-header">
+                    <h3>
+                        <a href="{{ url_for('inventory_detail', item_id=alert.item.id) }}">
+                            {{ alert.item.name }}
+                        </a>
+                    </h3>
+                    <div class="alert-status">Active</div>
+                </div>
+                
+                <div class="alert-info">
+                    <div class="stock-info">
+                        <div class="stock-item">
+                            <label>Current Stock</label>
+                            <span class="stock-value low">{{ alert.item.stock_quantity }}</span>
+                        </div>
+                        <div class="stock-item">
+                            <label>Min Stock</label>
+                            <span class="stock-value">{{ alert.item.minimum_stock }}</span>
+                        </div>
+                        <div class="stock-item">
+                            <label>Shortage</label>
+                            <span class="stock-value shortage">
+                                {{ alert.item.minimum_stock - alert.item.stock_quantity }}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="alert-meta">
+                        <div class="meta-item">
+                            <label>Alert Triggered</label>
+                            <span>{{ alert.alert_triggered.strftime('%m/%d/%Y %H:%M') }}</span>
+                        </div>
+                        {% if alert.item.supplier %}
+                        <div class="meta-item">
+                            <label>Supplier</label>
+                            <span>{{ alert.item.supplier }}</span>
+                        </div>
+                        {% endif %}
+                        {% if alert.item.part_number %}
+                        <div class="meta-item">
+                            <label>Part Number</label>
+                            <span>{{ alert.item.part_number }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="alert-actions">
+                    <a href="{{ url_for('adjust_stock', item_id=alert.item.id) }}" class="btn btn-sm btn-primary">
+                        Add Stock
+                    </a>
+                    <a href="{{ url_for('inventory_detail', item_id=alert.item.id) }}" class="btn btn-sm btn-info">
+                        View Item
+                    </a>
+                    <form method="POST" action="{{ url_for('resolve_low_stock_alert', alert_id=alert.id) }}" class="inline-form">
+                        <button type="submit" class="btn btn-sm btn-success" 
+                                onclick="return confirm('Mark this alert as resolved?')">
+                            Mark Resolved
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% else %}
+    <div class="no-alerts">
+        <div class="no-alerts-icon">✅</div>
+        <h2>No Active Low Stock Alerts</h2>
+        <p>All inventory items are adequately stocked!</p>
+        <a href="{{ url_for('inventory_list') }}" class="btn btn-primary">View Inventory</a>
+    </div>
+    {% endif %}
+    
+    {% if recent_resolved %}
+    <div class="alert-section">
+        <h2>✅ Recently Resolved (Last 30 Days)</h2>
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Item</th>
+                        <th>Alert Triggered</th>
+                        <th>Resolved Date</th>
+                        <th>Current Stock</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for alert in recent_resolved %}
+                    <tr>
+                        <td>
+                            <a href="{{ url_for('inventory_detail', item_id=alert.item.id) }}">
+                                {{ alert.item.name }}
+                            </a>
+                        </td>
+                        <td>{{ alert.alert_triggered.strftime('%m/%d/%Y %H:%M') }}</td>
+                        <td>{{ alert.resolved_date.strftime('%m/%d/%Y %H:%M') }}</td>
+                        <td>
+                            <span class="stock-value {% if alert.item.is_low_stock() %}low{% endif %}">
+                                {{ alert.item.stock_quantity }}
+                            </span>
+                        </td>
+                        <td>
+                            <a href="{{ url_for('inventory_detail', item_id=alert.item.id) }}" class="btn btn-sm btn-info">
+                                View Item
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.alerts-container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.alert-section {
+    margin-bottom: 40px;
+}
+
+.alert-section h2 {
+    margin-bottom: 20px;
+    color: var(--primary-color);
+    border-bottom: 2px solid var(--primary-color);
+    padding-bottom: 8px;
+}
+
+.alerts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+    gap: 20px;
+}
+
+.alert-card {
+    background: var(--card-bg);
+    border-radius: 8px;
+    padding: 20px;
+    border: 2px solid var(--border-color);
+    transition: all 0.3s ease;
+}
+
+.alert-card.active {
+    border-color: var(--warning-color);
+    background: rgba(255, 193, 7, 0.05);
+}
+
+.alert-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.alert-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.alert-header h3 {
+    margin: 0;
+    color: var(--primary-color);
+}
+
+.alert-header h3 a {
+    color: var(--primary-color);
+    text-decoration: none;
+}
+
+.alert-header h3 a:hover {
+    text-decoration: underline;
+}
+
+.alert-status {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.8em;
+    font-weight: bold;
+    background-color: var(--warning-color);
+    color: white;
+}
+
+.alert-info {
+    margin-bottom: 16px;
+}
+
+.stock-info {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+    padding: 12px;
+    background: var(--input-bg);
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+}
+
+.stock-item {
+    text-align: center;
+}
+
+.stock-item label {
+    display: block;
+    font-size: 0.8em;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+}
+
+.stock-value {
+    font-weight: bold;
+    font-size: 1.2em;
+}
+
+.stock-value.low {
+    color: var(--error-color);
+}
+
+.stock-value.shortage {
+    color: var(--warning-color);
+}
+
+.alert-meta {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+}
+
+.meta-item label {
+    display: block;
+    font-size: 0.8em;
+    color: var(--text-secondary);
+    margin-bottom: 2px;
+}
+
+.meta-item span {
+    font-weight: 500;
+}
+
+.alert-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.inline-form {
+    display: inline;
+}
+
+.no-alerts {
+    text-align: center;
+    padding: 60px 20px;
+    background: var(--card-bg);
+    border-radius: 12px;
+    border: 2px solid var(--success-color);
+    background: rgba(40, 167, 69, 0.05);
+}
+
+.no-alerts-icon {
+    font-size: 4em;
+    margin-bottom: 16px;
+}
+
+.no-alerts h2 {
+    color: var(--success-color);
+    margin-bottom: 12px;
+}
+
+.no-alerts p {
+    color: var(--text-secondary);
+    margin-bottom: 20px;
+}
+
+.table .stock-value.low {
+    color: var(--warning-color);
+    font-weight: bold;
+}
+
+@media (max-width: 768px) {
+    .alerts-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .stock-info {
+        grid-template-columns: 1fr;
+        text-align: left;
+    }
+    
+    .stock-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .alert-meta {
+        grid-template-columns: 1fr;
+    }
+    
+    .alert-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .alert-actions .btn {
+        width: 100%;
+        text-align: center;
+    }
+}
+</style>
+{% endblock %}
