@@ -47,6 +47,19 @@
     </div>
     
     <div class="form-group">
+        <label for="maintenance_id">🔧 Link to Work Order (Optional)</label>
+        <select id="maintenance_id" name="maintenance_id">
+            <option value="">-- Not linked to a work order --</option>
+            {% for order in open_maintenance %}
+            <option value="{{ order.id }}" {% if preselected_maintenance_id == order.id %}selected{% endif %}>
+                #{{ order.id }} - {% if order.game %}{{ order.game.name }}{% else %}{{ order.work_order_type|upper }}{% endif %} ({{ order.status.replace('_', ' ') }})
+            </option>
+            {% endfor %}
+        </select>
+        <small style="color: #888; display: block; margin-top: 4px;">Link this request to a maintenance work order if these parts are needed for a specific repair.</small>
+    </div>
+    
+    <div class="form-group">
         <label for="reason">Reason / Notes</label>
         <textarea id="reason" name="reason" rows="3" placeholder="Why do you need this item?"></textarea>
     </div>
