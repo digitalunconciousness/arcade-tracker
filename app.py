@@ -671,6 +671,10 @@ class InventoryRequest(db.Model):
     tracking_number = db.Column(db.String(200), nullable=True)  # Shipping tracking number
     vendor = db.Column(db.String(200), nullable=True)  # Where ordered from
     estimated_arrival = db.Column(db.Date, nullable=True)  # Expected delivery date
+    carrier = db.Column(db.String(50), nullable=True)  # USPS, UPS, FedEx, etc.
+    tracking_status = db.Column(db.String(50), nullable=True)  # Latest tracking status from API
+    tracking_details = db.Column(db.Text, nullable=True)  # JSON of tracking history
+    last_tracking_update = db.Column(db.DateTime, nullable=True)  # When tracking was last fetched
     
     requested_by = db.relationship('User', backref='inventory_requests')
     item = db.relationship('InventoryItem', backref='requests')
@@ -3607,6 +3611,123 @@ def inventory_request_detail(request_id):
     return render_template('inventory_request_detail.html',
                          request=inv_request,
                          history=history)
+
+@app.route('/inventory/requests/<int:request_id>/update_tracking', methods=['POST'])
+@login_required
+@requires_role('manager')
+def update_request_tracking(request_id):
+    """Fetch and update shipment tracking information using EasyPost API"""
+    inv_request = InventoryRequest.query.get_or_404(request_id)
+    
+    if not inv_request.tracking_number:
+        flash('No tracking number available for this request.', 'error')
+        return redirect(url_for('inventory_request_detail', request_id=request_id))
+    
+    # Check if EasyPost API key is configured
+    api_key = os.getenv('EASYPOST_API_KEY')
+    if not api_key or api_key == 'your-easypost-api-key-here':
+        flash('Tracking API not configured. Please add EASYPOST_API_KEY to your .env file.', 'warning')
+        return redirect(url_for('inventory_request_detail', request_id=request_id))
+    
+    try:
+        import easypost
+        client = easypost.EasyPostClient(api_key=api_key)
+        
+        # Determine carrier (default to USPS if not specified)
+        carrier = inv_request.carrier or 'USPS'
+        
+        # Create or retrieve tracker
+        tracker = client.tracker.create(
+            tracking_code=inv_request.tracking_number,
+            carrier=carrier
+        )
+        
+        # Update request with tracking info
+        inv_request.tracking_status = tracker.status  # 'unknown', 'pre_transit', 'in_transit', 'out_for_delivery', 'delivered', etc.
+        inv_request.carrier = tracker.carrier or carrier
+        inv_request.last_tracking_update = datetime.now(dt.UTC)
+        
+        # Store tracking details as JSON
+        tracking_info = {
+            'status': tracker.status,
+            'status_detail': tracker.status_detail,
+            'est_delivery_date': str(tracker.est_delivery_date) if tracker.est_delivery_date else None,
+            'public_url': tracker.public_url,
+            'tracking_details': [
+                {
+                    'datetime': str(detail.datetime) if detail.datetime else None,
+                    'status': detail.status,
+                    'message': detail.message,
+                    'tracking_location': {
+                        'city': detail.tracking_location.city if detail.tracking_location else None,
+                        'state': detail.tracking_location.state if detail.tracking_location else None,
+                    } if detail.tracking_location else None
+                }
+                for detail in (tracker.tracking_details or [])
+            ]
+        }
+        inv_request.tracking_details = json.dumps(tracking_info)
+        
+        # Update ETA if available
+        if tracker.est_delivery_date:
+            try:
+                from datetime import datetime as dt_module
+                new_eta = dt_module.strptime(tracker.est_delivery_date, '%Y-%m-%d').date()
+                if inv_request.estimated_arrival != new_eta:
+                    # Log ETA change in history
+                    history = InventoryRequestHistory(
+                        request_id=request_id,
+                        user_id=current_user.id,
+                        action='tracking_auto_updated',
+                        field_changed='estimated_arrival',
+                        old_value=str(inv_request.estimated_arrival) if inv_request.estimated_arrival else None,
+                        new_value=str(new_eta),
+                        notes=f'Updated from tracking API (Status: {tracker.status})'
+                    )
+                    db.session.add(history)
+                    inv_request.estimated_arrival = new_eta
+            except (ValueError, AttributeError):
+                pass
+        
+        # Log tracking update in history
+        history = InventoryRequestHistory(
+            request_id=request_id,
+            user_id=current_user.id,
+            action='tracking_refreshed',
+            notes=f'Tracking refreshed: {tracker.status} ({tracker.status_detail or "No details"})'
+        )
+        db.session.add(history)
+        
+        db.session.commit()
+        
+        # Provide user-friendly status message
+        status_messages = {
+            'unknown': 'Tracking information not yet available',
+            'pre_transit': 'Label created, waiting for carrier pickup',
+            'in_transit': 'Package is in transit',
+            'out_for_delivery': 'Out for delivery today',
+            'delivered': 'Package delivered!',
+            'available_for_pickup': 'Available for pickup',
+            'return_to_sender': 'Package being returned to sender',
+            'failure': 'Delivery issue - check tracking details',
+            'cancelled': 'Shipment cancelled',
+            'error': 'Tracking error'
+        }
+        
+        status_msg = status_messages.get(tracker.status, tracker.status_detail or tracker.status)
+        flash(f'Tracking updated! Status: {status_msg}', 'success')
+        
+    except ImportError:
+        flash('EasyPost library not installed. Run: pip install easypost', 'error')
+    except Exception as e:
+        flash(f'Error fetching tracking info: {str(e)}', 'error')
+        log_security_event(
+            'TRACKING_UPDATE_FAILED',
+            user_id=current_user.id,
+            details=f'Request #{request_id}, Tracking: {inv_request.tracking_number}, Error: {str(e)}'
+        )
+    
+    return redirect(url_for('inventory_request_detail', request_id=request_id))
 
     form = LoginForm()
     if form.validate_on_submit():

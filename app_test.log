@@ -1,0 +1,5 @@
+nohup: ignoring input
+Traceback (most recent call last):
+  File "/home/jackiegreybard/arcade-tracker/app.py", line 1, in <module>
+    from flask import Flask, render_template, request, redirect, url_for, flash, make_response, send_file
+ModuleNotFoundError: No module named 'flask'

@@ -59,9 +59,33 @@
   </div>
 
   <!-- Shipping & Tracking Info -->
-  {% if request.vendor or request.tracking_number or request.estimated_arrival %}
+  {% if request.vendor or request.tracking_number or request.estimated_arrival or request.tracking_status %}
   <div style="background: rgba(0, 20, 40, 0.6); border: 2px solid #00d9ff; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
-    <h4 style="color: #00d9ff; margin-bottom: 15px;">📬 Shipping & Tracking Information</h4>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+      <h4 style="color: #00d9ff; margin: 0;">📬 Shipping & Tracking Information</h4>
+      {% if request.tracking_number and current_user.role in ['admin', 'manager'] and request.status not in ['Received', 'Rejected'] %}
+        <form method="POST" action="{{ url_for('update_request_tracking', request_id=request.id) }}" style="display: inline;">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+          <button type="submit" style="background: var(--neon-cyan); color: #000; padding: 8px 16px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.transform='scale(1.05)';" onmouseout="this.style.transform='scale(1)';">
+            🔄 Update Tracking
+          </button>
+        </form>
+      {% endif %}
+    </div>
+    
+    <!-- Tracking Status (if available) -->
+    {% if request.tracking_status %}
+    <div style="margin-bottom: 20px; padding: 15px; background: rgba(0, 217, 255, 0.1); border-left: 4px solid var(--neon-cyan); border-radius: 4px;">
+      <p style="color: #888; margin: 0; font-size: 0.9em;">Current Tracking Status</p>
+      <p style="color: var(--neon-cyan); margin: 5px 0 10px 0; font-size: 1.2em; font-weight: bold; text-transform: capitalize;">{{ request.tracking_status.replace('_', ' ') }}</p>
+      {% if request.carrier %}
+        <span style="color: #888; font-size: 0.9em;">Carrier: {{ request.carrier }}</span>
+      {% endif %}
+      {% if request.last_tracking_update %}
+        <span style="color: #666; font-size: 0.8em; margin-left: 15px;">Last updated: {{ request.last_tracking_update.strftime('%Y-%m-%d %H:%M') }}</span>
+      {% endif %}
+    </div>
+    {% endif %}
     
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
       {% if request.vendor %}

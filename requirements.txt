@@ -8,3 +8,4 @@ reportlab==4.0.6
 pandas==2.1.4
 numpy==1.26.2
 matplotlib==3.7.2
+easypost==10.1.0
