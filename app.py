@@ -46,6 +46,9 @@ from flask_login import (
 )
 from flask_wtf import FlaskForm
 from flask_wtf.csrf import CSRFProtect
+from flask_wtf.file import FileAllowed
+
+
 
 # -------------------------------------------------------------
 # 🧩 WTForms Fields & Validators
@@ -70,7 +73,6 @@ from security_utils import (
 )
 from security_middleware import init_security
 
-
 # Load environment variables
 # -------------------------------------------------------------
 # ⚙️ Flask Application Configuration
@@ -78,12 +80,22 @@ from security_middleware import init_security
 
 # Initialize Flask app
 app = Flask(__name__)
+csrf = CSRFProtect(app)
+
 
 # -------------------------------------------------------------
 # 🔧 Core Configuration
 # -------------------------------------------------------------
 # It's best to load sensitive values (SECRET_KEY, DB URI) from environment variables in production
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'supersecretkey-change-this')
+app.config['REMEMBER_COOKIE_DURATION'] = dt.timedelta(days=30)
+app.config['PERMANENT_SESSION_LIFETIME'] = dt.timedelta(days=30)
+app.config['REMEMBER_COOKIE_SECURE'] = False  # Set to True if using HTTPS
+app.config['REMEMBER_COOKIE_HTTPONLY'] = True
+app.config['REMEMBER_COOKIE_REFRESH_EACH_REQUEST'] = False
+app.config['SESSION_COOKIE_SECURE'] = False  # Set to True if using HTTPS
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 # -------------------------------------------------------------
 # ðŸ"§ Core Configuration
 # -------------------------------------------------------------
@@ -215,6 +227,9 @@ AWS_REGION = os.getenv('AWS_REGION', 'us-east-1')
 # 🧠 Database
 # -------------------------------------------------------------
 db = SQLAlchemy(app)
+from flask_migrate import Migrate
+migrate = Migrate(app, db)
+
 
 # -------------------------------------------------------------
 # 💥 Flask-Login
@@ -366,7 +381,7 @@ def requires_role(role):
 class LoginForm(FlaskForm):
     username = StringField('Username', validators=[DataRequired()])
     password = PasswordField('Password', validators=[DataRequired()])
-    remember = BooleanField('Remember Me', default=True)
+    remember = BooleanField('Stay logged in for 30 days', default=True)
     submit = SubmitField('Sign In')
 
 class RegisterForm(FlaskForm):
@@ -395,7 +410,10 @@ class ChangePasswordForm(FlaskForm):
     submit = SubmitField('Change Password')
 
 class ProfileForm(FlaskForm):
-    profile_picture = FileField('Profile Picture', validators=[Optional()])
+    profile_picture = FileField('Profile Picture', validators=[
+        Optional(),
+        FileAllowed(['png', 'jpg', 'jpeg', 'gif'], 'Images only (PNG, JPG, JPEG, GIF)')
+    ])
     submit = SubmitField('Update Profile')
 
 class MaintenancePhotoForm(FlaskForm):
@@ -520,7 +538,9 @@ class PlayRecord(db.Model):
 
 class MaintenanceRecord(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    game_id = db.Column(db.Integer, db.ForeignKey('game.id'), nullable=False)
+    game_id = db.Column(db.Integer, db.ForeignKey('game.id'), nullable=True)  # <-- Change to nullable=True
+    work_order_type = db.Column(db.String(50), default='game')  # 'game', 'facility', 'equipment', 'general'
+    location_description = db.Column(db.String(200), nullable=True)  # For non-game work orders
     issue_description = db.Column(db.Text, nullable=False)
     fix_description = db.Column(db.Text, nullable=True)  # Initial diagnosis/assessment
     work_notes = db.Column(db.Text, nullable=True)  # Actual work performed (kept for compatibility)
@@ -529,6 +549,7 @@ class MaintenanceRecord(db.Model):
     date_reported = db.Column(db.DateTime, default=lambda: datetime.now(dt.UTC))
     date_fixed = db.Column(db.DateTime, nullable=True)
     status = db.Column(db.String(20), default='Open')  # Open, In_Progress, Fixed, Deferred
+    priority = db.Column(db.String(20), default='Medium')  # Low, Medium, High, Critical
     technician = db.Column(db.String(50), nullable=True)
     # Photo documentation
     photos = db.Column(db.Text, nullable=True)  # JSON array of photo filenames
@@ -637,6 +658,7 @@ class MaintenanceInventoryUsage(db.Model):
 class InventoryRequest(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     item_id = db.Column(db.Integer, db.ForeignKey('inventory_item.id'), nullable=True)  # Null if requesting new item
+    maintenance_id = db.Column(db.Integer, db.ForeignKey('maintenance_record.id'), nullable=True)  # Link to work order
     item_name = db.Column(db.String(200), nullable=False)  # Name of item (for new or existing)
     quantity_requested = db.Column(db.Integer, nullable=False)
     reason = db.Column(db.Text, nullable=True)  # Why it's needed
@@ -646,9 +668,28 @@ class InventoryRequest(db.Model):
     date_requested = db.Column(db.DateTime, default=lambda: datetime.now(dt.UTC))
     date_fulfilled = db.Column(db.DateTime, nullable=True)
     notes = db.Column(db.Text, nullable=True)  # Admin notes
+    tracking_number = db.Column(db.String(200), nullable=True)  # Shipping tracking number
+    vendor = db.Column(db.String(200), nullable=True)  # Where ordered from
+    estimated_arrival = db.Column(db.Date, nullable=True)  # Expected delivery date
     
     requested_by = db.relationship('User', backref='inventory_requests')
     item = db.relationship('InventoryItem', backref='requests')
+    maintenance_record = db.relationship('MaintenanceRecord', backref='inventory_requests')
+    history = db.relationship('InventoryRequestHistory', backref='request', lazy=True, cascade='all, delete-orphan', order_by='InventoryRequestHistory.timestamp.desc()')
+
+class InventoryRequestHistory(db.Model):
+    """Track all changes to inventory requests for audit trail"""
+    id = db.Column(db.Integer, primary_key=True)
+    request_id = db.Column(db.Integer, db.ForeignKey('inventory_request.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    action = db.Column(db.String(50), nullable=False)  # 'created', 'status_changed', 'updated', etc.
+    field_changed = db.Column(db.String(50), nullable=True)  # Which field was modified
+    old_value = db.Column(db.String(500), nullable=True)
+    new_value = db.Column(db.String(500), nullable=True)
+    notes = db.Column(db.Text, nullable=True)  # Additional context
+    timestamp = db.Column(db.DateTime, default=lambda: datetime.now(dt.UTC))
+    
+    user = db.relationship('User', backref='request_history_actions')
 
 # Authentication Routes
 @app.route('/login', methods=['GET', 'POST'])
@@ -680,6 +721,11 @@ def login():
             # Update last login
             user.last_login = datetime.now(dt.UTC)
             db.session.commit()
+            
+            # Make session permanent if remember me is checked
+            if form.remember.data:
+                from flask import session
+                session.permanent = True
             
             login_user(user, remember=form.remember.data)
             
@@ -733,7 +779,6 @@ def logout():
 def profile():
     form = ProfileForm()
     if form.validate_on_submit():
-        return render_template('profile.html', form=form)
         # Handle profile picture upload
         if form.profile_picture.data:
             file = form.profile_picture.data
@@ -745,6 +790,15 @@ def profile():
                 upload_dir = os.path.join(app.root_path, 'static', 'profile_pics')
                 os.makedirs(upload_dir, exist_ok=True)
                 file_path = os.path.join(upload_dir, unique_filename)
+
+                # Delete old profile picture if it exists
+                if current_user.profile_picture:
+                    old_path = os.path.join(upload_dir, current_user.profile_picture)
+                    if os.path.exists(old_path):
+                        try:
+                            os.remove(old_path)
+                        except:
+                            pass
 
                 file.save(file_path)
                 current_user.profile_picture = unique_filename
@@ -1050,8 +1104,12 @@ def games_list():
     if status_filter:
         query = query.filter_by(status=status_filter)
     
-    # Sort alphabetically by name by default
+    # Get all games sorted alphabetically
     games = query.order_by(Game.name.asc()).all()
+    
+    # Separate into floor and warehouse games
+    floor_games = [g for g in games if g.location == 'Floor']
+    warehouse_games = [g for g in games if g.location == 'Warehouse']
     
     # Get games with open maintenance requests
     games_with_open_maintenance = set(
@@ -1070,7 +1128,9 @@ def games_list():
     statuses = db.session.query(Game.status.distinct()).all()
     
     return render_template('games_list.html', 
-                         games=games, 
+                         games=games,
+                         floor_games=floor_games,
+                         warehouse_games=warehouse_games,
                          search=search,
                          location_filter=location_filter,
                          status_filter=status_filter,
@@ -1288,10 +1348,10 @@ def edit_game(game_id):
     
     return render_template('edit_game.html', game=game, has_play_records=has_play_records)
 
-@app.route('/maintenance/<int:game_id>', methods=['GET', 'POST'])
+@app.route('/maintenance/game/<int:game_id>', methods=['GET', 'POST'])
 @login_required
 @requires_role('operator')
-def maintenance(game_id):
+def game_maintenance(game_id):
     game = Game.query.get_or_404(game_id)
     form = MaintenanceWithInventoryForm()
     
@@ -1303,13 +1363,16 @@ def maintenance(game_id):
         inventory_form.item_id.choices = item_choices
     
     if form.validate_on_submit():
+        priority = request.form.get('priority', 'Medium')
+        
         maintenance_record = MaintenanceRecord(
             game_id=game_id,
             issue_description=form.issue_description.data,
             fix_description=form.fix_description.data,
             cost=form.cost.data if form.cost.data else None,
             technician=form.technician.data,
-            status=form.status.data
+            status=form.status.data,
+            priority=priority
         )
         
         if form.status.data == 'Fixed':
@@ -1374,80 +1437,175 @@ def maintenance(game_id):
     
     return render_template('maintenance_with_inventory.html', form=form, game=game)
 
+@app.route('/maintenance/general', methods=['GET', 'POST'])
+@login_required
+@requires_role('operator')
+def general_maintenance():
+    """Create a general work order not tied to a specific game"""
+    form = MaintenanceWithInventoryForm()
+    
+    # Populate inventory item choices
+    inventory_items = InventoryItem.query.order_by(InventoryItem.name.asc()).all()
+    item_choices = [(-1, 'Select an item...')] + [(item.id, f"{item.name} (Stock: {item.stock_quantity})") for item in inventory_items]
+    
+    for inventory_form in form.inventory_items:
+        inventory_form.item_id.choices = item_choices
+    
+    if form.validate_on_submit():
+        # Get work order type and location from form
+        work_order_type = request.form.get('work_order_type', 'general')
+        location_description = request.form.get('location_description', '')
+        
+        priority = request.form.get('priority', 'Medium')
+        
+        maintenance_record = MaintenanceRecord(
+            game_id=None,  # No game associated
+            work_order_type=work_order_type,
+            location_description=location_description,
+            issue_description=form.issue_description.data,
+            fix_description=form.fix_description.data,
+            cost=form.cost.data if form.cost.data else None,
+            technician=form.technician.data,
+            status=form.status.data,
+            priority=priority
+        )
+        
+        if form.status.data == 'Fixed':
+            maintenance_record.date_fixed = datetime.now(dt.UTC)
+        
+        db.session.add(maintenance_record)
+        db.session.flush()
+        
+        # Process inventory usage (same as regular maintenance)
+        total_inventory_cost = 0
+        for inventory_form in form.inventory_items:
+            item_id = inventory_form.item_id.data
+            quantity = inventory_form.quantity_used.data
+            
+            if item_id and item_id != -1 and quantity and quantity > 0:
+                item = InventoryItem.query.get(item_id)
+                if item and item.stock_quantity >= quantity:
+                    usage = MaintenanceInventoryUsage(
+                        maintenance_id=maintenance_record.id,
+                        item_id=item_id,
+                        quantity_used=quantity,
+                        unit_price_at_time=item.unit_price,
+                        total_cost=quantity * item.unit_price
+                    )
+                    db.session.add(usage)
+                    
+                    old_quantity = item.stock_quantity
+                    item.stock_quantity -= quantity
+                    
+                    stock_history = StockHistory(
+                        item_id=item_id,
+                        change_type='used',
+                        quantity_change=-quantity,
+                        previous_quantity=old_quantity,
+                        new_quantity=item.stock_quantity,
+                        reason=f'Used in {work_order_type} maintenance (Work Order #{maintenance_record.id})',
+                        user_id=current_user.id
+                    )
+                    db.session.add(stock_history)
+                    
+                    total_inventory_cost += usage.total_cost
+                    _check_low_stock_alert(item)
+        
+        if total_inventory_cost > 0:
+            current_cost = maintenance_record.cost or 0
+            maintenance_record.cost = current_cost + total_inventory_cost
+        
+        db.session.commit()
+        
+        flash(f'General work order created successfully!', 'success')
+        return redirect(url_for('maintenance_orders'))
+    
+    return render_template('general_maintenance.html', form=form)
+
 @app.route('/maintenance_orders')
 @login_required
-@requires_role('manager')
 def maintenance_orders():
-    """View all maintenance orders in spreadsheet format"""
-    # Get all maintenance records, ordered by date
-    all_records = MaintenanceRecord.query.join(Game).order_by(MaintenanceRecord.date_reported.desc()).all()
-    
-    # Separate by status
-    open_records = [r for r in all_records if r.status in ['Open', 'In_Progress']]
-    closed_records = [r for r in all_records if r.status in ['Fixed', 'Deferred']]
-    
-    return render_template('maintenance_orders.html', 
-                         all_records=all_records,
-                         open_records=open_records, 
-                         closed_records=closed_records)
+    """List all maintenance records"""
+    search = request.args.get('search', '')
+    query = MaintenanceRecord.query
+    if search:
+        query = query.filter(
+            (MaintenanceRecord.issue_description.ilike(f"%{search}%")) |
+            (MaintenanceRecord.technician.ilike(f"%{search}%")) |
+            (MaintenanceRecord.work_order_type.ilike(f"%{search}%"))
+        )
+    # Sort by game name (nulls last for general maintenance), then by date
+    all_records = query.outerjoin(Game).order_by(Game.name.asc().nullslast(), MaintenanceRecord.date_reported.desc()).all()
+    return render_template('maintenance_orders.html', all_records=all_records, search=search)
 
-@app.route('/update_maintenance/<int:maintenance_id>', methods=['GET', 'POST'])
+
+# ==============================
+# 🧩 Maintenance Routes Section
+# ==============================
+
+@app.route('/maintenance_detail/<int:record_id>')
 @login_required
-@requires_role('manager')
-def update_maintenance(maintenance_id):
-    """Update a maintenance work order with progress notes and inventory usage"""
-    maintenance = MaintenanceRecord.query.get_or_404(maintenance_id)
+def maintenance_detail(record_id):
+    """Detailed view of a maintenance record"""
+    record = MaintenanceRecord.query.get_or_404(record_id)
+    return render_template('maintenance_detail.html', record=record)
+
+
+@app.route('/update_maintenance/<int:record_id>', methods=['GET', 'POST'])
+@login_required
+@requires_role('operator')
+def update_maintenance(record_id):
+    """Detailed update page for maintenance records"""
+    record = MaintenanceRecord.query.get_or_404(record_id)
     
     if request.method == 'POST':
-        # Update maintenance record basic info
-        maintenance.status = request.form.get('status', maintenance.status)
-        maintenance.technician = request.form.get('technician', maintenance.technician)
-        maintenance.fix_description = request.form.get('fix_description', maintenance.fix_description)
+        # Update main record fields
+        record.status = request.form.get('status', record.status)
+        record.priority = request.form.get('priority', record.priority)
+        record.fix_description = request.form.get('fix_description', record.fix_description)
+        record.technician = request.form.get('technician', record.technician)
         
-        # Update total cost
-        cost_str = request.form.get('cost', '')
-        if cost_str:
+        # Update total cost if provided
+        cost = request.form.get('cost')
+        if cost:
             try:
-                maintenance.cost = float(cost_str)
+                record.cost = float(cost)
             except ValueError:
                 pass
         
-        # Create new work log entry if work description is provided
-        work_description = request.form.get('work_notes', '').strip()
-        work_log = None
-        if work_description:
-            # Create new work log entry
+        if record.status == 'Fixed':
+            record.date_fixed = datetime.now(dt.UTC)
+        
+        # Create work log entry
+        work_notes = request.form.get('work_notes', '').strip()
+        if work_notes:
             work_log = WorkLog(
-                maintenance_id=maintenance_id,
+                maintenance_id=record.id,
                 user_id=current_user.id,
-                work_description=work_description,
-                parts_used=request.form.get('parts_used', '').strip() or None,
-                time_spent=float(request.form.get('time_spent', 0)) if request.form.get('time_spent') else None,
-                cost_incurred=float(request.form.get('work_cost', 0)) if request.form.get('work_cost') else None
+                work_description=work_notes,
+                parts_used=request.form.get('parts_used', ''),
+                time_spent=float(request.form.get('time_spent')) if request.form.get('time_spent') else None,
+                cost_incurred=float(request.form.get('work_cost')) if request.form.get('work_cost') else None
             )
             db.session.add(work_log)
-            
-            # Also update the legacy work_notes field for backward compatibility
-            maintenance.work_notes = work_description
-            maintenance.parts_used = request.form.get('parts_used', maintenance.parts_used)
         
-        # Process inventory usage if items were selected
-        inventory_cost = 0
-        for i in range(10):  # Support up to 10 inventory items
-            item_id_key = f'inventory_item_{i}'
-            quantity_key = f'inventory_quantity_{i}'
-            
-            if item_id_key in request.form and quantity_key in request.form:
+        # Process inventory usage
+        inventory_items = request.form.getlist('inventory_item_id')
+        inventory_quantities = request.form.getlist('inventory_quantity')
+        
+        total_inventory_cost = 0
+        for item_id_str, quantity_str in zip(inventory_items, inventory_quantities):
+            if item_id_str and quantity_str:
                 try:
-                    item_id = int(request.form[item_id_key])
-                    quantity = int(request.form[quantity_key])
+                    item_id = int(item_id_str)
+                    quantity = int(quantity_str)
                     
                     if item_id > 0 and quantity > 0:
                         item = InventoryItem.query.get(item_id)
                         if item and item.stock_quantity >= quantity:
                             # Create usage record
                             usage = MaintenanceInventoryUsage(
-                                maintenance_id=maintenance_id,
+                                maintenance_id=record.id,
                                 item_id=item_id,
                                 quantity_used=quantity,
                                 unit_price_at_time=item.unit_price,
@@ -1455,66 +1613,192 @@ def update_maintenance(maintenance_id):
                             )
                             db.session.add(usage)
                             
-                            # Update inventory stock
+                            # Update inventory
                             old_quantity = item.stock_quantity
                             item.stock_quantity -= quantity
                             
-                            # Create stock history record
+                            # Create stock history
                             stock_history = StockHistory(
                                 item_id=item_id,
                                 change_type='used',
                                 quantity_change=-quantity,
                                 previous_quantity=old_quantity,
                                 new_quantity=item.stock_quantity,
-                                reason=f'Used in maintenance for {maintenance.game.name} (Work Order #{maintenance_id})',
+                                reason=f'Used in Work Order #{record.id}',
                                 user_id=current_user.id
                             )
                             db.session.add(stock_history)
                             
-                            inventory_cost += usage.total_cost
-                            
-                            # Check for low stock alerts
+                            total_inventory_cost += usage.total_cost
                             _check_low_stock_alert(item)
                         elif item:
                             flash(f'Insufficient stock for {item.name}. Available: {item.stock_quantity}, Requested: {quantity}', 'warning')
                 except (ValueError, TypeError):
                     continue
         
-        # Add inventory cost to maintenance cost
-        if inventory_cost > 0:
-            current_cost = maintenance.cost or 0
-            maintenance.cost = current_cost + inventory_cost
-        
-        # Set date_fixed if status is Fixed
-        if request.form.get('status') == 'Fixed' and maintenance.status != 'Fixed':
-            maintenance.date_fixed = datetime.now(dt.UTC)
-        elif request.form.get('status') != 'Fixed':
-            maintenance.date_fixed = None
+        # Update total cost with inventory costs
+        if total_inventory_cost > 0:
+            if record.cost:
+                record.cost += total_inventory_cost
+            else:
+                record.cost = total_inventory_cost
         
         db.session.commit()
         
-        success_msg = f'Work order for "{maintenance.game.name}" updated successfully!'
-        if work_description:
-            success_msg = f'Work logged for "{maintenance.game.name}" successfully!'
-        if inventory_cost > 0:
-            success_msg += f' Inventory cost: ${inventory_cost:.2f}'
-        
-        flash(success_msg, 'success')
-        return redirect(url_for('view_maintenance', maintenance_id=maintenance_id))
+        if total_inventory_cost > 0:
+            flash(f"Work log added. Inventory used: ${total_inventory_cost:.2f}", "success")
+        else:
+            flash(f"Maintenance record #{record.id} updated.", "success")
+        return redirect(url_for('maintenance_orders'))
     
-    # Get inventory items for the form
+    # GET request - load inventory items
     inventory_items = InventoryItem.query.order_by(InventoryItem.name.asc()).all()
-    return render_template('update_maintenance_with_inventory.html', 
-                         maintenance=maintenance, 
-                         inventory_items=inventory_items)
+    return render_template('update_maintenance.html', record=record, inventory_items=inventory_items)
 
-@app.route('/view_maintenance/<int:maintenance_id>')
+
+@app.route('/close_maintenance/<int:record_id>', methods=['POST'])
 @login_required
 @requires_role('operator')
-def view_maintenance(maintenance_id):
-    """View detailed work order with all updates and history"""
-    maintenance = MaintenanceRecord.query.get_or_404(maintenance_id)
-    return render_template('view_maintenance.html', maintenance=maintenance)
+def close_maintenance(record_id):
+    """Mark maintenance record as closed"""
+    record = MaintenanceRecord.query.get_or_404(record_id)
+    record.status = 'Fixed'
+    record.date_fixed = datetime.now(dt.UTC)
+    db.session.commit()
+    flash(f"Order #{record.id} marked as closed.", "success")
+    return redirect(url_for('maintenance_orders'))
+
+
+@app.route('/delete_maintenance/<int:record_id>', methods=['POST'])
+@login_required
+@requires_role('manager')
+def delete_maintenance(record_id):
+    """Delete a maintenance record"""
+    record = MaintenanceRecord.query.get_or_404(record_id)
+    db.session.delete(record)
+    db.session.commit()
+    flash(f"Maintenance record #{record.id} deleted.", "warning")
+    return redirect(url_for('maintenance_orders'))
+
+@app.route('/download_maintenance_record/<int:record_id>')
+@login_required
+def download_maintenance_record(record_id):
+    """Generate and download PDF of maintenance record"""
+    record = MaintenanceRecord.query.get_or_404(record_id)
+    
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=letter)
+    styles = getSampleStyleSheet()
+    story = []
+    
+    # Title
+    title_text = f"Work Order #{record.id}"
+    if record.game:
+        title_text += f" - {record.game.name}"
+    else:
+        title_text += " - General Maintenance"
+    title = Paragraph(title_text, styles['Title'])
+    story.append(title)
+    story.append(Spacer(1, 12))
+    
+    # Basic Info Table
+    info_data = [
+        ['Status:', record.status or 'Open'],
+        ['Reported:', record.date_reported.strftime('%Y-%m-%d %H:%M') if record.date_reported else 'Unknown'],
+    ]
+    if record.date_fixed:
+        info_data.append(['Fixed:', record.date_fixed.strftime('%Y-%m-%d %H:%M')])
+    if record.technician:
+        info_data.append(['Technician:', record.technician])
+    if record.cost:
+        info_data.append(['Total Cost:', f'${record.cost:.2f}'])
+    
+    info_table = Table(info_data, colWidths=[1.5*inch, 4*inch])
+    info_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (0, -1), colors.lightgrey),
+        ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 10),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black)
+    ]))
+    story.append(info_table)
+    story.append(Spacer(1, 20))
+    
+    # Original Issue
+    story.append(Paragraph("<b>Original Issue:</b>", styles['Heading2']))
+    story.append(Paragraph(record.issue_description or 'No description', styles['Normal']))
+    story.append(Spacer(1, 12))
+    
+    # Initial Assessment
+    if record.fix_description:
+        story.append(Paragraph("<b>Initial Assessment:</b>", styles['Heading2']))
+        story.append(Paragraph(record.fix_description, styles['Normal']))
+        story.append(Spacer(1, 12))
+    
+    # Work Log History
+    if record.work_logs:
+        story.append(Paragraph("<b>Work Log History:</b>", styles['Heading2']))
+        story.append(Spacer(1, 6))
+        
+        for log in record.work_logs:
+            log_header = f"{log.timestamp.strftime('%Y-%m-%d %H:%M')} - {log.user.username}"
+            if log.time_spent:
+                log_header += f" ({log.time_spent}h)"
+            if log.cost_incurred:
+                log_header += f" (${log.cost_incurred:.2f})"
+            
+            story.append(Paragraph(f"<b>{log_header}</b>", styles['Normal']))
+            story.append(Paragraph(log.work_description, styles['Normal']))
+            if log.parts_used:
+                story.append(Paragraph(f"<i>Parts: {log.parts_used}</i>", styles['Normal']))
+            story.append(Spacer(1, 8))
+        
+        story.append(Spacer(1, 12))
+    
+    # Inventory Usage
+    if record.inventory_usage:
+        story.append(Paragraph("<b>Inventory Used:</b>", styles['Heading2']))
+        story.append(Spacer(1, 6))
+        
+        inv_data = [['Item', 'Quantity', 'Cost']]
+        for usage in record.inventory_usage:
+            inv_data.append([
+                usage.item.name,
+                str(usage.quantity_used),
+                f'${usage.total_cost:.2f}'
+            ])
+        
+        inv_table = Table(inv_data, colWidths=[3*inch, 1*inch, 1*inch])
+        inv_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
+            ('ALIGN', (2, 0), (-1, -1), 'RIGHT'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black)
+        ]))
+        story.append(inv_table)
+        story.append(Spacer(1, 12))
+    
+    # Photos note
+    photos = record.get_photos()
+    if photos:
+        story.append(Paragraph(f"<b>Photos:</b> {len(photos)} photo(s) attached (not included in PDF)", styles['Normal']))
+    
+    # Build PDF
+    doc.build(story)
+    buffer.seek(0)
+    
+    filename = f"work_order_{record.id}"
+    if record.game:
+        filename += f"_{record.game.name.replace(' ', '_')}"
+    filename += ".pdf"
+    
+    return send_file(buffer, as_attachment=True, download_name=filename, mimetype='application/pdf')
+
 
 @app.route('/maintenance_photos/<int:maintenance_id>', methods=['GET', 'POST'])
 @login_required
@@ -1666,6 +1950,7 @@ def delete_maintenance_photo(maintenance_id, filename):
     
     return redirect(url_for('view_maintenance', maintenance_id=maintenance_id))
 
+
 @app.route('/admin/cleanup_photos', methods=['POST'])
 @login_required
 @requires_role('manager')
@@ -1754,10 +2039,58 @@ def manage_users():
 
     return render_template('manage_users.html', users=users)
 
-@app.route('/close_maintenance/<int:maintenance_id>', methods=['POST'])
+@app.route('/admin/create_user', methods=['GET', 'POST'])
 @login_required
-@requires_role('manager')
-def close_maintenance(maintenance_id):
+@requires_role('admin')
+def create_user():
+    """Create a new user"""
+    if request.method == 'POST':
+        username = request.form.get('username', '').strip()
+        password = request.form.get('password')
+        role = request.form.get('role', 'readonly')
+        
+        # Validate inputs
+        if not username or len(username) < 3:
+            flash('Username must be at least 3 characters long.', 'error')
+            return render_template('create_user.html')
+        
+        if not password or len(password) < 6:
+            flash('Password must be at least 6 characters long.', 'error')
+            return render_template('create_user.html')
+        
+        # Check if username already exists
+        existing_user = User.query.filter(User.username.ilike(username)).first()
+        if existing_user:
+            flash('Username already exists.', 'error')
+            return render_template('create_user.html')
+        
+        if role not in ['readonly', 'operator', 'manager', 'admin']:
+            flash('Invalid role selected.', 'error')
+            return render_template('create_user.html')
+        
+        # Create new user
+        new_user = User(
+            username=username,
+            role=role,
+            is_active=True,
+            must_change_password=True  # Force password change on first login
+        )
+        new_user.set_password(password)
+        
+        db.session.add(new_user)
+        db.session.commit()
+        
+        log_security_event(
+            'USER_CREATED',
+            user_id=current_user.id,
+            details=f"Created user: {username} with role: {role}"
+        )
+        
+        flash(f'User "{username}" created successfully! They will be prompted to change their password on first login.', 'success')
+        return redirect(url_for('manage_users'))
+    
+    return render_template('create_user.html')
+
     """Quick close a maintenance order"""
     maintenance = MaintenanceRecord.query.get_or_404(maintenance_id)
     
@@ -1867,7 +2200,7 @@ def maintenance_reports():
     
     # Get date range from query params with error handling
     try:
-        days = request.args.get('days', 30, type=int)  # Default 30 days
+        days = request.args.get('days', 30, type=int)
         if days is None or days <= 0:
             days = 30
     except (ValueError, TypeError):
@@ -1875,8 +2208,8 @@ def maintenance_reports():
     
     start_date = date.today() - timedelta(days=days)
     
-    # Get all maintenance records in date range
-    all_records = MaintenanceRecord.query.join(Game).filter(
+    # Get all maintenance records in date range - USE OUTERJOIN
+    all_records = MaintenanceRecord.query.outerjoin(Game).filter(
         MaintenanceRecord.date_reported >= start_date
     ).order_by(MaintenanceRecord.date_reported.desc()).all()
     
@@ -1892,7 +2225,7 @@ def maintenance_reports():
         for r in closed_records:
             if r.date_fixed and r.date_reported:
                 days_to_fix = (r.date_fixed.date() - r.date_reported.date()).days
-                resolution_times.append(max(1, days_to_fix))  # At least 1 day
+                resolution_times.append(max(1, days_to_fix))
         if resolution_times:
             avg_resolution_days = sum(resolution_times) / len(resolution_times)
     
@@ -1920,7 +2253,7 @@ def export_maintenance_report():
     from reportlab.lib import colors
     
     # Get parameters with error handling
-    report_type = request.args.get('type', 'all')  # all, open, closed
+    report_type = request.args.get('type', 'all')
     try:
         days = request.args.get('days', 30, type=int)
         if days is None or days <= 0:
@@ -1930,143 +2263,7 @@ def export_maintenance_report():
     
     start_date = date.today() - timedelta(days=days)
     
-    # Get records based on type
-    if report_type == 'open':
-        records = MaintenanceRecord.query.join(Game).filter(
-            MaintenanceRecord.status.in_(['Open', 'In_Progress'])
-        ).order_by(MaintenanceRecord.date_reported.desc()).all()
-        title = f"Open Maintenance Orders"
-    elif report_type == 'closed':
-        records = MaintenanceRecord.query.join(Game).filter(
-            MaintenanceRecord.status.in_(['Fixed', 'Deferred']),
-            MaintenanceRecord.date_reported >= start_date
-        ).order_by(MaintenanceRecord.date_reported.desc()).all()
-        title = f"Closed Maintenance Orders (Last {days} Days)"
-    else:
-        records = MaintenanceRecord.query.join(Game).filter(
-            MaintenanceRecord.date_reported >= start_date
-        ).order_by(MaintenanceRecord.date_reported.desc()).all()
-        title = f"All Maintenance Orders (Last {days} Days)"
-    
-    buffer = io.BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=letter)
-    styles = getSampleStyleSheet()
-    story = []
-    
-    # Title
-    story.append(Paragraph(title, styles['Title']))
-    story.append(Spacer(1, 12))
-    
-    # Summary stats
-    total_records = len(records)
-    open_count = len([r for r in records if r.status in ['Open', 'In_Progress']])
-    closed_count = len([r for r in records if r.status in ['Fixed', 'Deferred']])
-    total_cost = sum(r.cost or 0 for r in records if r.status in ['Fixed', 'Deferred'])
-    
-    summary_data = [
-        ['Metric', 'Value'],
-        ['Total Records', str(total_records)],
-        ['Open Orders', str(open_count)],
-        ['Closed Orders', str(closed_count)],
-        ['Total Cost', f'${total_cost:.2f}']
-    ]
-    
-    summary_table = Table(summary_data)
-    summary_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 14),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black)
-    ]))
-    
-    story.append(summary_table)
-    story.append(Spacer(1, 20))
-    
-    # Maintenance records table
-    if records:
-        story.append(Paragraph("Maintenance Records", styles['Heading2']))
-        
-        maintenance_data = [['Game', 'Issue', 'Status', 'Date', 'Cost', 'Work Summary']]
-        
-        for record in records[:15]:  # Limit to 15 for better PDF formatting
-            # Get work summary - prioritize work_logs, then work_notes, then fix_description
-            work_summary = 'No work logged'
-            if hasattr(record, 'work_logs') and record.work_logs:
-                # Use the most recent work log entry
-                latest_work = record.work_logs[-1]
-                work_summary = latest_work.work_description[:35] + '...' if len(latest_work.work_description) > 35 else latest_work.work_description
-            elif record.work_notes:
-                work_summary = record.work_notes[:35] + '...' if len(record.work_notes) > 35 else record.work_notes
-            elif record.fix_description:
-                work_summary = record.fix_description[:35] + '...' if len(record.fix_description) > 35 else record.fix_description
-            elif record.status in ['Open', 'In_Progress']:
-                work_summary = 'In progress...'
-            
-            maintenance_data.append([
-                record.game.name[:12] + '...' if len(record.game.name) > 12 else record.game.name,
-                record.issue_description[:20] + '...' if len(record.issue_description) > 20 else record.issue_description,
-                record.status.replace('_', ' '),
-                record.date_reported.strftime('%m/%d'),
-                f'${record.cost:.0f}' if record.cost else '$0',
-                work_summary
-            ])
-        
-        # Define column widths (in points) - total should be around 540 for letter size
-        col_widths = [90, 120, 60, 40, 40, 190]  # Game, Issue, Status, Date, Cost, Work Summary
-        
-        maintenance_table = Table(maintenance_data, colWidths=col_widths)
-        maintenance_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.lightblue),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 10),
-            ('FONTSIZE', (0, 1), (-1, -1), 9),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
-            ('TOPPADDING', (0, 1), (-1, -1), 4),
-            ('BOTTOMPADDING', (0, 1), (-1, -1), 4),
-            ('BACKGROUND', (0, 1), (-1, -1), colors.white),
-            ('GRID', (0, 0), (-1, -1), 1, colors.black),
-            ('WORDWRAP', (0, 0), (-1, -1), True)
-        ]))
-        
-        story.append(maintenance_table)
-        
-        # Add detailed work log section if there are records with work logs
-        work_log_records = [r for r in records[:10] if hasattr(r, 'work_logs') and r.work_logs]
-        if work_log_records:
-            story.append(Spacer(1, 20))
-            story.append(Paragraph("Detailed Work Logs (Recent Orders)", styles['Heading2']))
-            
-            for record in work_log_records:
-                story.append(Spacer(1, 12))
-                story.append(Paragraph(f"<b>{record.game.name}</b> - Work Order #{record.id}", styles['Heading3']))
-                story.append(Paragraph(f"<i>Issue: {record.issue_description[:80]}{'...' if len(record.issue_description) > 80 else ''}</i>", styles['Normal']))
-                story.append(Spacer(1, 8))
-                
-                # Work log entries
-                for i, work_log in enumerate(record.work_logs[-3:], 1):  # Show last 3 work entries
-                    work_text = f"<b>Entry {i}:</b> {work_log.timestamp.strftime('%m/%d %H:%M')} - {work_log.user.username}<br/>"
-                    work_text += f"{work_log.work_description[:120]}{'...' if len(work_log.work_description) > 120 else ''}"
-                    if work_log.time_spent:
-                        work_text += f"<br/><i>Time: {work_log.time_spent}h</i>"
-                    if work_log.cost_incurred:
-                        work_text += f" <i>Cost: ${work_log.cost_incurred:.2f}</i>"
-                    
-                    story.append(Paragraph(work_text, styles['Normal']))
-                    story.append(Spacer(1, 6))
-    
-    doc.build(story)
-    buffer.seek(0)
-    
-    filename = f'maintenance_report_{report_type}_{days}days.pdf'
-    return send_file(buffer, as_attachment=True, download_name=filename, mimetype='application/pdf')
-
+    # Get records based on type - USE OUTERJOIN
 @app.route('/export_revenue_report')
 @login_required
 @requires_role('manager')
@@ -2826,13 +3023,23 @@ def inventory_list():
             status='Pending'
         ).count()
     
+    # Get recent inventory requests (last 10)
+    if current_user.role in ['admin', 'manager']:
+        recent_requests = InventoryRequest.query\
+            .order_by(InventoryRequest.date_requested.desc()).limit(10).all()
+    else:
+        recent_requests = InventoryRequest.query\
+            .filter_by(requested_by_id=current_user.id)\
+            .order_by(InventoryRequest.date_requested.desc()).limit(10).all()
+    
     return render_template('inventory_list.html',
                          items=items,
                          search=search,
                          low_stock_only=low_stock_only,
                          low_stock_count=low_stock_count,
                          total_value=total_value,
-                         pending_requests_count=pending_requests_count)
+                         pending_requests_count=pending_requests_count,
+                         recent_requests=recent_requests)
 
 @app.route('/inventory/add', methods=['GET', 'POST'])
 @login_required
@@ -3130,6 +3337,7 @@ def request_inventory():
         quantity = request.form.get('quantity', type=int)
         reason = request.form.get('reason', '')
         urgency = request.form.get('urgency', 'Normal')
+        maintenance_id = request.form.get('maintenance_id')
         
         # Validation
         if not item_name or not quantity or quantity <= 0:
@@ -3143,10 +3351,21 @@ def request_inventory():
             quantity_requested=quantity,
             reason=reason,
             urgency=urgency,
-            requested_by_id=current_user.id
+            requested_by_id=current_user.id,
+            maintenance_id=int(maintenance_id) if maintenance_id else None
         )
         
         db.session.add(inv_request)
+        db.session.flush()  # Get the ID
+        
+        # Log creation in history
+        history = InventoryRequestHistory(
+            request_id=inv_request.id,
+            user_id=current_user.id,
+            action='created',
+            notes=f'Request created for {item_name} (Qty: {quantity})'
+        )
+        db.session.add(history)
         db.session.commit()
         
         flash(f'Request for "{item_name}" (Qty: {quantity}) submitted successfully!', 'success')
@@ -3154,7 +3373,19 @@ def request_inventory():
     
     # GET request - show form
     existing_items = InventoryItem.query.order_by(InventoryItem.name.asc()).all()
-    return render_template('request_inventory.html', existing_items=existing_items)
+    
+    # Get open/active maintenance orders for linking
+    open_maintenance = MaintenanceRecord.query.filter(
+        MaintenanceRecord.status.in_(['Open', 'In_Progress'])
+    ).outerjoin(Game).order_by(MaintenanceRecord.date_reported.desc()).all()
+    
+    # Check if maintenance_id is passed in query params (from Request Parts button)
+    preselected_maintenance_id = request.args.get('maintenance_id', type=int)
+    
+    return render_template('request_inventory.html', 
+                         existing_items=existing_items,
+                         open_maintenance=open_maintenance,
+                         preselected_maintenance_id=preselected_maintenance_id)
 
 @app.route('/inventory/requests')
 @login_required
@@ -3187,18 +3418,195 @@ def update_inventory_request(request_id):
     
     new_status = request.form.get('status')
     notes = request.form.get('notes', '')
+    tracking_number = request.form.get('tracking_number', '')
+    vendor = request.form.get('vendor', '')
+    estimated_arrival = request.form.get('estimated_arrival', '')
     
-    inv_request.status = new_status
-    if notes:
+    # Track changes for history
+    changes = []
+    
+    if inv_request.status != new_status:
+        history = InventoryRequestHistory(
+            request_id=request_id,
+            user_id=current_user.id,
+            action='status_changed',
+            field_changed='status',
+            old_value=inv_request.status,
+            new_value=new_status
+        )
+        db.session.add(history)
+        inv_request.status = new_status
+        changes.append(f"Status: {inv_request.status} → {new_status}")
+    
+    if notes and notes != (inv_request.notes or ''):
+        history = InventoryRequestHistory(
+            request_id=request_id,
+            user_id=current_user.id,
+            action='notes_updated',
+            field_changed='notes',
+            notes=notes
+        )
+        db.session.add(history)
         inv_request.notes = notes
+    
+    if tracking_number and tracking_number != (inv_request.tracking_number or ''):
+        history = InventoryRequestHistory(
+            request_id=request_id,
+            user_id=current_user.id,
+            action='tracking_updated',
+            field_changed='tracking_number',
+            old_value=inv_request.tracking_number,
+            new_value=tracking_number
+        )
+        db.session.add(history)
+        inv_request.tracking_number = tracking_number
+        changes.append(f"Tracking: {tracking_number}")
+    
+    if vendor and vendor != (inv_request.vendor or ''):
+        history = InventoryRequestHistory(
+            request_id=request_id,
+            user_id=current_user.id,
+            action='vendor_updated',
+            field_changed='vendor',
+            old_value=inv_request.vendor,
+            new_value=vendor
+        )
+        db.session.add(history)
+        inv_request.vendor = vendor
+        changes.append(f"Vendor: {vendor}")
+    
+    if estimated_arrival and estimated_arrival != (inv_request.estimated_arrival.strftime('%Y-%m-%d') if inv_request.estimated_arrival else ''):
+        try:
+            from datetime import datetime as dt_module
+            new_eta = dt_module.strptime(estimated_arrival, '%Y-%m-%d').date()
+            history = InventoryRequestHistory(
+                request_id=request_id,
+                user_id=current_user.id,
+                action='eta_updated',
+                field_changed='estimated_arrival',
+                old_value=str(inv_request.estimated_arrival) if inv_request.estimated_arrival else None,
+                new_value=str(new_eta)
+            )
+            db.session.add(history)
+            inv_request.estimated_arrival = new_eta
+            changes.append(f"ETA: {new_eta}")
+        except ValueError:
+            pass  # Invalid date format, ignore
     
     if new_status in ['Received', 'Rejected']:
         inv_request.date_fulfilled = datetime.now(dt.UTC)
     
+    # If status is "Received", add the quantity to inventory
+    if new_status == 'Received':
+        if inv_request.item_id:
+            # Existing item - add to stock
+            item = InventoryItem.query.get(inv_request.item_id)
+            if item:
+                previous_qty = item.stock_quantity
+                item.stock_quantity += inv_request.quantity_requested
+                item.last_restocked = datetime.now(dt.UTC)
+                
+                # Record stock history
+                stock_history = StockHistory(
+                    item_id=item.id,
+                    change_type='added',
+                    quantity_change=inv_request.quantity_requested,
+                    previous_quantity=previous_qty,
+                    new_quantity=item.stock_quantity,
+                    reason=f'Inventory request #{request_id} received',
+                    user_id=current_user.id
+                )
+                db.session.add(stock_history)
+                
+                # Check and resolve low stock alerts if needed
+                _check_low_stock_alert(item)
+                
+                flash(f'Request #{request_id} received! Added {inv_request.quantity_requested} units of "{item.name}" to inventory. New stock: {item.stock_quantity}', 'success')
+            else:
+                flash(f'Request #{request_id} updated to "{new_status}" but item ID {inv_request.item_id} not found in inventory.', 'error')
+        else:
+            # New item - create it automatically
+            new_item = InventoryItem(
+                name=inv_request.item_name,
+                stock_quantity=inv_request.quantity_requested,
+                unit_price=0.0,  # Default, can be updated later
+                minimum_stock=5,  # Default
+                last_restocked=datetime.now(dt.UTC)
+            )
+            db.session.add(new_item)
+            db.session.flush()  # Get the ID before committing
+            
+            # Link the request to the newly created item
+            inv_request.item_id = new_item.id
+            
+            # Record initial stock history
+            stock_history = StockHistory(
+                item_id=new_item.id,
+                change_type='added',
+                quantity_change=inv_request.quantity_requested,
+                previous_quantity=0,
+                new_quantity=inv_request.quantity_requested,
+                reason=f'New item created from inventory request #{request_id}',
+                user_id=current_user.id
+            )
+            db.session.add(stock_history)
+            
+            flash(f'Request #{request_id} received! Created new inventory item "{new_item.name}" with {inv_request.quantity_requested} units. Please update pricing and details.', 'success')
+    else:
+        flash(f'Request #{request_id} updated to "{new_status}"', 'success')
+    
+    db.session.commit()
+    return redirect(url_for('inventory_requests_list'))
+
+@app.route('/inventory/requests/<int:request_id>/delete', methods=['POST'])
+@login_required
+@requires_role('operator')
+def delete_inventory_request(request_id):
+    """Delete an inventory request"""
+    inv_request = InventoryRequest.query.get_or_404(request_id)
+    
+    # Admins/managers can delete any request
+    # Regular users can only delete their own pending requests
+    if current_user.role in ['admin', 'manager']:
+        # Admins/managers can delete any request regardless of status
+        pass
+    else:
+        # Regular users restrictions
+        if inv_request.status != 'Pending':
+            flash('Only pending requests can be deleted.', 'error')
+            return redirect(url_for('inventory_requests_list'))
+        
+        if inv_request.requested_by_id != current_user.id:
+            flash('You can only delete your own requests.', 'error')
+            return redirect(url_for('inventory_requests_list'))
+    
+    item_name = inv_request.item_name
+    request_status = inv_request.status
+    db.session.delete(inv_request)
     db.session.commit()
     
-    flash(f'Request #{request_id} updated to "{new_status}"', 'success')
+    flash(f'Request for "{item_name}" (Status: {request_status}) deleted successfully.', 'success')
     return redirect(url_for('inventory_requests_list'))
+
+@app.route('/inventory/requests/<int:request_id>')
+@login_required
+@requires_role('operator')
+def inventory_request_detail(request_id):
+    """View detailed information and full audit history of an inventory request"""
+    inv_request = InventoryRequest.query.get_or_404(request_id)
+    
+    # Check permissions - users can only view their own requests unless they're managers/admins
+    if current_user.role not in ['admin', 'manager']:
+        if inv_request.requested_by_id != current_user.id:
+            flash('You can only view your own requests.', 'error')
+            return redirect(url_for('inventory_requests_list'))
+    
+    # Get full history (already ordered by timestamp desc in relationship)
+    history = inv_request.history
+    
+    return render_template('inventory_request_detail.html',
+                         request=inv_request,
+                         history=history)
 
     form = LoginForm()
     if form.validate_on_submit():

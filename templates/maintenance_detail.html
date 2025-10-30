@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+  <!-- Back and Action buttons -->
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <a href="{{ url_for('maintenance_orders') }}" style="color: #00ffff; text-decoration: none;">&larr; Back to Orders</a>
+    <div style="display: flex; gap: 10px;">
+      {% if current_user.has_role('operator') %}
+      <a href="{{ url_for('request_inventory', maintenance_id=record.id) }}" 
+         style="background: #9c27b0; color: #fff; padding: 8px 16px; border-radius: 4px; text-decoration: none; font-weight: bold;">
+        📦 Request Parts
+      </a>
+      {% endif %}
+      <a href="{{ url_for('download_maintenance_record', record_id=record.id) }}" 
+         style="background: #00ffff; color: #000; padding: 8px 16px; border-radius: 4px; text-decoration: none; font-weight: bold;">
+        📥 Download PDF
+      </a>
+    </div>
+  </div>
+
+  <!-- Main Work Order Card -->
+  <div style="background: rgba(0, 20, 40, 0.6); border: 2px solid #00ffff; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+    <h2 style="color: #00ffff; margin-bottom: 10px;">
+      Work Order #{{ record.id }}
+      {% if record.game %}
+        - {{ record.game.name }}
+      {% else %}
+        - General Maintenance
+      {% endif %}
+    </h2>
+
+    <div style="margin-bottom: 15px;">
+      {% if record.status == 'Fixed' %}
+        <span style="background: #2e7d32; color: #fff; padding: 4px 10px; border-radius: 4px; font-size: 0.9em; font-weight: bold;">Fixed</span>
+      {% elif record.status == 'In_Progress' %}
+        <span style="background: #f57c00; color: #fff; padding: 4px 10px; border-radius: 4px; font-size: 0.9em; font-weight: bold;">In Progress</span>
+      {% elif record.status == 'Open' %}
+        <span style="background: #d32f2f; color: #fff; padding: 4px 10px; border-radius: 4px; font-size: 0.9em; font-weight: bold;">Open</span>
+      {% else %}
+        <span style="background: #616161; color: #fff; padding: 4px 10px; border-radius: 4px; font-size: 0.9em; font-weight: bold;">{{ record.status }}</span>
+      {% endif %}
+      <span style="color: #aaa; margin-left: 15px;">Reported: {{ record.date_reported.strftime('%Y-%m-%d %H:%M') if record.date_reported else 'Unknown' }}</span>
+      {% if record.date_fixed %}
+        <span style="color: #aaa; margin-left: 15px;">Fixed: {{ record.date_fixed.strftime('%Y-%m-%d %H:%M') }}</span>
+      {% endif %}
+    </div>
+
+    {% if record.technician %}
+    <p style="color: #fff; margin-bottom: 5px;"><strong style="color: #00ffff;">Technician:</strong> {{ record.technician }}</p>
+    {% endif %}
+    
+    {% if record.cost %}
+    <p style="color: #fff; margin-bottom: 5px;"><strong style="color: #00ffff;">Total Cost:</strong> ${{ "%.2f"|format(record.cost) }}</p>
+    {% endif %}
+  </div>
+
+  <!-- Original Issue -->
+  <div style="background: rgba(0, 20, 40, 0.6); border: 2px solid #ff6666; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+    <h4 style="color: #ff6666; margin-bottom: 15px;">🔴 Original Issue</h4>
+    <p style="color: #fff; white-space: pre-wrap;">{{ record.issue_description or 'No description provided.' }}</p>
+  </div>
+
+  <!-- Initial Assessment/Diagnosis -->
+  {% if record.fix_description %}
+  <div style="background: rgba(0, 20, 40, 0.6); border: 2px solid #f57c00; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+    <h4 style="color: #f57c00; margin-bottom: 15px;">🔧 Initial Assessment</h4>
+    <p style="color: #fff; white-space: pre-wrap;">{{ record.fix_description }}</p>
+  </div>
+  {% endif %}
+
+  <!-- Work Log History -->
+  {% if record.work_logs %}
+  <div style="background: rgba(0, 20, 40, 0.6); border: 2px solid #00ffff; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+    <h4 style="color: #00ffff; margin-bottom: 15px;">📝 Work Log History</h4>
+    {% for log in record.work_logs %}
+    <div style="border-left: 3px solid #00ffff; padding-left: 15px; margin-bottom: 20px;">
+      <div style="color: #aaa; font-size: 0.9em; margin-bottom: 5px;">
+        {{ log.timestamp.strftime('%Y-%m-%d %H:%M') }} - {{ log.user.username }}
+        {% if log.time_spent %}<span style="margin-left: 10px;">⏱️ {{ log.time_spent }}h</span>{% endif %}
+        {% if log.cost_incurred %}<span style="margin-left: 10px;">💰 ${{ "%.2f"|format(log.cost_incurred) }}</span>{% endif %}
+      </div>
+      <p style="color: #fff; white-space: pre-wrap; margin-bottom: 5px;">{{ log.work_description }}</p>
+      {% if log.parts_used %}
+      <p style="color: #ffa500; font-size: 0.9em;"><strong>Parts:</strong> {{ log.parts_used }}</p>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Inventory Usage -->
+  {% if record.inventory_usage %}
+  <div style="background: rgba(0, 20, 40, 0.6); border: 2px solid #9c27b0; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+    <h4 style="color: #9c27b0; margin-bottom: 15px;">📦 Inventory Used</h4>
+    <table style="width: 100%; color: #fff;">
+      <thead>
+        <tr style="border-bottom: 1px solid #9c27b0;">
+          <th style="padding: 8px; text-align: left; color: #9c27b0;">Item</th>
+          <th style="padding: 8px; text-align: center; color: #9c27b0;">Quantity</th>
+          <th style="padding: 8px; text-align: right; color: #9c27b0;">Cost</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for usage in record.inventory_usage %}
+        <tr style="border-bottom: 1px solid rgba(156, 39, 176, 0.2);">
+          <td style="padding: 8px;">{{ usage.item.name }}</td>
+          <td style="padding: 8px; text-align: center;">{{ usage.quantity_used }}</td>
+          <td style="padding: 8px; text-align: right;">${{ "%.2f"|format(usage.total_cost) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  <!-- Photos -->
+  {% if record.get_photos() %}
+  <div style="background: rgba(0, 20, 40, 0.6); border: 2px solid #00ffff; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+    <h4 style="color: #00ffff; margin-bottom: 15px;">📷 Photos</h4>
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px;">
+      {% for photo in record.get_photos() %}
+      <a href="{{ url_for('static', filename='maintenance_photos/' + photo) }}" target="_blank">
+        <img src="{{ url_for('static', filename='maintenance_photos/' + photo) }}" 
+             style="width: 100%; height: 200px; object-fit: cover; border-radius: 6px; border: 2px solid #00ffff;">
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Inventory Requests Linked to This Work Order -->
+  {% if record.inventory_requests %}
+  <div style="background: rgba(0, 20, 40, 0.6); border: 2px solid #9c27b0; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+    <h4 style="color: #9c27b0; margin-bottom: 15px;">📦 Requested Parts for This Work Order</h4>
+    <table style="width: 100%; color: #fff;">
+      <thead>
+        <tr style="border-bottom: 1px solid #9c27b0;">
+          <th style="padding: 8px; text-align: left; color: #9c27b0;">ID</th>
+          <th style="padding: 8px; text-align: left; color: #9c27b0;">Item</th>
+          <th style="padding: 8px; text-align: center; color: #9c27b0;">Qty</th>
+          <th style="padding: 8px; text-align: center; color: #9c27b0;">Status</th>
+          <th style="padding: 8px; text-align: left; color: #9c27b0;">Requested By</th>
+          <th style="padding: 8px; text-align: right; color: #9c27b0;">Date</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for req in record.inventory_requests %}
+        <tr style="border-bottom: 1px solid rgba(156, 39, 176, 0.2); cursor: pointer; transition: background 0.2s;" 
+            onclick="window.location.href='{{ url_for('inventory_request_detail', request_id=req.id) }}';"
+            onmouseover="this.style.background='rgba(156, 39, 176, 0.15)';"
+            onmouseout="this.style.background='';"
+            title="Click to view full details and history">
+          <td style="padding: 8px;"><a href="{{ url_for('inventory_request_detail', request_id=req.id) }}" style="color: var(--neon-cyan); text-decoration: none;" onclick="event.stopPropagation();">#{{ req.id }}</a></td>
+          <td style="padding: 8px; color: #fff;">{{ req.item_name }}</td>
+          <td style="padding: 8px; text-align: center;">{{ req.quantity_requested }}</td>
+          <td style="padding: 8px; text-align: center;">
+            {% if req.status == 'Pending' %}
+              <span style="color: #ffaa00;">⏳ Pending</span>
+            {% elif req.status == 'Approved' %}
+              <span style="color: var(--neon-cyan);">✓ Approved</span>
+            {% elif req.status == 'Ordered' %}
+              <span style="color: var(--neon-purple);">📦 Ordered</span>
+            {% elif req.status == 'Received' %}
+              <span style="color: var(--neon-green);">✅ Received</span>
+            {% elif req.status == 'Rejected' %}
+              <span style="color: #ff4444;">✗ Rejected</span>
+            {% endif %}
+          </td>
+          <td style="padding: 8px;">{{ req.requested_by.username }}</td>
+          <td style="padding: 8px; text-align: right; font-size: 0.9em;">{{ req.date_requested.strftime('%Y-%m-%d') }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  <!-- Legacy Fields (if present) -->
+  {% if record.work_notes or record.parts_used %}
+  <div style="background: rgba(0, 20, 40, 0.6); border: 2px solid #666; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+    <h4 style="color: #999; margin-bottom: 15px;">Legacy Notes</h4>
+    {% if record.work_notes %}
+    <p style="color: #fff;"><strong style="color: #999;">Work Notes:</strong></p>
+    <p style="color: #fff; white-space: pre-wrap;">{{ record.work_notes }}</p>
+    {% endif %}
+    {% if record.parts_used %}
+    <p style="color: #fff; margin-top: 10px;"><strong style="color: #999;">Parts Used:</strong> {{ record.parts_used }}</p>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

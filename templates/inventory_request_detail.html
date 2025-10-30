@@ -1,0 +1,339 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+  <!-- Back Button -->
+  <div class="mb-3">
+    <a href="{{ url_for('inventory_requests_list') }}" style="color: #00ffff; text-decoration: none;">&larr; Back to Requests</a>
+  </div>
+
+  <!-- Request Header Card -->
+  <div style="background: rgba(0, 20, 40, 0.6); border: 2px solid #9c27b0; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+    <h2 style="color: #9c27b0; margin-bottom: 15px;">
+      📦 Inventory Request #{{ request.id }}
+    </h2>
+
+    <!-- Status Badge -->
+    <div style="margin-bottom: 15px;">
+      {% if request.status == 'Pending' %}
+        <span style="background: #ffaa00; color: #000; padding: 6px 12px; border-radius: 4px; font-size: 0.9em; font-weight: bold;">⏳ Pending</span>
+      {% elif request.status == 'Approved' %}
+        <span style="background: var(--neon-cyan); color: #000; padding: 6px 12px; border-radius: 4px; font-size: 0.9em; font-weight: bold;">✓ Approved</span>
+      {% elif request.status == 'Ordered' %}
+        <span style="background: var(--neon-purple); color: #fff; padding: 6px 12px; border-radius: 4px; font-size: 0.9em; font-weight: bold;">📦 Ordered</span>
+      {% elif request.status == 'Received' %}
+        <span style="background: var(--neon-green); color: #000; padding: 6px 12px; border-radius: 4px; font-size: 0.9em; font-weight: bold;">✅ Received</span>
+      {% elif request.status == 'Rejected' %}
+        <span style="background: #ff4444; color: #fff; padding: 6px 12px; border-radius: 4px; font-size: 0.9em; font-weight: bold;">✗ Rejected</span>
+      {% endif %}
+
+      {% if request.urgency == 'Urgent' %}
+        <span style="background: #ff4444; color: #fff; padding: 6px 12px; border-radius: 4px; font-size: 0.9em; font-weight: bold; margin-left: 10px;">⚠️ URGENT</span>
+      {% elif request.urgency == 'High' %}
+        <span style="background: #ffaa00; color: #000; padding: 6px 12px; border-radius: 4px; font-size: 0.9em; font-weight: bold; margin-left: 10px;">High Priority</span>
+      {% endif %}
+    </div>
+
+    <!-- Request Details Grid -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-top: 20px;">
+      <div>
+        <p style="color: #888; margin: 0; font-size: 0.9em;">Item Name</p>
+        <p style="color: #fff; margin: 5px 0 0 0; font-size: 1.1em; font-weight: bold;">{{ request.item_name }}</p>
+      </div>
+      
+      <div>
+        <p style="color: #888; margin: 0; font-size: 0.9em;">Quantity Requested</p>
+        <p style="color: #fff; margin: 5px 0 0 0; font-size: 1.1em; font-weight: bold;">{{ request.quantity_requested }}</p>
+      </div>
+
+      <div>
+        <p style="color: #888; margin: 0; font-size: 0.9em;">Requested By</p>
+        <p style="color: #fff; margin: 5px 0 0 0; font-size: 1.1em;">{{ request.requested_by.username }}</p>
+      </div>
+
+      <div>
+        <p style="color: #888; margin: 0; font-size: 0.9em;">Date Requested</p>
+        <p style="color: #fff; margin: 5px 0 0 0; font-size: 1.1em;">{{ request.date_requested.strftime('%Y-%m-%d %H:%M') }}</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Shipping & Tracking Info -->
+  {% if request.vendor or request.tracking_number or request.estimated_arrival %}
+  <div style="background: rgba(0, 20, 40, 0.6); border: 2px solid #00d9ff; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+    <h4 style="color: #00d9ff; margin-bottom: 15px;">📬 Shipping & Tracking Information</h4>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+      {% if request.vendor %}
+      <div>
+        <p style="color: #888; margin: 0; font-size: 0.9em;">Vendor / Supplier</p>
+        <p style="color: #fff; margin: 5px 0 0 0; font-size: 1.1em;">{{ request.vendor }}</p>
+      </div>
+      {% endif %}
+
+      {% if request.tracking_number %}
+      <div>
+        <p style="color: #888; margin: 0; font-size: 0.9em;">Tracking Number</p>
+        <p style="color: var(--neon-cyan); margin: 5px 0 0 0; font-size: 1.1em; font-family: monospace;">{{ request.tracking_number }}</p>
+      </div>
+      {% endif %}
+
+      {% if request.estimated_arrival %}
+      <div>
+        <p style="color: #888; margin: 0; font-size: 0.9em;">Estimated Arrival</p>
+        <p style="color: #fff; margin: 5px 0 0 0; font-size: 1.1em;">{{ request.estimated_arrival.strftime('%Y-%m-%d') }}</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Work Order Link -->
+  {% if request.maintenance_id %}
+  <div style="background: rgba(0, 20, 40, 0.6); border: 2px solid #ff6400; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+    <h4 style="color: #ff6400; margin-bottom: 10px;">🔧 Linked Work Order</h4>
+    <p style="color: #fff;">
+      This request is linked to 
+      <a href="{{ url_for('maintenance_detail', record_id=request.maintenance_id) }}" style="color: var(--neon-cyan); text-decoration: none; font-weight: bold;">
+        Work Order #{{ request.maintenance_id }}
+      </a>
+      {% if request.maintenance_record.game %}
+        for {{ request.maintenance_record.game.name }}
+      {% else %}
+        ({{ request.maintenance_record.work_order_type|upper }})
+      {% endif %}
+    </p>
+  </div>
+  {% endif %}
+
+  <!-- Reason / Notes -->
+  <div style="background: rgba(0, 20, 40, 0.6); border: 2px solid #666; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+    <h4 style="color: #999; margin-bottom: 15px;">📝 Reason / Notes</h4>
+    
+    {% if request.reason %}
+    <div style="margin-bottom: 15px;">
+      <p style="color: #888; margin: 0; font-size: 0.9em;">Original Request Reason</p>
+      <p style="color: #fff; margin: 5px 0 0 0; white-space: pre-wrap;">{{ request.reason }}</p>
+    </div>
+    {% endif %}
+
+    {% if request.notes %}
+    <div>
+      <p style="color: #888; margin: 0; font-size: 0.9em;">Manager Notes</p>
+      <p style="color: #fff; margin: 5px 0 0 0; white-space: pre-wrap;">{{ request.notes }}</p>
+    </div>
+    {% endif %}
+
+    {% if not request.reason and not request.notes %}
+    <p style="color: #666; font-style: italic;">No notes available.</p>
+    {% endif %}
+  </div>
+
+  <!-- Audit History Timeline -->
+  <div style="background: rgba(0, 20, 40, 0.6); border: 2px solid var(--neon-green); border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+    <h4 style="color: var(--neon-green); margin-bottom: 20px;">📜 Full Audit History</h4>
+    
+    {% if history %}
+    <div style="position: relative;">
+      <!-- Timeline Line -->
+      <div style="position: absolute; left: 20px; top: 0; bottom: 0; width: 2px; background: linear-gradient(180deg, var(--neon-green) 0%, var(--neon-cyan) 50%, var(--neon-purple) 100%);"></div>
+      
+      {% for entry in history %}
+      <div style="position: relative; padding-left: 50px; margin-bottom: 25px;">
+        <!-- Timeline Dot -->
+        <div style="position: absolute; left: 11px; width: 20px; height: 20px; border-radius: 50%; background: 
+          {% if entry.action == 'created' %}var(--neon-green)
+          {% elif entry.action == 'status_changed' %}var(--neon-cyan)
+          {% elif entry.action == 'tracking_updated' %}var(--neon-purple)
+          {% elif entry.action == 'vendor_updated' %}#ffaa00
+          {% elif entry.action == 'eta_updated' %}#ff6400
+          {% else %}#666
+          {% endif %}; border: 3px solid rgba(0, 20, 40, 0.9); box-shadow: 0 0 10px 
+          {% if entry.action == 'created' %}var(--neon-green)
+          {% elif entry.action == 'status_changed' %}var(--neon-cyan)
+          {% elif entry.action == 'tracking_updated' %}var(--neon-purple)
+          {% else %}#666
+          {% endif %};"></div>
+        
+        <!-- History Entry Card -->
+        <div style="background: rgba(0, 30, 50, 0.5); border-left: 3px solid 
+          {% if entry.action == 'created' %}var(--neon-green)
+          {% elif entry.action == 'status_changed' %}var(--neon-cyan)
+          {% elif entry.action == 'tracking_updated' %}var(--neon-purple)
+          {% elif entry.action == 'vendor_updated' %}#ffaa00
+          {% elif entry.action == 'eta_updated' %}#ff6400
+          {% else %}#666
+          {% endif %}; padding: 15px; border-radius: 4px;">
+          
+          <!-- Timestamp & User -->
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <span style="color: #888; font-size: 0.9em;">
+              {{ entry.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}
+            </span>
+            <span style="color: var(--neon-cyan); font-weight: bold;">
+              {{ entry.user.username }}
+            </span>
+          </div>
+
+          <!-- Action Description -->
+          <div style="color: #fff; font-size: 1em; margin-bottom: 5px;">
+            {% if entry.action == 'created' %}
+              <strong style="color: var(--neon-green);">✨ Request Created</strong>
+            {% elif entry.action == 'status_changed' %}
+              <strong style="color: var(--neon-cyan);">🔄 Status Changed:</strong>
+              <span style="color: #ff6400;">{{ entry.old_value }}</span> → <span style="color: var(--neon-green);">{{ entry.new_value }}</span>
+            {% elif entry.action == 'tracking_updated' %}
+              <strong style="color: var(--neon-purple);">📦 Tracking Updated:</strong>
+              {% if entry.old_value %}
+                <span style="color: #888; text-decoration: line-through;">{{ entry.old_value }}</span> →
+              {% endif %}
+              <span style="color: var(--neon-green); font-family: monospace;">{{ entry.new_value }}</span>
+            {% elif entry.action == 'vendor_updated' %}
+              <strong style="color: #ffaa00;">🏪 Vendor Updated:</strong>
+              {% if entry.old_value %}
+                <span style="color: #888; text-decoration: line-through;">{{ entry.old_value }}</span> →
+              {% endif %}
+              <span style="color: var(--neon-green);">{{ entry.new_value }}</span>
+            {% elif entry.action == 'eta_updated' %}
+              <strong style="color: #ff6400;">📅 ETA Updated:</strong>
+              {% if entry.old_value %}
+                <span style="color: #888; text-decoration: line-through;">{{ entry.old_value }}</span> →
+              {% endif %}
+              <span style="color: var(--neon-green);">{{ entry.new_value }}</span>
+            {% elif entry.action == 'notes_updated' %}
+              <strong style="color: #9c27b0;">📝 Notes Updated</strong>
+            {% else %}
+              <strong>{{ entry.action.replace('_', ' ').title() }}</strong>
+            {% endif %}
+          </div>
+
+          <!-- Additional Notes -->
+          {% if entry.notes %}
+          <div style="color: #aaa; font-size: 0.9em; font-style: italic; margin-top: 8px; padding-left: 10px; border-left: 2px solid #666;">
+            {{ entry.notes }}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p style="color: #666; font-style: italic;">No history available.</p>
+    {% endif %}
+  </div>
+
+  <!-- Action Buttons (for managers) -->
+  {% if current_user.role in ['admin', 'manager'] and request.status not in ['Received', 'Rejected'] %}
+  <div style="text-align: right; margin-top: 20px;">
+    <button onclick="openUpdateModal({{ request.id }}, '{{ request.item_name }}', {{ request.quantity_requested }}, '{{ request.notes|default('', true)|replace('\'', '\\\'')|replace('\n', ' ') }}', '{{ request.tracking_number|default('', true) }}', '{{ request.vendor|default('', true) }}', '{{ request.estimated_arrival.strftime('%Y-%m-%d') if request.estimated_arrival else '' }}', '{{ request.status }}')" 
+            class="btn" style="background: var(--neon-purple); color: #fff; padding: 12px 24px; font-size: 16px;">
+      ✏️ Update Request
+    </button>
+  </div>
+
+  <!-- Update Modal (reuse from list page) -->
+  <div id="updateModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; overflow-y: auto;">
+    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--dark-card); padding: 30px; border-radius: 8px; border: 2px solid var(--neon-cyan); max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto;">
+      <h3 style="color: var(--neon-cyan); margin-bottom: 20px;">📦 Update Inventory Request</h3>
+      <p><strong style="color: var(--neon-cyan);">Item:</strong> <span id="modalItemName" style="color: #fff;"></span></p>
+      <p><strong style="color: var(--neon-cyan);">Quantity:</strong> <span id="modalQuantity" style="color: #fff;"></span></p>
+      
+      <form id="updateForm" method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        
+        <div class="form-group">
+          <label for="modalStatus">Status *</label>
+          <select id="modalStatus" name="status" required>
+            <option value="Pending">⏳ Pending</option>
+            <option value="Approved">✓ Approved</option>
+            <option value="Ordered">📦 Ordered</option>
+            <option value="Received">✅ Received</option>
+            <option value="Rejected">✗ Rejected</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="modalVendor">Vendor / Supplier</label>
+          <input type="text" id="modalVendor" name="vendor" placeholder="e.g., Amazon, Arcade Parts, etc.">
+        </div>
+        
+        <div class="form-group">
+          <label for="modalTracking">Tracking Number</label>
+          <input type="text" id="modalTracking" name="tracking_number" placeholder="Enter shipping tracking number">
+        </div>
+        
+        <div class="form-group">
+          <label for="modalEstimatedArrival">Estimated Arrival</label>
+          <input type="date" id="modalEstimatedArrival" name="estimated_arrival">
+        </div>
+        
+        <div class="form-group">
+          <label for="modalNotes">Notes</label>
+          <textarea id="modalNotes" name="notes" rows="3" placeholder="Add notes about this request..."></textarea>
+        </div>
+        
+        <div style="text-align: right; margin-top: 20px;">
+          <button type="button" onclick="closeUpdateModal()" class="btn" style="background: #6c757d; margin-right: 10px;">Cancel</button>
+          <button type="submit" class="btn btn-success">💾 Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+  function openUpdateModal(requestId, itemName, quantity, notes, tracking, vendor, estimatedArrival, status) {
+      document.getElementById('modalItemName').textContent = itemName;
+      document.getElementById('modalQuantity').textContent = quantity;
+      document.getElementById('modalNotes').value = notes || '';
+      document.getElementById('modalTracking').value = tracking || '';
+      document.getElementById('modalVendor').value = vendor || '';
+      document.getElementById('modalEstimatedArrival').value = estimatedArrival || '';
+      document.getElementById('modalStatus').value = status || 'Pending';
+      document.getElementById('updateForm').action = `/inventory/requests/${requestId}/update`;
+      document.getElementById('updateModal').style.display = 'block';
+  }
+
+  function closeUpdateModal() {
+      document.getElementById('updateModal').style.display = 'none';
+  }
+  </script>
+  {% endif %}
+</div>
+
+<style>
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 700;
+    color: var(--neon-cyan);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--neon-cyan);
+    border-radius: 4px;
+    background: var(--dark-card);
+    color: var(--text-primary);
+    font-family: 'Share Tech Mono', monospace;
+    transition: all 0.3s ease;
+    box-sizing: border-box;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: var(--neon-pink);
+    box-shadow: 0 0 15px rgba(255, 0, 255, 0.5);
+}
+</style>
+{% endblock %}

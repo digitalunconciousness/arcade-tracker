@@ -19,6 +19,7 @@
             <th>Item</th>
             <th>Quantity</th>
             <th>Urgency</th>
+            <th>Work Order</th>
             <th>Requested By</th>
             <th>Date</th>
             <th>Reason</th>
@@ -27,8 +28,12 @@
     </thead>
     <tbody>
         {% for req in pending_requests %}
-        <tr>
-            <td>#{{ req.id }}</td>
+        <tr style="cursor: pointer; transition: background 0.2s;" 
+            onclick="window.location.href='{{ url_for('inventory_request_detail', request_id=req.id) }}';"
+            onmouseover="this.style.background='rgba(156, 39, 176, 0.1)';"
+            onmouseout="this.style.background='';"
+            title="Click to view full details and history">
+            <td><a href="{{ url_for('inventory_request_detail', request_id=req.id) }}" style="color: var(--neon-cyan); text-decoration: none; font-weight: bold;" onclick="event.stopPropagation();">#{{ req.id }}</a></td>
             <td>
                 {{ req.item_name }}
                 {% if not req.item_id %}
@@ -47,16 +52,35 @@
                     <span style="color: #888;">Low</span>
                 {% endif %}
             </td>
+            <td>
+                {% if req.maintenance_id %}
+                    <a href="{{ url_for('maintenance_detail', record_id=req.maintenance_id) }}" 
+                       style="color: var(--neon-cyan); text-decoration: none;">
+                        🔧 #{{ req.maintenance_id }}
+                    </a>
+                {% else %}
+                    <span style="color: #666;">-</span>
+                {% endif %}
+            </td>
             <td>{{ req.requested_by.username }}</td>
             <td>{{ req.date_requested.strftime('%Y-%m-%d') }}</td>
             <td style="max-width: 200px;">{{ req.reason or '-' }}</td>
-            <td style="white-space: nowrap;">
-                <div style="display: flex; gap: 4px;">
+            <td style="white-space: nowrap;" onclick="event.stopPropagation();">
+                <div style="display: flex; gap: 4px; align-items: center;">
                     {% if current_user.role in ['admin', 'manager'] %}
-                        <!-- Manager/Admin controls -->
-                        <button onclick="openUpdateModal({{ req.id }}, '{{ req.item_name }}', {{ req.quantity_requested }})" 
+                        <!-- Quick status update dropdown -->
+                        <select onchange="quickStatusUpdate({{ req.id }}, this.value)" 
+                                style="padding: 4px 6px; font-size: 11px; background: rgba(0, 255, 255, 0.1); border: 1px solid var(--neon-cyan); color: var(--neon-cyan); border-radius: 4px;">
+                            <option value="">Quick Status...</option>
+                            <option value="Approved">✓ Approve</option>
+                            <option value="Ordered">📦 Mark Ordered</option>
+                            <option value="Received">✅ Mark Received</option>
+                            <option value="Rejected">✗ Reject</option>
+                        </select>
+                        <!-- Full update modal button -->
+                        <button onclick="openUpdateModal({{ req.id }}, '{{ req.item_name }}', {{ req.quantity_requested }}, '{{ req.notes|default('', true)|replace('\'', '\\\'')|replace('\n', ' ') }}', '{{ req.tracking_number|default('', true) }}', '{{ req.vendor|default('', true) }}', '{{ req.estimated_arrival.strftime('%Y-%m-%d') if req.estimated_arrival else '' }}', '{{ req.status }}')" 
                                 class="btn" style="background: var(--neon-purple); font-size: 10px; padding: 4px 8px;">
-                            Update
+                            Details
                         </button>
                     {% endif %}
                     
@@ -89,19 +113,34 @@
         <tr>
             <th>ID</th>
             <th>Item</th>
-            <th>Quantity</th>
+            <th>Qty</th>
             <th>Status</th>
+            <th>Work Order</th>
+            <th>Vendor</th>
+            <th>Tracking</th>
+            <th>ETA</th>
             <th>Requested By</th>
             <th>Date Requested</th>
-            <th>Date Fulfilled</th>
             <th>Notes</th>
+            {% if current_user.role in ['admin', 'manager'] %}
+            <th>Actions</th>
+            {% endif %}
         </tr>
     </thead>
     <tbody>
         {% for req in all_requests %}
-        <tr>
-            <td>#{{ req.id }}</td>
-            <td>{{ req.item_name }}</td>
+        <tr style="cursor: pointer; transition: background 0.2s;" 
+            onclick="window.location.href='{{ url_for('inventory_request_detail', request_id=req.id) }}';"
+            onmouseover="this.style.background='rgba(156, 39, 176, 0.1)';"
+            onmouseout="this.style.background='';"
+            title="Click to view full details and history">
+            <td><a href="{{ url_for('inventory_request_detail', request_id=req.id) }}" style="color: var(--neon-cyan); text-decoration: none; font-weight: bold;" onclick="event.stopPropagation();">#{{ req.id }}</a></td>
+            <td>
+                {{ req.item_name }}
+                {% if not req.item_id and req.status != 'Rejected' %}
+                    <span style="color: var(--neon-orange); font-size: 10px;">(NEW ITEM)</span>
+                {% endif %}
+            </td>
             <td>{{ req.quantity_requested }}</td>
             <td>
                 {% if req.status == 'Pending' %}
@@ -116,10 +155,45 @@
                     <span style="color: #ff4444;">✗ Rejected</span>
                 {% endif %}
             </td>
+            <td>
+                {% if req.maintenance_id %}
+                    <a href="{{ url_for('maintenance_detail', record_id=req.maintenance_id) }}" 
+                       style="color: var(--neon-cyan); text-decoration: none;">
+                        🔧 #{{ req.maintenance_id }}
+                    </a>
+                {% else %}
+                    <span style="color: #666;">-</span>
+                {% endif %}
+            </td>
+            <td style="max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ req.vendor or '' }}">
+                {{ req.vendor or '-' }}
+            </td>
+            <td style="font-size: 10px; max-width: 100px; overflow: hidden; text-overflow: ellipsis;" title="{{ req.tracking_number or '' }}">
+                {{ req.tracking_number or '-' }}
+            </td>
+            <td style="font-size: 11px;">
+                {% if req.estimated_arrival %}
+                    {{ req.estimated_arrival.strftime('%m/%d') }}
+                {% else %}
+                    -
+                {% endif %}
+            </td>
             <td>{{ req.requested_by.username }}</td>
             <td>{{ req.date_requested.strftime('%Y-%m-%d') }}</td>
-            <td>{{ req.date_fulfilled.strftime('%Y-%m-%d') if req.date_fulfilled else '-' }}</td>
-            <td style="max-width: 200px;">{{ req.notes or '-' }}</td>
+            <td style="max-width: 150px; overflow: hidden; text-overflow: ellipsis;" title="{{ req.notes or '' }}">
+                {{ req.notes or '-' }}
+            </td>
+            {% if current_user.role in ['admin', 'manager'] %}
+            <td onclick="event.stopPropagation();">
+                <form method="POST" action="{{ url_for('delete_inventory_request', request_id=req.id) }}" style="display: inline;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <button type="submit" onclick="return confirm('Delete request #{{ req.id }} for {{ req.item_name }}?')" 
+                            class="btn" style="background: #ff4444; color: white; font-size: 10px; padding: 4px 8px;">
+                        🗑️ Delete
+                    </button>
+                </form>
+            </td>
+            {% endif %}
         </tr>
         {% endfor %}
     </tbody>
@@ -129,23 +203,39 @@
 {% endif %}
 
 <!-- Update Request Modal (for managers/admins) -->
-<div id="updateModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000;">
-    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--dark-card); padding: 30px; border-radius: 8px; border: 2px solid var(--neon-cyan); max-width: 500px; width: 90%;">
-        <h3>Update Request</h3>
-        <p><strong>Item:</strong> <span id="modalItemName"></span></p>
-        <p><strong>Quantity:</strong> <span id="modalQuantity"></span></p>
+<div id="updateModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; overflow-y: auto;">
+    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--dark-card); padding: 30px; border-radius: 8px; border: 2px solid var(--neon-cyan); max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto;">
+        <h3 style="color: var(--neon-cyan); margin-bottom: 20px;">📦 Update Inventory Request</h3>
+        <p><strong style="color: var(--neon-cyan);">Item:</strong> <span id="modalItemName" style="color: #fff;"></span></p>
+        <p><strong style="color: var(--neon-cyan);">Quantity:</strong> <span id="modalQuantity" style="color: #fff;"></span></p>
         
         <form id="updateForm" method="POST">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            
             <div class="form-group">
                 <label for="modalStatus">Status *</label>
                 <select id="modalStatus" name="status" required>
-                    <option value="Pending">Pending</option>
-                    <option value="Approved">Approved</option>
-                    <option value="Ordered">Ordered</option>
-                    <option value="Received">Received</option>
-                    <option value="Rejected">Rejected</option>
+                    <option value="Pending">⏳ Pending</option>
+                    <option value="Approved">✓ Approved</option>
+                    <option value="Ordered">📦 Ordered</option>
+                    <option value="Received">✅ Received</option>
+                    <option value="Rejected">✗ Rejected</option>
                 </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="modalVendor">Vendor / Supplier</label>
+                <input type="text" id="modalVendor" name="vendor" placeholder="e.g., Amazon, Arcade Parts, etc.">
+            </div>
+            
+            <div class="form-group">
+                <label for="modalTracking">Tracking Number</label>
+                <input type="text" id="modalTracking" name="tracking_number" placeholder="Enter shipping tracking number">
+            </div>
+            
+            <div class="form-group">
+                <label for="modalEstimatedArrival">Estimated Arrival</label>
+                <input type="date" id="modalEstimatedArrival" name="estimated_arrival">
             </div>
             
             <div class="form-group">
@@ -155,22 +245,55 @@
             
             <div style="text-align: right; margin-top: 20px;">
                 <button type="button" onclick="closeUpdateModal()" class="btn" style="background: #6c757d; margin-right: 10px;">Cancel</button>
-                <button type="submit" class="btn btn-success">Update</button>
+                <button type="submit" class="btn btn-success">💾 Save Changes</button>
             </div>
         </form>
     </div>
 </div>
 
 <script>
-function openUpdateModal(requestId, itemName, quantity) {
+function openUpdateModal(requestId, itemName, quantity, notes, tracking, vendor, estimatedArrival, status) {
     document.getElementById('modalItemName').textContent = itemName;
     document.getElementById('modalQuantity').textContent = quantity;
+    document.getElementById('modalNotes').value = notes || '';
+    document.getElementById('modalTracking').value = tracking || '';
+    document.getElementById('modalVendor').value = vendor || '';
+    document.getElementById('modalEstimatedArrival').value = estimatedArrival || '';
+    document.getElementById('modalStatus').value = status || 'Pending';
     document.getElementById('updateForm').action = `/inventory/requests/${requestId}/update`;
     document.getElementById('updateModal').style.display = 'block';
 }
 
 function closeUpdateModal() {
     document.getElementById('updateModal').style.display = 'none';
+}
+
+function quickStatusUpdate(requestId, newStatus) {
+    if (!newStatus) return;
+    
+    if (!confirm(`Change request #${requestId} status to "${newStatus}"?`)) {
+        event.target.value = '';  // Reset dropdown
+        return;
+    }
+    
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = `/inventory/requests/${requestId}/update`;
+    
+    const csrf = document.createElement('input');
+    csrf.type = 'hidden';
+    csrf.name = 'csrf_token';
+    csrf.value = '{{ csrf_token() }}';
+    
+    const statusInput = document.createElement('input');
+    statusInput.type = 'hidden';
+    statusInput.name = 'status';
+    statusInput.value = newStatus;
+    
+    form.appendChild(csrf);
+    form.appendChild(statusInput);
+    document.body.appendChild(form);
+    form.submit();
 }
 </script>
 {% endblock %}
