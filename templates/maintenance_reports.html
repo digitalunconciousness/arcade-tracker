@@ -131,7 +131,7 @@
                 </tr>
                 <tr>
                     <td>Most Expensive Repair:</td>
-                    <td><strong>${{ "%.2f"|format(closed_records|map(attribute='cost')|max) if closed_records else "0.00" }}</strong></td>
+                    <td><strong>${{ "%.2f"|format(closed_records|rejectattr('cost', 'none')|map(attribute='cost')|max) if closed_records|rejectattr('cost', 'none')|list else "0.00" }}</strong></td>
                 </tr>
             </table>
         </div>
@@ -222,7 +222,7 @@
                     {% endif %}
                 </td>
                 <td>
-                    <a href="{{ url_for('view_maintenance', maintenance_id=record.id) }}" class="btn" style="background: var(--neon-cyan); font-size: 10px; padding: 3px 8px; color: black;">👁️ View</a>
+                    <a href="{{ url_for('maintenance_detail', record_id=record.id) }}" class="btn" style="background: var(--neon-cyan); font-size: 10px; padding: 3px 8px; color: black;">👁️ View</a>
                 </td>
             </tr>
             {% endfor %}
@@ -279,7 +279,7 @@
                     {% endif %}
                 </td>
                 <td>
-                    <a href="{{ url_for('view_maintenance', maintenance_id=record.id) }}" class="btn" style="background: var(--neon-cyan); font-size: 10px; padding: 3px 8px; color: black;">👁️ View</a>
+                    <a href="{{ url_for('maintenance_detail', record_id=record.id) }}" class="btn" style="background: var(--neon-cyan); font-size: 10px; padding: 3px 8px; color: black;">👁️ View</a>
                 </td>
             </tr>
             {% endfor %}
