@@ -129,6 +129,7 @@
         }
 
         .nav-dropdown.open > .nav-dropdown-menu { display: block; animation: dropdownFade 0.25s ease forwards; }
+        .nav-dropdown:hover > .nav-dropdown-menu { display: block; animation: dropdownFade 0.25s ease forwards; }
         .nav-dropdown-menu a {
             display: block;
             padding: 10px 14px;
@@ -210,6 +211,7 @@
                     <a href="{{ url_for('maintenance_orders') }}" class="nav-dropdown-toggle">Maintenance</a>
                     <div class="nav-dropdown-menu">
                         <a href="{{ url_for('maintenance_orders') }}">All Work Orders</a>
+                        <a href="{{ url_for('general_maintenance') }}">➕ Create General Work Order</a>
                         {% if current_user.has_role('manager') %}
                         <a href="{{ url_for('maintenance_reports') }}">Maintenance Reports</a>
                         {% endif %}

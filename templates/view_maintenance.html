@@ -84,9 +84,10 @@
                     <div class="work-description">
                         <pre>{{ work_log.work_description }}</pre>
                     </div>
+                    
                     {% if work_log.parts_used %}
                     <div class="parts-used">
-                        <strong>🔧 Parts Used:</strong>
+                        <strong>🔧 Parts Used (Manual Entry):</strong>
                         <pre>{{ work_log.parts_used }}</pre>
                     </div>
                     {% endif %}
@@ -98,6 +99,48 @@
         <p class="no-data">No work entries logged yet</p>
         {% endif %}
     </div>
+
+    {% if maintenance.inventory_usage %}
+    <div class="work-order-section">
+        <h3>📦 Inventory Items Used</h3>
+        <div class="inventory-usage-list">
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="border-bottom: 2px solid var(--neon-green);">
+                        <th style="text-align: left; padding: 10px; color: var(--neon-cyan);">Item</th>
+                        <th style="text-align: center; padding: 10px; color: var(--neon-cyan);">Quantity</th>
+                        <th style="text-align: center; padding: 10px; color: var(--neon-cyan);">Unit Price</th>
+                        <th style="text-align: right; padding: 10px; color: var(--neon-cyan);">Total Cost</th>
+                        <th style="text-align: center; padding: 10px; color: var(--neon-cyan);">Date Used</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for usage in maintenance.inventory_usage %}
+                    <tr style="border-bottom: 1px solid rgba(0, 255, 255, 0.2);">
+                        <td style="padding: 10px; color: var(--text-primary);">
+                            <strong>{{ usage.item.name }}</strong>
+                            {% if usage.item.part_number %}
+                            <br><small style="color: var(--text-secondary);">P/N: {{ usage.item.part_number }}</small>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 10px; text-align: center; color: var(--neon-orange); font-weight: bold;">{{ usage.quantity_used }}</td>
+                        <td style="padding: 10px; text-align: center; color: var(--text-secondary);">${{ "%.2f"|format(usage.unit_price_at_time) }}</td>
+                        <td style="padding: 10px; text-align: right; color: var(--neon-yellow); font-weight: bold;">${{ "%.2f"|format(usage.total_cost) }}</td>
+                        <td style="padding: 10px; text-align: center; color: var(--text-secondary); font-size: 12px;">{{ usage.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+                    </tr>
+                    {% endfor %}
+                    <tr style="border-top: 2px solid var(--neon-green); font-weight: bold;">
+                        <td colspan="3" style="padding: 15px; text-align: right; color: var(--neon-cyan);">TOTAL INVENTORY COST:</td>
+                        <td style="padding: 15px; text-align: right; color: var(--neon-yellow); font-size: 18px;">
+                            ${{ "%.2f"|format(maintenance.inventory_usage | sum(attribute='total_cost')) }}
+                        </td>
+                        <td></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
 
     <div class="work-order-section">
         <h3>👨‍🔧 Assignment & Cost</h3>

@@ -58,6 +58,31 @@
         <small style="color: var(--text-secondary); font-size: 12px;">🔧 Include part numbers, quantities, suppliers if applicable to this work session</small>
     </div>
     
+    <!-- Smart Inventory Management Section -->
+    <div style="background: var(--dark-card); padding: 20px; border-radius: 8px; border: 1px solid var(--neon-green); margin: 20px 0;">
+        <h3 style="color: var(--neon-green); margin-top: 0;">📦 Inventory Management</h3>
+        <p style="color: var(--text-secondary); margin-bottom: 15px;">Use parts from inventory or request items you need.</p>
+        
+        <div id="inventory-items">
+            <!-- Initial row will be added by JavaScript -->
+        </div>
+        
+        <button type="button" onclick="addInventoryRow()" class="btn" style="background: var(--neon-green); color: black; margin-top: 10px; font-size: 13px;">
+            ➕ Add Inventory Item
+        </button>
+        
+        <div style="display: flex; justify-content: space-between; margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--neon-green); flex-wrap: wrap; gap: 10px;">
+            <div>
+                <strong style="color: var(--neon-cyan);">Items to Use: <span id="items-to-use-count">0</span></strong>
+                <br>
+                <strong style="color: var(--neon-purple);">Items to Request: <span id="items-to-request-count">0</span></strong>
+            </div>
+            <div style="text-align: right;">
+                <strong style="color: var(--neon-yellow);">Total Use Cost: <span id="total-use-cost">$0.00</span></strong>
+            </div>
+        </div>
+    </div>
+    
     <div class="form-row" style="display: flex; gap: 20px;">
         <div class="form-group" style="flex: 1;">
             <label for="time_spent">Time Spent (Hours)</label>
@@ -84,6 +109,223 @@
         <a href="{{ url_for('game_detail', game_id=maintenance.game_id) }}" class="btn" style="background: var(--neon-cyan); color: black; text-decoration: none;">View Game</a>
     </div>
 </form>
+
+<script>
+let inventoryRowCount = 0;
+const maxInventoryRows = 10;
+const inventoryItemsData = {{ inventory_items|tojson|safe }};
+
+function addInventoryRow() {
+    if (inventoryRowCount >= maxInventoryRows) {
+        alert('Maximum 10 inventory items per work order');
+        return;
+    }
+    
+    const index = inventoryRowCount;
+    const container = document.getElementById('inventory-items');
+    
+    const rowDiv = document.createElement('div');
+    rowDiv.className = 'inventory-item-row';
+    rowDiv.id = `inventory-row-${index}`;
+    rowDiv.style.cssText = 'display: flex; gap: 10px; margin-bottom: 15px; align-items: end; flex-wrap: wrap; padding: 10px; background: rgba(0, 255, 0, 0.05); border-radius: 4px; border: 1px solid rgba(0, 255, 0, 0.2);';
+    
+    // Build options HTML
+    let optionsHTML = '<option value="">-- Select Item --</option>';
+    inventoryItemsData.forEach(item => {
+        optionsHTML += `<option value="${item.id}" data-stock="${item.stock_quantity}" data-price="${item.unit_price}" data-name="${item.name}">${item.name} (Stock: ${item.stock_quantity})</option>`;
+    });
+    
+    rowDiv.innerHTML = `
+        <div style="flex: 2; min-width: 200px;">
+            <label for="inventory_item_${index}">Item ${index + 1}</label>
+            <select id="inventory_item_${index}" name="inventory_item_${index}" onchange="updateItemInfo(${index})" class="inventory-select">
+                ${optionsHTML}
+            </select>
+        </div>
+        <div style="flex: 0.8; min-width: 80px;">
+            <label for="inventory_quantity_${index}">Quantity</label>
+            <input type="number" id="inventory_quantity_${index}" name="inventory_quantity_${index}" min="0" max="999" placeholder="0" class="inventory-quantity">
+        </div>
+        <div style="flex: 0.8; min-width: 70px;">
+            <label style="font-size: 11px;">Available</label>
+            <div id="available_${index}" style="padding: 8px; color: var(--text-secondary); font-size: 12px; text-align: center;">-</div>
+        </div>
+        <div style="flex: 1; min-width: 100px;">
+            <label for="item_action_${index}">Action</label>
+            <select id="item_action_${index}" name="item_action_${index}" class="item-action" onchange="updateActionUI(${index})" disabled>
+                <option value="">-- Select --</option>
+                <option value="use">✅ Use Now</option>
+                <option value="request">📋 Request</option>
+            </select>
+        </div>
+        <div style="flex: 0.8; min-width: 80px;">
+            <label style="font-size: 11px;">Est. Cost</label>
+            <div id="cost_${index}" style="padding: 8px; color: var(--neon-yellow); font-size: 12px; text-align: right;">$0.00</div>
+        </div>
+        <div id="request_urgency_${index}" style="flex: 1; min-width: 100px; display: none;">
+            <label for="urgency_${index}">Urgency</label>
+            <select id="urgency_${index}" name="urgency_${index}">
+                <option value="Low">Low</option>
+                <option value="Normal" selected>Normal</option>
+                <option value="High">High</option>
+                <option value="Urgent">Urgent</option>
+            </select>
+        </div>
+        <div style="flex: 0; min-width: 40px;">
+            <label style="font-size: 11px; opacity: 0;">X</label>
+            <button type="button" onclick="removeInventoryRow(${index})" class="btn" style="background: var(--neon-pink); padding: 8px 12px; font-size: 12px;" title="Remove item">
+                ✕
+            </button>
+        </div>
+    `;
+    
+    container.appendChild(rowDiv);
+    inventoryRowCount++;
+}
+
+function removeInventoryRow(index) {
+    const row = document.getElementById(`inventory-row-${index}`);
+    if (row) {
+        row.remove();
+        updateTotals();
+    }
+}
+
+function updateItemInfo(index) {
+    const select = document.getElementById(`inventory_item_${index}`);
+    const quantityInput = document.getElementById(`inventory_quantity_${index}`);
+    const actionSelect = document.getElementById(`item_action_${index}`);
+    const availableDiv = document.getElementById(`available_${index}`);
+    const costDiv = document.getElementById(`cost_${index}`);
+    
+    if (select.value) {
+        const option = select.selectedOptions[0];
+        const stock = parseInt(option.dataset.stock);
+        const price = parseFloat(option.dataset.price);
+        
+        // Update available stock display
+        availableDiv.textContent = stock;
+        if (stock === 0) {
+            availableDiv.style.color = 'var(--neon-pink)';
+            availableDiv.textContent = 'Out';
+        } else if (stock <= 5) {
+            availableDiv.style.color = 'var(--neon-orange)';
+        } else {
+            availableDiv.style.color = 'var(--neon-green)';
+        }
+        
+        // Enable action dropdown
+        actionSelect.disabled = false;
+        
+        // Update cost calculation when quantity changes
+        quantityInput.oninput = function() {
+            const quantity = parseInt(this.value) || 0;
+            const cost = quantity * price;
+            costDiv.textContent = `$${cost.toFixed(2)}`;
+            updateTotals();
+            
+            // Smart suggestion: if quantity > stock, suggest requesting
+            const action = document.getElementById(`item_action_${index}`);
+            if (quantity > stock && !action.value) {
+                action.value = 'request';
+                updateActionUI(index);
+            } else if (quantity > 0 && quantity <= stock && !action.value) {
+                action.value = 'use';
+                updateActionUI(index);
+            }
+        };
+        
+        // Reset fields
+        quantityInput.value = '';
+        costDiv.textContent = '$0.00';
+        actionSelect.value = '';
+    } else {
+        // Clear everything
+        availableDiv.textContent = '-';
+        availableDiv.style.color = 'var(--text-secondary)';
+        costDiv.textContent = '$0.00';
+        quantityInput.value = '';
+        quantityInput.oninput = null;
+        actionSelect.value = '';
+        actionSelect.disabled = true;
+        document.getElementById(`request_urgency_${index}`).style.display = 'none';
+    }
+    updateTotals();
+}
+
+function updateActionUI(index) {
+    const action = document.getElementById(`item_action_${index}`).value;
+    const urgencyDiv = document.getElementById(`request_urgency_${index}`);
+    const quantityInput = document.getElementById(`inventory_quantity_${index}`);
+    const select = document.getElementById(`inventory_item_${index}`);
+    
+    if (action === 'request') {
+        urgencyDiv.style.display = 'block';
+        // For requests, allow any quantity
+        quantityInput.removeAttribute('max');
+    } else if (action === 'use') {
+        urgencyDiv.style.display = 'none';
+        // For using, limit to available stock
+        if (select.value) {
+            const option = select.selectedOptions[0];
+            const stock = parseInt(option.dataset.stock);
+            quantityInput.max = stock;
+            
+            // Validate current quantity
+            const currentQty = parseInt(quantityInput.value) || 0;
+            if (currentQty > stock) {
+                quantityInput.value = stock;
+                quantityInput.dispatchEvent(new Event('input'));
+            }
+        }
+    } else {
+        urgencyDiv.style.display = 'none';
+    }
+    updateTotals();
+}
+
+function updateTotals() {
+    let useCount = 0;
+    let requestCount = 0;
+    let useCost = 0;
+    
+    // Check all existing rows
+    for (let i = 0; i < inventoryRowCount; i++) {
+        const item = document.getElementById(`inventory_item_${i}`);
+        const quantityInput = document.getElementById(`inventory_quantity_${i}`);
+        const actionSelect = document.getElementById(`item_action_${i}`);
+        
+        if (item && quantityInput && actionSelect) {
+            const quantity = parseInt(quantityInput.value) || 0;
+            const action = actionSelect.value;
+            
+            if (item.value && quantity > 0) {
+                if (action === 'use') {
+                    useCount++;
+                    const option = item.selectedOptions[0];
+                    const price = parseFloat(option.dataset.price);
+                    useCost += quantity * price;
+                } else if (action === 'request') {
+                    requestCount++;
+                }
+            }
+        }
+    }
+    
+    document.getElementById('items-to-use-count').textContent = useCount;
+    document.getElementById('items-to-request-count').textContent = requestCount;
+    document.getElementById('total-use-cost').textContent = `$${useCost.toFixed(2)}`;
+}
+
+// Initialize with one empty row on page load
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+        addInventoryRow();
+    });
+} else {
+    addInventoryRow();
+}
+</script>
 
 <style>
 .form-group {
@@ -131,6 +373,31 @@
 textarea {
     resize: vertical;
     min-height: 60px;
+}
+
+.inventory-item-row select,
+.inventory-item-row input {
+    font-size: 12px;
+    padding: 8px;
+}
+
+.inventory-item-row label {
+    font-size: 12px;
+    margin-bottom: 4px;
+    color: var(--neon-green);
+}
+
+.inventory-select {
+    cursor: pointer;
+}
+
+.item-action:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.inventory-quantity:invalid {
+    border-color: var(--neon-pink);
 }
 </style>
 {% endblock %}
