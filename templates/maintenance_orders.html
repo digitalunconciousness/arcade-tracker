@@ -38,7 +38,7 @@
         </thead>
         <tbody>
             {% for record in open_records %}
-            <tr style="height: 45px; cursor: pointer;" onclick="window.location='{{ url_for('view_maintenance', maintenance_id=record.id) }}';">
+            <tr style="height: 45px; cursor: pointer;" onclick="window.location='{{ url_for('maintenance_detail', record_id=record.id) }}';">
                 <td>
                     {% if record.status == 'Open' %}
                         <span style="color: #ff4444; font-weight: bold;">🔴 Open</span>
@@ -46,19 +46,19 @@
                         <span style="color: #ffaa00; font-weight: bold;">🟡 In Progress</span>
                     {% endif %}
                 </td>
-                <td><a href="{{ url_for('game_detail', game_id=record.game_id) }}">{{ record.game.name }}</a></td>
+                <td>{% if record.game_id %}<a href="{{ url_for('game_detail', game_id=record.game_id) }}">{{ record.game.name }}</a>{% else %}<span style="color: var(--neon-purple); font-style: italic;">General Maintenance</span>{% endif %}</td>
                 <td>{{ record.issue_description[:50] }}{% if record.issue_description|length > 50 %}...{% endif %}</td>
                 <td>{{ record.date_reported.strftime('%Y-%m-%d') }}</td>
                 <td>{{ record.technician or 'Not Assigned' }}</td>
                 <td>${{ "%.2f"|format(record.cost or 0) }}</td>
                 <td style="padding: 8px; white-space: nowrap;" onclick="event.stopPropagation();">
                     <div style="display: flex; gap: 4px; align-items: center;">
-                        <a href="{{ url_for('view_maintenance', maintenance_id=record.id) }}" class="btn" style="background: var(--neon-cyan); font-size: 10px; padding: 4px 8px; margin: 0; min-width: 45px; text-align: center; color: black;">View</a>
+                        <a href="{{ url_for('maintenance_detail', record_id=record.id) }}" class="btn" style="background: var(--neon-cyan); font-size: 10px; padding: 4px 8px; margin: 0; min-width: 45px; text-align: center; color: black;">View</a>
                         {% if current_user.has_role('operator') %}
                             <a href="{{ url_for('maintenance_photos', maintenance_id=record.id) }}" class="btn" style="background: var(--neon-pink); font-size: 10px; padding: 4px 8px; margin: 0; min-width: 45px; text-align: center;">Photos</a>
                         {% endif %}
-                        <a href="{{ url_for('update_maintenance', maintenance_id=record.id) }}" class="btn" style="background: var(--neon-purple); font-size: 10px; padding: 4px 8px; margin: 0; min-width: 50px; text-align: center;">Update</a>
-                        <button onclick="openCloseModal({{ record.id }}, '{{ record.game.name|replace("'", "\\'") }}', '{{ record.issue_description|replace("'", "\\'") }}')" 
+                        <a href="{{ url_for('update_maintenance', record_id=record.id) }}" class="btn" style="background: var(--neon-purple); font-size: 10px; padding: 4px 8px; margin: 0; min-width: 50px; text-align: center;">Update</a>
+                        <button onclick="openCloseModal({{ record.id }}, '{{ (record.game.name if record.game else 'General Maintenance')|replace("'", "\\'") }}', '{{ record.issue_description|replace("'", "\\'") }}')" 
                                 class="btn btn-success" style="font-size: 10px; padding: 4px 8px; margin: 0; min-width: 45px; text-align: center;">Close</button>
                     </div>
                 </td>
@@ -91,7 +91,7 @@
         </thead>
         <tbody>
             {% for record in closed_records %}
-            <tr style="height: 45px; cursor: pointer;" onclick="window.location='{{ url_for('view_maintenance', maintenance_id=record.id) }}';">
+            <tr style="height: 45px; cursor: pointer;" onclick="window.location='{{ url_for('maintenance_detail', record_id=record.id) }}';">
                 <td>
                     {% if record.status == 'Fixed' %}
                         <span style="color: var(--neon-green); font-weight: bold;">✅ Fixed</span>
@@ -99,7 +99,7 @@
                         <span style="color: #888; font-weight: bold;">⏸️ Deferred</span>
                     {% endif %}
                 </td>
-                <td><a href="{{ url_for('game_detail', game_id=record.game_id) }}">{{ record.game.name }}</a></td>
+                <td>{% if record.game_id %}<a href="{{ url_for('game_detail', game_id=record.game_id) }}">{{ record.game.name }}</a>{% else %}<span style="color: var(--neon-purple); font-style: italic;">General Maintenance</span>{% endif %}</td>
                 <td>{{ record.issue_description[:50] }}{% if record.issue_description|length > 50 %}...{% endif %}</td>
                 <td>{{ record.date_reported.strftime('%Y-%m-%d') }}</td>
                 <td>{{ record.date_fixed.strftime('%Y-%m-%d') if record.date_fixed else 'N/A' }}</td>
@@ -108,7 +108,7 @@
                 <td>{{ record.fix_description[:40] if record.fix_description else 'N/A' }}{% if record.fix_description and record.fix_description|length > 40 %}...{% endif %}</td>
                 <td style="padding: 8px; white-space: nowrap;" onclick="event.stopPropagation();">
                     <div style="display: flex; gap: 4px; align-items: center;">
-                        <a href="{{ url_for('view_maintenance', maintenance_id=record.id) }}" class="btn" style="background: var(--neon-cyan); font-size: 10px; padding: 4px 8px; margin: 0; min-width: 45px; text-align: center; color: black;">View</a>
+                        <a href="{{ url_for('maintenance_detail', record_id=record.id) }}" class="btn" style="background: var(--neon-cyan); font-size: 10px; padding: 4px 8px; margin: 0; min-width: 45px; text-align: center; color: black;">View</a>
                         {% if current_user.has_role('operator') %}
                             <a href="{{ url_for('maintenance_photos', maintenance_id=record.id) }}" class="btn" style="background: var(--neon-pink); font-size: 10px; padding: 4px 8px; margin: 0; min-width: 45px; text-align: center;">Photos</a>
                         {% endif %}
@@ -141,7 +141,7 @@
         </thead>
         <tbody>
             {% for record in all_records %}
-            <tr style="height: 45px; cursor: pointer;" onclick="window.location='{{ url_for('view_maintenance', maintenance_id=record.id) }}';">
+            <tr style="height: 45px; cursor: pointer;" onclick="window.location='{{ url_for('maintenance_detail', record_id=record.id) }}';">
                 <td>
                     {% if record.status == 'Open' %}
                         <span style="color: #ff4444; font-weight: bold;">🔴 Open</span>
@@ -153,20 +153,20 @@
                         <span style="color: #888; font-weight: bold;">⏸️ Deferred</span>
                     {% endif %}
                 </td>
-                <td><a href="{{ url_for('game_detail', game_id=record.game_id) }}">{{ record.game.name }}</a></td>
+                <td>{% if record.game_id %}<a href="{{ url_for('game_detail', game_id=record.game_id) }}">{{ record.game.name }}</a>{% else %}<span style="color: var(--neon-purple); font-style: italic;">General Maintenance</span>{% endif %}</td>
                 <td>{{ record.issue_description[:50] }}{% if record.issue_description|length > 50 %}...{% endif %}</td>
                 <td>{{ record.date_reported.strftime('%Y-%m-%d') }}</td>
                 <td>{{ record.technician or 'Not Assigned' }}</td>
                 <td>${{ "%.2f"|format(record.cost or 0) }}</td>
                 <td style="padding: 8px; white-space: nowrap;" onclick="event.stopPropagation();">
                     <div style="display: flex; gap: 4px; align-items: center;">
-                        <a href="{{ url_for('view_maintenance', maintenance_id=record.id) }}" class="btn" style="background: var(--neon-cyan); font-size: 10px; padding: 4px 8px; margin: 0; min-width: 45px; text-align: center; color: black;">View</a>
+                        <a href="{{ url_for('maintenance_detail', record_id=record.id) }}" class="btn" style="background: var(--neon-cyan); font-size: 10px; padding: 4px 8px; margin: 0; min-width: 45px; text-align: center; color: black;">View</a>
                         {% if current_user.has_role('operator') %}
                             <a href="{{ url_for('maintenance_photos', maintenance_id=record.id) }}" class="btn" style="background: var(--neon-pink); font-size: 10px; padding: 4px 8px; margin: 0; min-width: 45px; text-align: center;">Photos</a>
                         {% endif %}
                         {% if record.status in ['Open', 'In_Progress'] %}
-                            <a href="{{ url_for('update_maintenance', maintenance_id=record.id) }}" class="btn" style="background: var(--neon-purple); font-size: 10px; padding: 4px 8px; margin: 0; min-width: 50px; text-align: center;">Update</a>
-                            <button onclick="openCloseModal({{ record.id }}, '{{ record.game.name|replace("'", "\\'") }}', '{{ record.issue_description|replace("'", "\\'") }}')" 
+                            <a href="{{ url_for('update_maintenance', record_id=record.id) }}" class="btn" style="background: var(--neon-purple); font-size: 10px; padding: 4px 8px; margin: 0; min-width: 50px; text-align: center;">Update</a>
+                            <button onclick="openCloseModal({{ record.id }}, '{{ (record.game.name if record.game else 'General Maintenance')|replace("'", "\\'") }}', '{{ record.issue_description|replace("'", "\\'") }}')" 
                                     class="btn btn-success" style="font-size: 10px; padding: 4px 8px; margin: 0; min-width: 45px; text-align: center;">Close</button>
                         {% endif %}
                     </div>
@@ -228,14 +228,17 @@ function showTab(tabName) {
     document.querySelectorAll('.maintenance-tab').forEach(tab => tab.style.display = 'none');
     
     // Remove active class from all buttons
-    document.querySelectorAll('button[onclick^="showTab"]').forEach(btn => {
+    const buttons = [document.getElementById('openTab'), document.getElementById('closedTab'), document.getElementById('allTab')];
+    buttons.forEach(btn => {
+        btn.className = 'btn';
         btn.style.background = '#6c757d';
     });
     
     // Show selected tab and highlight button
     if (tabName === 'open') {
         document.getElementById('openOrders').style.display = 'block';
-        document.getElementById('openTab').style.background = 'var(--neon-orange)';
+        document.getElementById('openTab').className = 'btn btn-warning';
+        document.getElementById('openTab').style.background = '';
     } else if (tabName === 'closed') {
         document.getElementById('closedOrders').style.display = 'block';
         document.getElementById('closedTab').style.background = 'var(--neon-green)';
@@ -308,7 +311,13 @@ function closeCloseModal() {
     document.getElementById('closeModal').style.display = 'none';
 }
 
-// Initialize with open orders tab
-showTab('open');
+// Initialize with open orders tab when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+        showTab('open');
+    });
+} else {
+    showTab('open');
+}
 </script>
 {% endblock %}

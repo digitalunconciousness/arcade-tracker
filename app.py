@@ -1540,7 +1540,16 @@ def maintenance_orders():
         )
     # Sort by game name (nulls last for general maintenance), then by date
     all_records = query.outerjoin(Game).order_by(Game.name.asc().nullslast(), MaintenanceRecord.date_reported.desc()).all()
-    return render_template('maintenance_orders.html', all_records=all_records, search=search)
+    
+    # Split records into open and closed for the tab interface
+    open_records = [r for r in all_records if r.status in ['Open', 'In_Progress']]
+    closed_records = [r for r in all_records if r.status in ['Fixed', 'Deferred']]
+    
+    return render_template('maintenance_orders.html', 
+                         open_records=open_records, 
+                         closed_records=closed_records,
+                         all_records=all_records, 
+                         search=search)
 
 
 # ==============================
@@ -1593,50 +1602,87 @@ def update_maintenance(record_id):
             )
             db.session.add(work_log)
         
-        # Process inventory usage
-        inventory_items = request.form.getlist('inventory_item_id')
-        inventory_quantities = request.form.getlist('inventory_quantity')
-        
+        # Process inventory usage and requests
         total_inventory_cost = 0
-        for item_id_str, quantity_str in zip(inventory_items, inventory_quantities):
-            if item_id_str and quantity_str:
+        items_used = 0
+        items_requested = 0
+        
+        # Process up to 10 inventory items (dynamic rows)
+        for i in range(10):
+            item_id_str = request.form.get(f'inventory_item_{i}')
+            quantity_str = request.form.get(f'inventory_quantity_{i}')
+            action = request.form.get(f'item_action_{i}')
+            
+            if item_id_str and quantity_str and action:
                 try:
                     item_id = int(item_id_str)
                     quantity = int(quantity_str)
                     
                     if item_id > 0 and quantity > 0:
                         item = InventoryItem.query.get(item_id)
-                        if item and item.stock_quantity >= quantity:
-                            # Create usage record
-                            usage = MaintenanceInventoryUsage(
+                        
+                        if action == 'use':
+                            # Use inventory immediately
+                            if item and item.stock_quantity >= quantity:
+                                # Create usage record
+                                usage = MaintenanceInventoryUsage(
+                                    maintenance_id=record.id,
+                                    item_id=item_id,
+                                    quantity_used=quantity,
+                                    unit_price_at_time=item.unit_price,
+                                    total_cost=quantity * item.unit_price
+                                )
+                                db.session.add(usage)
+                                
+                                # Update inventory
+                                old_quantity = item.stock_quantity
+                                item.stock_quantity -= quantity
+                                
+                                # Create stock history
+                                stock_history = StockHistory(
+                                    item_id=item_id,
+                                    change_type='used',
+                                    quantity_change=-quantity,
+                                    previous_quantity=old_quantity,
+                                    new_quantity=item.stock_quantity,
+                                    reason=f'Used in Work Order #{record.id}',
+                                    user_id=current_user.id
+                                )
+                                db.session.add(stock_history)
+                                
+                                total_inventory_cost += usage.total_cost
+                                items_used += 1
+                                _check_low_stock_alert(item)
+                            elif item:
+                                flash(f'Insufficient stock for {item.name}. Available: {item.stock_quantity}, Requested: {quantity}', 'warning')
+                        
+                        elif action == 'request':
+                            # Create inventory request
+                            urgency = request.form.get(f'urgency_{i}', 'Normal')
+                            
+                            inventory_request = InventoryRequest(
+                                item_id=item_id,
                                 maintenance_id=record.id,
-                                item_id=item_id,
-                                quantity_used=quantity,
-                                unit_price_at_time=item.unit_price,
-                                total_cost=quantity * item.unit_price
+                                item_name=item.name if item else 'Unknown Item',
+                                quantity_requested=quantity,
+                                reason=f'Needed for Work Order #{record.id}: {record.issue_description[:100]}',
+                                urgency=urgency,
+                                status='Pending',
+                                requested_by_id=current_user.id
                             )
-                            db.session.add(usage)
+                            db.session.add(inventory_request)
+                            db.session.flush()  # Get the request ID
                             
-                            # Update inventory
-                            old_quantity = item.stock_quantity
-                            item.stock_quantity -= quantity
-                            
-                            # Create stock history
-                            stock_history = StockHistory(
-                                item_id=item_id,
-                                change_type='used',
-                                quantity_change=-quantity,
-                                previous_quantity=old_quantity,
-                                new_quantity=item.stock_quantity,
-                                reason=f'Used in Work Order #{record.id}',
-                                user_id=current_user.id
+                            # Create request history entry
+                            history = InventoryRequestHistory(
+                                request_id=inventory_request.id,
+                                user_id=current_user.id,
+                                action='created',
+                                notes=f'Request created from work order update'
                             )
-                            db.session.add(stock_history)
+                            db.session.add(history)
+                            items_requested += 1
                             
-                            total_inventory_cost += usage.total_cost
-                            _check_low_stock_alert(item)
-                        elif item:
-                            flash(f'Insufficient stock for {item.name}. Available: {item.stock_quantity}, Requested: {quantity}', 'warning')
                 except (ValueError, TypeError):
                     continue
         
@@ -1649,15 +1695,25 @@ def update_maintenance(record_id):
         
         db.session.commit()
         
-        if total_inventory_cost > 0:
-            flash(f"Work log added. Inventory used: ${total_inventory_cost:.2f}", "success")
+        # Build flash message based on what was done
+        messages = []
+        if work_notes:
+            messages.append("Work log added")
+        if items_used > 0:
+            messages.append(f"{items_used} item(s) used (${total_inventory_cost:.2f})")
+        if items_requested > 0:
+            messages.append(f"{items_requested} item(s) requested")
+        
+        if messages:
+            flash(". ".join(messages) + ".", "success")
         else:
             flash(f"Maintenance record #{record.id} updated.", "success")
+        
         return redirect(url_for('maintenance_orders'))
     
     # GET request - load inventory items
     inventory_items = InventoryItem.query.order_by(InventoryItem.name.asc()).all()
-    return render_template('update_maintenance.html', record=record, inventory_items=inventory_items)
+    return render_template('update_maintenance.html', maintenance=record, inventory_items=inventory_items)
 
 
 @app.route('/close_maintenance/<int:record_id>', methods=['POST'])
