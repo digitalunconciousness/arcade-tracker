@@ -110,6 +110,46 @@ pip install -r requirements.txt
 python app.py
 ```
 
+## Skeeball Integration
+
+Arcade Tracker includes a complete Raspberry Pi-based skeeball scoring system with real-time tracking.
+
+### Features
+- **Automatic Scoring**: 6-hole detection (10, 20, 30, 40, 50, 100 points)
+- **Game Management**: Full 9-ball games with bonus tracking
+- **Coin Counter**: Integrated coin acceptor support
+- **Real-time Sync**: Automatic data upload to Arcade Tracker
+- **Multi-Lane Support**: Scalable architecture for multiple machines
+- **Web Interface**: Control panel, simulator, and statistics dashboard
+- **GPIO Testing**: Built-in hardware testing tools
+
+### Access Points
+- **Main Hub**: `/skeeball/` - Overview and lane selection
+- **Control Panel**: `/skeeball/control` - Lane management and monitoring
+- **Simulator**: `/skeeball/simulator` - Test without hardware
+- **Statistics**: `/skeeball/stats` - Performance analytics
+- **GPIO Testing**: `/skeeball/gpio-test` - Hardware diagnostics
+
+### Hardware Setup
+**Minimum Requirements:**
+- Raspberry Pi (any model with GPIO)
+- Coin acceptor/switch
+- 6x infrared break-beam sensors
+- Optional: TM1637 display for on-machine scoring
+
+**Architecture Options:**
+- **Single Lane**: Pi 4 directly connected to one machine
+- **Multi-Lane**: Pi 4 coordinator with Pi Pico per lane via USB
+
+### Quick Start
+1. Configure GPIO pins in skeeball settings
+2. Wire sensors to assigned GPIO pins
+3. Navigate to `/skeeball/simulator` to test without hardware
+4. Use `/skeeball/gpio-test` to verify sensor connections
+5. Launch games from `/skeeball/control`
+
+For detailed setup instructions, see `rpi_skeeball/README.md` and `DEPLOYMENT_CHECKLIST.md`.
+
 ## Usage
 
 ### Adding Games
