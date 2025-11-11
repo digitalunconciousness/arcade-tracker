@@ -3962,15 +3962,6 @@ def delete_backup():
 
     return redirect(url_for('backup_management'))
 
-# -------------------------------------------------------------
-# 🎳 Register Skeeball Routes
-# -------------------------------------------------------------
-try:
-    from skeeball_routes import register_skeeball_routes
-    register_skeeball_routes(app)
-except ImportError as e:
-    print(f"⚠️  Skeeball routes not available: {e}")
-
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
