@@ -1,0 +1,118 @@
+<div class="mb-3 d-flex justify-content-between align-items-center">
+  <div>
+    <label for="statusFilter" class="me-2 fw-bold">Filter:</label>
+    <select id="statusFilter" class="form-select form-select-sm d-inline-block w-auto">
+      <option value="all" selected>All</option>
+      <option value="Open">Open</option>
+      <option value="In_Progress">In Progress</option>
+      <option value="Fixed">Fixed</option>
+      <option value="Deferred">Deferred</option>
+    </select>
+  </div>
+  <input type="text" id="searchInput" class="form-control form-control-sm w-25"
+         placeholder="Search by issue or location...">
+</div>
+
+<div class="table-responsive">
+  <table id="maintenanceTable" class="table table-striped align-middle">
+    <thead class="table-light">
+      <tr>
+        <th scope="col" data-sort="number">ID</th>
+        <th scope="col" data-sort="string">Type</th>
+        <th scope="col" data-sort="string">Game / Location</th>
+        <th scope="col" data-sort="string">Issue</th>
+        <th scope="col" data-sort="string">Status</th>
+        <th scope="col" data-sort="string">Technician</th>
+        <th scope="col" data-sort="date">Date Reported</th>
+      </tr>
+    </thead>
+    <tbody id="tableBody">
+      {% for record in all_records %}
+      <tr data-status="{{ record.status }}">
+        <td>#{{ record.id }}</td>
+        <td>{{ record.work_order_type|capitalize }}</td>
+
+        <td>
+          {% if record.game_id and record.game %}
+            <a href="{{ url_for('game_detail', game_id=record.game_id) }}">
+              {{ record.game.name }}
+            </a>
+          {% else %}
+            <span class="text-muted fst-italic">
+              {{ record.location_description or "General Facility" }}
+            </span>
+          {% endif %}
+        </td>
+
+        <td>{{ record.issue_description|truncate(80, True) }}</td>
+
+        <td>
+          {% if record.status == 'Open' %}
+            <span class="badge bg-danger">{{ record.status }}</span>
+          {% elif record.status == 'In_Progress' %}
+            <span class="badge bg-warning text-dark">In Progress</span>
+          {% elif record.status == 'Fixed' %}
+            <span class="badge bg-success">{{ record.status }}</span>
+          {% elif record.status == 'Deferred' %}
+            <span class="badge bg-secondary">{{ record.status }}</span>
+          {% else %}
+            <span class="badge bg-light text-dark">{{ record.status }}</span>
+          {% endif %}
+        </td>
+
+        <td>{{ record.technician or '-' }}</td>
+        <td>{{ record.date_reported.strftime('%Y-%m-%d') if record.date_reported else '' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const table = document.getElementById('maintenanceTable');
+  const tbody = table.querySelector('tbody');
+  const headers = table.querySelectorAll('th[data-sort]');
+  const searchInput = document.getElementById('searchInput');
+  const statusFilter = document.getElementById('statusFilter');
+
+  // Sorting
+  headers.forEach(header => {
+    header.style.cursor = 'pointer';
+    header.addEventListener('click', () => {
+      const type = header.dataset.sort;
+      const index = Array.from(headers).indexOf(header);
+      const rows = Array.from(tbody.querySelectorAll('tr'));
+      const dir = header.dataset.dir === 'asc' ? 'desc' : 'asc';
+      header.dataset.dir = dir;
+
+      rows.sort((a, b) => {
+        const aText = a.children[index].innerText.trim();
+        const bText = b.children[index].innerText.trim();
+        if (type === 'number') return dir === 'asc' ? aText - bText : bText - aText;
+        return dir === 'asc' ? aText.localeCompare(bText) : bText.localeCompare(aText);
+      });
+
+      tbody.innerHTML = '';
+      rows.forEach(r => tbody.appendChild(r));
+    });
+  });
+
+  // Filter
+  statusFilter.addEventListener('change', () => {
+    const value = statusFilter.value;
+    tbody.querySelectorAll('tr').forEach(row => {
+      row.style.display = (value === 'all' || row.dataset.status === value) ? '' : 'none';
+    });
+  });
+
+  // Search
+  searchInput.addEventListener('input', () => {
+    const q = searchInput.value.toLowerCase();
+    tbody.querySelectorAll('tr').forEach(row => {
+      const text = row.innerText.toLowerCase();
+      row.style.display = text.includes(q) ? '' : 'none';
+    });
+  });
+});
+</script>

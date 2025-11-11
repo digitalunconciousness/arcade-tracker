@@ -43,7 +43,7 @@
             <td>{{ req.quantity_requested }}</td>
             <td>
                 {% if req.urgency == 'Urgent' %}
-                    <span style="color: #ff4444; font-weight: bold;">⚠️ URGENT</span>
+                    <span style="color: #ff4444; font-weight: bold;"> URGENT</span>
                 {% elif req.urgency == 'High' %}
                     <span style="color: #ffaa00; font-weight: bold;">High</span>
                 {% elif req.urgency == 'Normal' %}
@@ -56,7 +56,7 @@
                 {% if req.maintenance_id %}
                     <a href="{{ url_for('maintenance_detail', record_id=req.maintenance_id) }}" 
                        style="color: var(--neon-cyan); text-decoration: none;">
-                        🔧 #{{ req.maintenance_id }}
+                         #{{ req.maintenance_id }}
                     </a>
                 {% else %}
                     <span style="color: #666;">-</span>
@@ -72,10 +72,10 @@
                         <select onchange="quickStatusUpdate({{ req.id }}, this.value)" 
                                 style="padding: 4px 6px; font-size: 11px; background: rgba(0, 255, 255, 0.1); border: 1px solid var(--neon-cyan); color: var(--neon-cyan); border-radius: 4px;">
                             <option value="">Quick Status...</option>
-                            <option value="Approved">✓ Approve</option>
-                            <option value="Ordered">📦 Mark Ordered</option>
-                            <option value="Received">✅ Mark Received</option>
-                            <option value="Rejected">✗ Reject</option>
+                            <option value="Approved"> Approve</option>
+                            <option value="Ordered"> Mark Ordered</option>
+                            <option value="Received"> Mark Received</option>
+                            <option value="Rejected"> Reject</option>
                         </select>
                         <!-- Full update modal button -->
                         <button onclick="openUpdateModal({{ req.id }}, '{{ req.item_name }}', {{ req.quantity_requested }}, '{{ req.notes|default('', true)|replace('\'', '\\\'')|replace('\n', ' ') }}', '{{ req.tracking_number|default('', true) }}', '{{ req.vendor|default('', true) }}', '{{ req.estimated_arrival.strftime('%Y-%m-%d') if req.estimated_arrival else '' }}', '{{ req.status }}')" 
@@ -146,20 +146,20 @@
                 {% if req.status == 'Pending' %}
                     <span style="color: #ffaa00;">⏳ Pending</span>
                 {% elif req.status == 'Approved' %}
-                    <span style="color: var(--neon-cyan);">✓ Approved</span>
+                    <span style="color: var(--neon-cyan);"> Approved</span>
                 {% elif req.status == 'Ordered' %}
-                    <span style="color: var(--neon-purple);">📦 Ordered</span>
+                    <span style="color: var(--neon-purple);"> Ordered</span>
                 {% elif req.status == 'Received' %}
-                    <span style="color: var(--neon-green);">✅ Received</span>
+                    <span style="color: var(--neon-green);"> Received</span>
                 {% elif req.status == 'Rejected' %}
-                    <span style="color: #ff4444;">✗ Rejected</span>
+                    <span style="color: #ff4444;"> Rejected</span>
                 {% endif %}
             </td>
             <td>
                 {% if req.maintenance_id %}
                     <a href="{{ url_for('maintenance_detail', record_id=req.maintenance_id) }}" 
                        style="color: var(--neon-cyan); text-decoration: none;">
-                        🔧 #{{ req.maintenance_id }}
+                         #{{ req.maintenance_id }}
                     </a>
                 {% else %}
                     <span style="color: #666;">-</span>
@@ -189,7 +189,7 @@
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                     <button type="submit" onclick="return confirm('Delete request #{{ req.id }} for {{ req.item_name }}?')" 
                             class="btn" style="background: #ff4444; color: white; font-size: 10px; padding: 4px 8px;">
-                        🗑️ Delete
+                         Delete
                     </button>
                 </form>
             </td>
@@ -205,7 +205,7 @@
 <!-- Update Request Modal (for managers/admins) -->
 <div id="updateModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; overflow-y: auto;">
     <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--dark-card); padding: 30px; border-radius: 8px; border: 2px solid var(--neon-cyan); max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto;">
-        <h3 style="color: var(--neon-cyan); margin-bottom: 20px;">📦 Update Inventory Request</h3>
+        <h3 style="color: var(--neon-cyan); margin-bottom: 20px;"> Update Inventory Request</h3>
         <p><strong style="color: var(--neon-cyan);">Item:</strong> <span id="modalItemName" style="color: #fff;"></span></p>
         <p><strong style="color: var(--neon-cyan);">Quantity:</strong> <span id="modalQuantity" style="color: #fff;"></span></p>
         
@@ -216,10 +216,10 @@
                 <label for="modalStatus">Status *</label>
                 <select id="modalStatus" name="status" required>
                     <option value="Pending">⏳ Pending</option>
-                    <option value="Approved">✓ Approved</option>
-                    <option value="Ordered">📦 Ordered</option>
-                    <option value="Received">✅ Received</option>
-                    <option value="Rejected">✗ Rejected</option>
+                    <option value="Approved"> Approved</option>
+                    <option value="Ordered"> Ordered</option>
+                    <option value="Received"> Received</option>
+                    <option value="Rejected"> Rejected</option>
                 </select>
             </div>
             
@@ -245,7 +245,7 @@
             
             <div style="text-align: right; margin-top: 20px;">
                 <button type="button" onclick="closeUpdateModal()" class="btn" style="background: #6c757d; margin-right: 10px;">Cancel</button>
-                <button type="submit" class="btn btn-success">💾 Save Changes</button>
+                <button type="submit" class="btn btn-success"> Save Changes</button>
             </div>
         </form>
     </div>

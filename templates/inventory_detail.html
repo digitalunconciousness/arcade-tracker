@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="header-section">
-    <h1>📦 {{ item.name }}</h1>
+    <h1> {{ item.name }}</h1>
     <div class="header-actions">
         <a href="{{ url_for('inventory_list') }}" class="btn btn-secondary">← Back to Inventory</a>
         {% if current_user.has_role('operator') %}
@@ -18,7 +18,7 @@
 
 {% if item.is_low_stock() %}
 <div class="alert alert-warning">
-    ⚠️ <strong>Low Stock Alert:</strong> This item is at or below the minimum stock level.
+     <strong>Low Stock Alert:</strong> This item is at or below the minimum stock level.
 </div>
 {% endif %}
 
@@ -150,7 +150,7 @@
         
         {% if active_alert %}
         <div class="alert-card">
-            <h3>⚠️ Active Low Stock Alert</h3>
+            <h3> Active Low Stock Alert</h3>
             <p>Triggered: {{ active_alert.alert_triggered.strftime('%m/%d/%Y %H:%M') }}</p>
             {% if current_user.has_role('manager') %}
             <form method="POST" action="{{ url_for('resolve_low_stock_alert', alert_id=active_alert.id) }}">

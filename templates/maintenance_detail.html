@@ -9,12 +9,12 @@
       {% if current_user.has_role('operator') %}
       <a href="{{ url_for('request_inventory', maintenance_id=record.id) }}" 
          style="background: #9c27b0; color: #fff; padding: 8px 16px; border-radius: 4px; text-decoration: none; font-weight: bold;">
-        📦 Request Parts
+         Request Parts
       </a>
       {% endif %}
       <a href="{{ url_for('download_maintenance_record', record_id=record.id) }}" 
          style="background: #00ffff; color: #000; padding: 8px 16px; border-radius: 4px; text-decoration: none; font-weight: bold;">
-        📥 Download PDF
+         Download PDF
       </a>
     </div>
   </div>
@@ -57,14 +57,14 @@
 
   <!-- Original Issue -->
   <div style="background: rgba(0, 20, 40, 0.6); border: 2px solid #ff6666; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
-    <h4 style="color: #ff6666; margin-bottom: 15px;">🔴 Original Issue</h4>
+    <h4 style="color: #ff6666; margin-bottom: 15px;"> Original Issue</h4>
     <p style="color: #fff; white-space: pre-wrap;">{{ record.issue_description or 'No description provided.' }}</p>
   </div>
 
   <!-- Initial Assessment/Diagnosis -->
   {% if record.fix_description %}
   <div style="background: rgba(0, 20, 40, 0.6); border: 2px solid #f57c00; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
-    <h4 style="color: #f57c00; margin-bottom: 15px;">🔧 Initial Assessment</h4>
+    <h4 style="color: #f57c00; margin-bottom: 15px;"> Initial Assessment</h4>
     <p style="color: #fff; white-space: pre-wrap;">{{ record.fix_description }}</p>
   </div>
   {% endif %}
@@ -72,13 +72,13 @@
   <!-- Work Log History -->
   {% if record.work_logs %}
   <div style="background: rgba(0, 20, 40, 0.6); border: 2px solid #00ffff; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
-    <h4 style="color: #00ffff; margin-bottom: 15px;">📝 Work Log History</h4>
+    <h4 style="color: #00ffff; margin-bottom: 15px;"> Work Log History</h4>
     {% for log in record.work_logs %}
     <div style="border-left: 3px solid #00ffff; padding-left: 15px; margin-bottom: 20px;">
       <div style="color: #aaa; font-size: 0.9em; margin-bottom: 5px;">
         {{ log.timestamp.strftime('%Y-%m-%d %H:%M') }} - {{ log.user.username }}
-        {% if log.time_spent %}<span style="margin-left: 10px;">⏱️ {{ log.time_spent }}h</span>{% endif %}
-        {% if log.cost_incurred %}<span style="margin-left: 10px;">💰 ${{ "%.2f"|format(log.cost_incurred) }}</span>{% endif %}
+        {% if log.time_spent %}<span style="margin-left: 10px;">⏱ {{ log.time_spent }}h</span>{% endif %}
+        {% if log.cost_incurred %}<span style="margin-left: 10px;"> ${{ "%.2f"|format(log.cost_incurred) }}</span>{% endif %}
       </div>
       <p style="color: #fff; white-space: pre-wrap; margin-bottom: 5px;">{{ log.work_description }}</p>
       {% if log.parts_used %}
@@ -92,7 +92,7 @@
   <!-- Inventory Usage -->
   {% if record.inventory_usage %}
   <div style="background: rgba(0, 20, 40, 0.6); border: 2px solid #9c27b0; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
-    <h4 style="color: #9c27b0; margin-bottom: 15px;">📦 Inventory Used</h4>
+    <h4 style="color: #9c27b0; margin-bottom: 15px;"> Inventory Used</h4>
     <table style="width: 100%; color: #fff;">
       <thead>
         <tr style="border-bottom: 1px solid #9c27b0;">
@@ -117,7 +117,7 @@
   <!-- Photos -->
   {% if record.get_photos() %}
   <div style="background: rgba(0, 20, 40, 0.6); border: 2px solid #00ffff; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
-    <h4 style="color: #00ffff; margin-bottom: 15px;">📷 Photos</h4>
+    <h4 style="color: #00ffff; margin-bottom: 15px;"> Photos</h4>
     <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px;">
       {% for photo in record.get_photos() %}
       <a href="{{ url_for('static', filename='maintenance_photos/' + photo) }}" target="_blank">
@@ -132,7 +132,7 @@
   <!-- Inventory Requests Linked to This Work Order -->
   {% if record.inventory_requests %}
   <div style="background: rgba(0, 20, 40, 0.6); border: 2px solid #9c27b0; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
-    <h4 style="color: #9c27b0; margin-bottom: 15px;">📦 Requested Parts for This Work Order</h4>
+    <h4 style="color: #9c27b0; margin-bottom: 15px;"> Requested Parts for This Work Order</h4>
     <table style="width: 100%; color: #fff;">
       <thead>
         <tr style="border-bottom: 1px solid #9c27b0;">
@@ -158,13 +158,13 @@
             {% if req.status == 'Pending' %}
               <span style="color: #ffaa00;">⏳ Pending</span>
             {% elif req.status == 'Approved' %}
-              <span style="color: var(--neon-cyan);">✓ Approved</span>
+              <span style="color: var(--neon-cyan);"> Approved</span>
             {% elif req.status == 'Ordered' %}
-              <span style="color: var(--neon-purple);">📦 Ordered</span>
+              <span style="color: var(--neon-purple);"> Ordered</span>
             {% elif req.status == 'Received' %}
-              <span style="color: var(--neon-green);">✅ Received</span>
+              <span style="color: var(--neon-green);"> Received</span>
             {% elif req.status == 'Rejected' %}
-              <span style="color: #ff4444;">✗ Rejected</span>
+              <span style="color: #ff4444;"> Rejected</span>
             {% endif %}
           </td>
           <td style="padding: 8px;">{{ req.requested_by.username }}</td>

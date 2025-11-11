@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block title %}Create User - Arcade Tracker{% endblock %}
+
+{% block content %}
+<div class="background-animated">
+    <div class="glass-container">
+        <h2 class="glow-title"> Create New User</h2>
+
+        <form method="POST" action="{{ url_for('create_user') }}" class="neon-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" required minlength="3" 
+                       class="form-input" placeholder="Enter username">
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required minlength="6" 
+                       class="form-input" placeholder="Enter password (min 6 characters)">
+            </div>
+
+            <div class="form-group">
+                <label for="role">Role</label>
+                <select id="role" name="role" required class="form-input">
+                    <option value="readonly">Read Only</option>
+                    <option value="operator">Operator</option>
+                    <option value="manager">Manager</option>
+                    <option value="admin">Admin</option>
+                </select>
+            </div>
+
+            <div class="form-buttons">
+                <button type="submit" class="btn-neon-submit">Create User</button>
+                <a href="{{ url_for('manage_users') }}" class="btn-neon-cancel">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+.background-animated {
+    min-height: 100vh;
+    background: linear-gradient(-45deg, #000010, #001030, #002050, #000820);
+    background-size: 400% 400%;
+    animation: backgroundShift 20s ease infinite;
+    padding: 40px 20px;
+}
+@keyframes backgroundShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+.glass-container {
+    max-width: 600px;
+    margin: 0 auto;
+    background: rgba(0, 30, 60, 0.5);
+    border: 2px solid #00ffff;
+    border-radius: 12px;
+    padding: 30px;
+    backdrop-filter: blur(12px);
+    box-shadow: 0 0 25px rgba(0, 255, 255, 0.3);
+}
+
+.glow-title {
+    text-align: center;
+    color: #00ffff;
+    margin-bottom: 25px;
+    text-shadow: 0 0 15px rgba(0,255,255,0.6);
+}
+
+.neon-form {
+    color: #fff;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    color: #00ffff;
+    margin-bottom: 8px;
+    font-weight: bold;
+}
+
+.form-input {
+    width: 100%;
+    padding: 10px 12px;
+    background: rgba(0, 20, 40, 0.6);
+    border: 1px solid rgba(0, 255, 255, 0.4);
+    border-radius: 6px;
+    color: #fff;
+    font-size: 1em;
+    transition: all 0.3s ease;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: #00ffff;
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+}
+
+.form-buttons {
+    display: flex;
+    gap: 15px;
+    margin-top: 30px;
+    justify-content: center;
+}
+
+.btn-neon-submit {
+    border: 2px solid #00ffff;
+    color: #00ffff;
+    background: transparent;
+    border-radius: 8px;
+    padding: 10px 30px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: bold;
+    font-size: 1em;
+}
+.btn-neon-submit:hover {
+    background: #00ffff;
+    color: #000;
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.9);
+}
+
+.btn-neon-cancel {
+    border: 2px solid #ff6666;
+    color: #ff6666;
+    background: transparent;
+    border-radius: 8px;
+    padding: 10px 30px;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: bold;
+    display: inline-block;
+}
+.btn-neon-cancel:hover {
+    background: #ff6666;
+    color: #fff;
+    box-shadow: 0 0 20px rgba(255, 102, 102, 0.9);
+}
+</style>
+{% endblock %}

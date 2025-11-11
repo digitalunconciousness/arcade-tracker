@@ -3,20 +3,20 @@
 {% block content %}
 <div class="work-order-header">
     <div class="header-left">
-        <h1>🔧 Work Order #{{ maintenance.id }}</h1>
+        <h1> Work Order #{{ maintenance.id }}</h1>
         <h2>{{ maintenance.game.name }}</h2>
     </div>
     <div class="header-right">
         <div class="status-badge status-{{ maintenance.status.lower().replace('_', '-') }}">
-            {% if maintenance.status == 'Open' %}🔴 Open
-            {% elif maintenance.status == 'In_Progress' %}🟡 In Progress
-            {% elif maintenance.status == 'Fixed' %}✅ Fixed
-            {% elif maintenance.status == 'Deferred' %}⏸️ Deferred
+            {% if maintenance.status == 'Open' %} Open
+            {% elif maintenance.status == 'In_Progress' %} In Progress
+            {% elif maintenance.status == 'Fixed' %} Fixed
+            {% elif maintenance.status == 'Deferred' %}⏸ Deferred
             {% endif %}
         </div>
         {% if maintenance.status in ['Open', 'In_Progress'] and current_user.has_role('manager') %}
         <a href="{{ url_for('update_maintenance', maintenance_id=maintenance.id) }}" class="btn btn-warning">
-            ✏️ Update Work Order
+             Update Work Order
         </a>
         {% endif %}
     </div>
@@ -24,7 +24,7 @@
 
 <div class="work-order-content">
     <div class="work-order-section">
-        <h3>📋 Original Request</h3>
+        <h3> Original Request</h3>
         <div class="info-grid">
             <div class="info-item">
                 <strong>Reported:</strong> {{ maintenance.date_reported.strftime('%Y-%m-%d %H:%M') }}
@@ -52,7 +52,7 @@
     </div>
 
     <div class="work-order-section">
-        <h3>🔍 Diagnosis & Assessment</h3>
+        <h3> Diagnosis & Assessment</h3>
         {% if maintenance.fix_description %}
         <div class="description-box">
             <p>{{ maintenance.fix_description }}</p>
@@ -63,20 +63,20 @@
     </div>
 
     <div class="work-order-section">
-        <h3>🛠️ Work History & Progress</h3>
+        <h3> Work History & Progress</h3>
         {% if maintenance.work_logs %}
         <div class="work-log-timeline">
             {% for work_log in maintenance.work_logs %}
             <div class="work-log-entry">
                 <div class="work-log-header">
                     <div class="work-log-meta">
-                        <span class="timestamp">🕰️ {{ work_log.timestamp.strftime('%Y-%m-%d %H:%M') }}</span>
-                        <span class="technician">👷 {{ work_log.user.username }}</span>
+                        <span class="timestamp"> {{ work_log.timestamp.strftime('%Y-%m-%d %H:%M') }}</span>
+                        <span class="technician"> {{ work_log.user.username }}</span>
                         {% if work_log.time_spent %}
-                        <span class="time-spent">⏱️ {{ work_log.time_spent }}h</span>
+                        <span class="time-spent">⏱ {{ work_log.time_spent }}h</span>
                         {% endif %}
                         {% if work_log.cost_incurred %}
-                        <span class="work-cost">💰 ${{ "%.2f"|format(work_log.cost_incurred) }}</span>
+                        <span class="work-cost"> ${{ "%.2f"|format(work_log.cost_incurred) }}</span>
                         {% endif %}
                     </div>
                 </div>
@@ -87,7 +87,7 @@
                     
                     {% if work_log.parts_used %}
                     <div class="parts-used">
-                        <strong>🔧 Parts Used (Manual Entry):</strong>
+                        <strong> Parts Used (Manual Entry):</strong>
                         <pre>{{ work_log.parts_used }}</pre>
                     </div>
                     {% endif %}
@@ -102,7 +102,7 @@
 
     {% if maintenance.inventory_usage %}
     <div class="work-order-section">
-        <h3>📦 Inventory Items Used</h3>
+        <h3> Inventory Items Used</h3>
         <div class="inventory-usage-list">
             <table style="width: 100%; border-collapse: collapse;">
                 <thead>
@@ -143,7 +143,7 @@
     {% endif %}
 
     <div class="work-order-section">
-        <h3>👨‍🔧 Assignment & Cost</h3>
+        <h3>‍ Assignment & Cost</h3>
         <div class="info-grid">
             <div class="info-item">
                 <strong>Assigned Technician:</strong> 
@@ -166,7 +166,7 @@
     </div>
 
     <div class="work-order-section">
-        <h3>📸 Photos & Documentation</h3>
+        <h3> Photos & Documentation</h3>
         <div class="photos-header">
             {% if current_user.has_role('operator') %}
             <a href="{{ url_for('maintenance_photos', maintenance_id=maintenance.id) }}" class="btn btn-primary btn-sm">
@@ -213,21 +213,21 @@
 
 <div class="work-order-actions">
     <a href="{{ url_for('maintenance_orders') }}" class="btn btn-secondary">
-        📋 Back to All Orders
+         Back to All Orders
     </a>
     <a href="{{ url_for('game_detail', game_id=maintenance.game_id) }}" class="btn btn-primary">
-        🎮 View Game Details
+         View Game Details
     </a>
     {% if maintenance.status in ['Open', 'In_Progress'] and current_user.has_role('manager') %}
     <button onclick="openCloseModal({{ maintenance.id }}, '{{ maintenance.game.name|replace("'", "\\'") }}', '{{ maintenance.issue_description|replace("'", "\\'") }}')" 
-            class="btn btn-success">✅ Close Work Order</button>
+            class="btn btn-success"> Close Work Order</button>
     {% endif %}
 </div>
 
 <!-- Close Maintenance Modal (reuse from maintenance_orders.html) -->
 <div id="closeModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000;">
     <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--dark-card); padding: 30px; border-radius: 8px; border: 2px solid var(--neon-cyan); max-width: 500px; width: 90%;">
-        <h3>🔧 Close Maintenance Order</h3>
+        <h3> Close Maintenance Order</h3>
         <p><strong>Game:</strong> <span id="modalGameName"></span></p>
         <p><strong>Issue:</strong> <span id="modalIssue"></span></p>
         
@@ -236,8 +236,8 @@
             <div class="form-group">
                 <label for="modalStatus">Final Status *</label>
                 <select id="modalStatus" name="status" required>
-                    <option value="Fixed">✅ Fixed</option>
-                    <option value="Deferred">⏸️ Deferred</option>
+                    <option value="Fixed"> Fixed</option>
+                    <option value="Deferred">⏸ Deferred</option>
                 </select>
             </div>
             
@@ -258,7 +258,7 @@
             
             <div style="text-align: right; margin-top: 20px;">
                 <button type="button" onclick="closeCloseModal()" class="btn" style="background: #6c757d; margin-right: 10px;">Cancel</button>
-                <button type="submit" class="btn btn-success">💾 Close Order</button>
+                <button type="submit" class="btn btn-success"> Close Order</button>
             </div>
         </form>
     </div>

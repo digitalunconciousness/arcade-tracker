@@ -12,22 +12,22 @@
 </style>
     <thead>
         <tr>
-            <th onclick="sortTable(0)" style="cursor: pointer;" title="Click to sort">🟢 Status</th>
-            <th onclick="sortTable(1)" style="cursor: pointer;" title="Click to sort">Name ↕️</th>
-            <th onclick="sortTable(2)" style="cursor: pointer;" title="Click to sort">Manufacturer ↕️</th>
-            <th onclick="sortTable(3)" style="cursor: pointer;" title="Click to sort">Year ↕️</th>
-            <th onclick="sortTable(4)" style="cursor: pointer;" title="Click to sort">Genre ↕️</th>
+            <th onclick="sortTable(0)" style="cursor: pointer;" title="Click to sort"> Status</th>
+            <th onclick="sortTable(1)" style="cursor: pointer;" title="Click to sort">Name ↕</th>
+            <th onclick="sortTable(2)" style="cursor: pointer;" title="Click to sort">Manufacturer ↕</th>
+            <th onclick="sortTable(3)" style="cursor: pointer;" title="Click to sort">Year ↕</th>
+            <th onclick="sortTable(4)" style="cursor: pointer;" title="Click to sort">Genre ↕</th>
             {% if view_tab == 'floor' %}
-                <th onclick="sortTable(5)" style="cursor: pointer;" title="Click to sort">Position ↕️</th>
-                <th onclick="sortTable(6)" style="cursor: pointer;" title="Click to sort">Total Plays ↕️</th>
-                <th onclick="sortTable(7)" style="cursor: pointer;" title="Click to sort">Revenue ↕️</th>
-                <th onclick="sortTable(8)" style="cursor: pointer;" title="Click to sort">Date Added ↕️</th>
+                <th onclick="sortTable(5)" style="cursor: pointer;" title="Click to sort">Position ↕</th>
+                <th onclick="sortTable(6)" style="cursor: pointer;" title="Click to sort">Total Plays ↕</th>
+                <th onclick="sortTable(7)" style="cursor: pointer;" title="Click to sort">Revenue ↕</th>
+                <th onclick="sortTable(8)" style="cursor: pointer;" title="Click to sort">Date Added ↕</th>
             {% elif view_tab == 'warehouse' %}
-                <th onclick="sortTable(5)" style="cursor: pointer;" title="Click to sort">Section ↕️</th>
-                <th onclick="sortTable(6)" style="cursor: pointer;" title="Click to sort">Date Added ↕️</th>
+                <th onclick="sortTable(5)" style="cursor: pointer;" title="Click to sort">Section ↕</th>
+                <th onclick="sortTable(6)" style="cursor: pointer;" title="Click to sort">Date Added ↕</th>
             {% else %}
-                <th onclick="sortTable(5)" style="cursor: pointer;" title="Click to sort">Location ↕️</th>
-                <th onclick="sortTable(6)" style="cursor: pointer;" title="Click to sort">Date Added ↕️</th>
+                <th onclick="sortTable(5)" style="cursor: pointer;" title="Click to sort">Location ↕</th>
+                <th onclick="sortTable(6)" style="cursor: pointer;" title="Click to sort">Date Added ↕</th>
             {% endif %}
             <th>Actions</th>
         </tr>
@@ -47,13 +47,13 @@
                         <div style="width: 10px; height: 10px; border-radius: 50%; background-color: #666666; box-shadow: 0 0 6px rgba(102, 102, 102, 0.6);" title="{{ game.status }}"></div>
                     {% endif %}
                     {% if game.has_open_maintenance %}
-                        <span style="font-size: 12px; color: var(--neon-orange);" title="Has open maintenance request">🔧</span>
+                        <span style="font-size: 12px; color: var(--neon-orange);" title="Has open maintenance request"></span>
                     {% endif %}
                     {% if game.counter_status and game.counter_status != 'Working' %}
                         {% if game.counter_status == 'No_Counter' %}
-                            <span style="font-size: 12px; color: var(--neon-purple);" title="No Counter">🚫</span>
+                            <span style="font-size: 12px; color: var(--neon-purple);" title="No Counter"></span>
                         {% elif game.counter_status == 'Broken_Counter' %}
-                            <span style="font-size: 12px; color: var(--neon-red);" title="Broken Counter">❌</span>
+                            <span style="font-size: 12px; color: var(--neon-red);" title="Broken Counter"></span>
                         {% endif %}
                     {% endif %}
                 </div>
@@ -80,24 +80,24 @@
             <td style="padding: 8px; white-space: nowrap;">
                 <div style="display: flex; gap: 4px; align-items: center;">
                     {% if current_user.has_role('operator') %}
-                        <a href="{{ url_for('maintenance', game_id=game.id) }}" class="btn" style="background: var(--neon-orange); font-size: 10px; padding: 4px 8px; margin: 0; min-width: 50px; text-align: center;">🔧 Fix</a>
+                        <a href="{{ url_for('maintenance', game_id=game.id) }}" class="btn" style="background: var(--neon-orange); font-size: 10px; padding: 4px 8px; margin: 0; min-width: 50px; text-align: center;"> Fix</a>
                     {% elif current_user.has_role('manager') %}
                         {% if game.counter_status == 'Working' %}
-                            <a href="{{ url_for('record_plays', game_id=game.id) }}" class="btn btn-success" style="font-size: 10px; padding: 4px 8px; margin: 0; min-width: 60px; text-align: center;">📈 Plays</a>
+                            <a href="{{ url_for('record_plays', game_id=game.id) }}" class="btn btn-success" style="font-size: 10px; padding: 4px 8px; margin: 0; min-width: 60px; text-align: center;"> Plays</a>
                         {% else %}
-                            <span class="btn" style="background: #666; color: #999; font-size: 10px; padding: 4px 8px; margin: 0; min-width: 60px; text-align: center; cursor: not-allowed;" title="Counter not working">📈 Plays</span>
+                            <span class="btn" style="background: #666; color: #999; font-size: 10px; padding: 4px 8px; margin: 0; min-width: 60px; text-align: center; cursor: not-allowed;" title="Counter not working"> Plays</span>
                         {% endif %}
-                        <a href="{{ url_for('edit_game', game_id=game.id) }}" class="btn" style="background: var(--neon-purple); font-size: 10px; padding: 4px 8px; margin: 0; min-width: 45px; text-align: center;">✏️ Edit</a>
-                        <a href="{{ url_for('maintenance', game_id=game.id) }}" class="btn" style="background: var(--neon-orange); font-size: 10px; padding: 4px 8px; margin: 0; min-width: 50px; text-align: center;">🔧 Fix</a>
+                        <a href="{{ url_for('edit_game', game_id=game.id) }}" class="btn" style="background: var(--neon-purple); font-size: 10px; padding: 4px 8px; margin: 0; min-width: 45px; text-align: center;"> Edit</a>
+                        <a href="{{ url_for('maintenance', game_id=game.id) }}" class="btn" style="background: var(--neon-orange); font-size: 10px; padding: 4px 8px; margin: 0; min-width: 50px; text-align: center;"> Fix</a>
                     {% elif current_user.has_role('admin') %}
                         {% if game.counter_status == 'Working' %}
-                            <a href="{{ url_for('record_plays', game_id=game.id) }}" class="btn btn-success" style="font-size: 10px; padding: 4px 8px; margin: 0; min-width: 60px; text-align: center;">📈 Plays</a>
+                            <a href="{{ url_for('record_plays', game_id=game.id) }}" class="btn btn-success" style="font-size: 10px; padding: 4px 8px; margin: 0; min-width: 60px; text-align: center;"> Plays</a>
                         {% else %}
-                            <span class="btn" style="background: #666; color: #999; font-size: 10px; padding: 4px 8px; margin: 0; min-width: 60px; text-align: center; cursor: not-allowed;" title="Counter not working">📈 Plays</span>
+                            <span class="btn" style="background: #666; color: #999; font-size: 10px; padding: 4px 8px; margin: 0; min-width: 60px; text-align: center; cursor: not-allowed;" title="Counter not working"> Plays</span>
                         {% endif %}
-                        <a href="{{ url_for('edit_game', game_id=game.id) }}" class="btn" style="background: var(--neon-purple); font-size: 10px; padding: 4px 8px; margin: 0; min-width: 45px; text-align: center;">✏️ Edit</a>
-                        <a href="{{ url_for('maintenance', game_id=game.id) }}" class="btn" style="background: var(--neon-orange); font-size: 10px; padding: 4px 8px; margin: 0; min-width: 50px; text-align: center;">🔧 Fix</a>
-                        <button onclick="confirmDelete({{ game.id }}, '{{ game.name }}')" class="btn" style="background: #ff4444; color: white; font-size: 10px; padding: 4px 8px; margin: 0; min-width: 50px; text-align: center;">🗑️ Delete</button>
+                        <a href="{{ url_for('edit_game', game_id=game.id) }}" class="btn" style="background: var(--neon-purple); font-size: 10px; padding: 4px 8px; margin: 0; min-width: 45px; text-align: center;"> Edit</a>
+                        <a href="{{ url_for('maintenance', game_id=game.id) }}" class="btn" style="background: var(--neon-orange); font-size: 10px; padding: 4px 8px; margin: 0; min-width: 50px; text-align: center;"> Fix</a>
+                        <button onclick="confirmDelete({{ game.id }}, '{{ game.name }}')" class="btn" style="background: #ff4444; color: white; font-size: 10px; padding: 4px 8px; margin: 0; min-width: 50px; text-align: center;"> Delete</button>
                     {% endif %}
                 </div>
             </td>
@@ -178,12 +178,12 @@ function sortTable(columnIndex) {
 function updateHeaders(sortedColumn, isAscending) {
     const headers = document.querySelectorAll('#gamesTable th[onclick]');
     headers.forEach((header, index) => {
-        const baseText = header.textContent.replace(' ↕️', '').replace(' ↑', '').replace(' ↓', '');
+        const baseText = header.textContent.replace(' ↕', '').replace(' ↑', '').replace(' ↓', '');
         if (index === sortedColumn) {
             header.textContent = baseText + (isAscending ? ' ↑' : ' ↓');
             header.style.color = 'var(--neon-cyan)';
         } else {
-            header.textContent = baseText + ' ↕️';
+            header.textContent = baseText + ' ↕';
             header.style.color = '';
         }
     });

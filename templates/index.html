@@ -27,7 +27,7 @@
 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin: 30px 0;">
     <div class="card">
         {% if current_user.has_role('manager') %}
-            <h2>🚨 Critical Systems - Require Attention</h2>
+            <h2> Critical Systems - Require Attention</h2>
             {% if worst_performers %}
             <table class="table critical-table">
                 <thead>
@@ -59,7 +59,7 @@
             <p>No floor games to analyze yet.</p>
             {% endif %}
         {% else %}
-            <h2>📝 Recent Activities</h2>
+            <h2> Recent Activities</h2>
             {% if recent_records %}
             <table class="table">
                 <thead>
@@ -94,7 +94,7 @@
     </div>
     
     <div class="card">
-        <h2>⚡ Active Floor Systems</h2>
+        <h2> Active Floor Systems</h2>
         {% if floor_games %}
         <table class="table">
             <thead>
@@ -128,9 +128,9 @@
 
 {% if current_user.has_role('manager') %}
 <div style="text-align: center; margin: 40px 0;">
-    <a href="{{ url_for('graphs') }}" class="btn btn-success" style="font-size: 18px; padding: 15px 30px; margin: 10px;">📈 System Analytics</a>
-    <a href="{{ url_for('reports') }}" class="btn" style="font-size: 18px; padding: 15px 30px; margin: 10px;">📄 Detailed Reports</a>
-    <a href="{{ url_for('export_report') }}" class="btn btn-warning" style="font-size: 18px; padding: 15px 30px; margin: 10px;">💾 Export Data</a>
+    <a href="{{ url_for('graphs') }}" class="btn btn-success" style="font-size: 18px; padding: 15px 30px; margin: 10px;"> System Analytics</a>
+    <a href="{{ url_for('reports') }}" class="btn" style="font-size: 18px; padding: 15px 30px; margin: 10px;"> Detailed Reports</a>
+    <a href="{{ url_for('export_report') }}" class="btn btn-warning" style="font-size: 18px; padding: 15px 30px; margin: 10px;"> Export Data</a>
 </div>
 {% endif %}
 {% endblock %}

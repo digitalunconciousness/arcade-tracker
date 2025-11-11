@@ -1,0 +1,461 @@
+<!-- templates/general_maintenance.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <!-- 
+                GENERAL MAINTENANCE ORDER FORM
+                This form allows creating work orders that are NOT tied to a specific game.
+                Use cases: facility repairs, equipment maintenance, general upkeep, etc.
+            -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-warning text-dark">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h3 class="mb-0">
+                                <i class="fas fa-tools"></i> Create General Work Order
+                            </h3>
+                            <p class="mb-0 mt-1">
+                                <small>For facility, equipment, or non-game related maintenance</small>
+                            </p>
+                        </div>
+                        <div>
+                            <a href="{{ url_for('maintenance_orders') }}" class="btn btn-sm btn-outline-dark">
+                                <i class="fas fa-list"></i> View All Orders
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('general_maintenance') }}">
+                        {{ form.hidden_tag() }}
+                        
+                        <!-- 
+                            WORK ORDER TYPE & LOCATION SECTION
+                            Critical info: What type of work and where
+                        -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="work_order_type" class="form-label fw-bold">
+                                        <i class="fas fa-tag"></i> Work Order Type
+                                        <span class="text-danger">*</span>
+                                    </label>
+                                    <select class="form-select form-select-lg" id="work_order_type" name="work_order_type" required>
+                                        <option value="facility">
+                                            <i class="fas fa-building"></i> Facility Maintenance
+                                        </option>
+                                        <option value="equipment">
+                                            <i class="fas fa-toolbox"></i> Equipment Maintenance
+                                        </option>
+                                        <option value="general" selected>
+                                            <i class="fas fa-wrench"></i> General Maintenance
+                                        </option>
+                                    </select>
+                                    <small class="form-text text-muted">
+                                        <i class="fas fa-info-circle"></i> Select the category that best describes this work
+                                    </small>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="location_description" class="form-label fw-bold">
+                                        <i class="fas fa-map-marker-alt"></i> Location/Area
+                                        <span class="text-danger">*</span>
+                                    </label>
+                                    <input type="text" 
+                                           class="form-control form-control-lg" 
+                                           id="location_description" 
+                                           name="location_description" 
+                                           placeholder="e.g., Main entrance, Back room, Restroom, Loading dock"
+                                           required
+                                           maxlength="200">
+                                    <small class="form-text text-muted">
+                                        <i class="fas fa-info-circle"></i> Specify where the work needs to be performed
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <hr class="my-4">
+                        
+                        <!-- 
+                            ISSUE DESCRIPTION
+                            What's the problem or what needs to be done?
+                        -->
+                        <div class="form-group mb-4">
+                            <label for="issue_description" class="form-label fw-bold">
+                                <i class="fas fa-exclamation-triangle"></i> Issue Description
+                                <span class="text-danger">*</span>
+                            </label>
+                            {{ form.issue_description(class="form-control", rows=5, 
+                               placeholder="Describe the issue or work that needs to be done in detail...",
+                               required=True) }}
+                            {% if form.issue_description.errors %}
+                                <div class="text-danger mt-2">
+                                    {% for error in form.issue_description.errors %}
+                                        <small><i class="fas fa-times-circle"></i> {{ error }}</small><br>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <small class="form-text text-muted">
+                                <i class="fas fa-info-circle"></i> Be as specific as possible about the problem or work required
+                            </small>
+                        </div>
+                        
+                        <!-- 
+                            INITIAL ASSESSMENT/DIAGNOSIS
+                            Optional preliminary notes
+                        -->
+                        <div class="form-group mb-4">
+                            <label for="fix_description" class="form-label fw-bold">
+                                <i class="fas fa-clipboard-check"></i> Initial Assessment/Diagnosis
+                                <span class="text-muted">(Optional)</span>
+                            </label>
+                            {{ form.fix_description(class="form-control", rows=3, 
+                               placeholder="Any initial thoughts on what might be needed, potential solutions, or preliminary assessment...") }}
+                            <small class="form-text text-muted">
+                                <i class="fas fa-info-circle"></i> Optional - Add any preliminary notes about the issue or planned approach
+                            </small>
+                        </div>
+                        
+                        <hr class="my-4">
+                        
+                        <!-- 
+                            WORK ORDER DETAILS ROW
+                            Status, Priority, Technician, and Cost fields in columns
+                        -->
+                        <div class="row mb-4">
+                            <!-- Status dropdown -->
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label for="status" class="form-label fw-bold">
+                                        <i class="fas fa-flag"></i> Status
+                                        <span class="text-danger">*</span>
+                                    </label>
+                                    {{ form.status(class="form-select form-select-lg") }}
+                                    <small class="form-text text-muted">
+                                        Current status
+                                    </small>
+                                </div>
+                            </div>
+                            
+                            <!-- Priority dropdown -->
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label for="priority" class="form-label fw-bold">
+                                        <i class="fas fa-exclamation-circle"></i> Priority
+                                        <span class="text-danger">*</span>
+                                    </label>
+                                    <select class="form-select form-select-lg" id="priority" name="priority" required>
+                                        <option value="Low"> Low</option>
+                                        <option value="Medium" selected> Medium</option>
+                                        <option value="High"> High</option>
+                                        <option value="Critical"> Critical</option>
+                                    </select>
+                                    <small class="form-text text-muted">
+                                        How urgent?
+                                    </small>
+                                </div>
+                            </div>
+                            
+                            <!-- Technician assignment -->
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label for="technician" class="form-label fw-bold">
+                                        <i class="fas fa-user-hard-hat"></i> Technician
+                                        <span class="text-muted">(Optional)</span>
+                                    </label>
+                                    {{ form.technician(class="form-control form-control-lg", 
+                                       placeholder="Technician name") }}
+                                    <small class="form-text text-muted">
+                                        Assigned to?
+                                    </small>
+                                </div>
+                            </div>
+                            
+                            <!-- Estimated/actual cost -->
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label for="cost" class="form-label fw-bold">
+                                        <i class="fas fa-dollar-sign"></i> Est. Cost
+                                        <span class="text-muted">(Optional)</span>
+                                    </label>
+                                    <div class="input-group input-group-lg">
+                                        <span class="input-group-text">$</span>
+                                        {{ form.cost(class="form-control", step="0.01", 
+                                           placeholder="0.00", min="0") }}
+                                    </div>
+                                    <small class="form-text text-muted">
+                                        Update later
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <hr class="my-4">
+                        
+                        <!-- 
+                            INVENTORY ITEMS SECTION
+                            Allow selection of parts/materials needed
+                        -->
+                        <div class="card mb-4 border-info">
+                            <div class="card-header bg-info bg-opacity-10">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-boxes"></i> Parts & Materials
+                                    <span class="badge bg-info ms-2">Optional</span>
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <p class="text-muted mb-3">
+                                    <i class="fas fa-info-circle"></i> 
+                                    Select any inventory items that will be used for this work order.
+                                    Stock will be automatically deducted when you save.
+                                </p>
+                                
+                                <!-- 
+                                    INVENTORY ITEMS REPEATER
+                                    Shows multiple item selection rows
+                                -->
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th width="60%">Item</th>
+                                                <th width="20%">Quantity</th>
+                                                <th width="20%">Stock Available</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for inventory_form in form.inventory_items %}
+                                                <tr class="inventory-item-row">
+                                                    <td>
+                                                        {{ inventory_form.item_id(class="form-select form-select-sm inventory-select") }}
+                                                    </td>
+                                                    <td>
+                                                        {{ inventory_form.quantity_used(class="form-control form-control-sm quantity-input", 
+                                                           min="0", placeholder="0", disabled=True) }}
+                                                    </td>
+                                                    <td>
+                                                        <span class="badge bg-secondary stock-indicator">-</span>
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                
+                                <div class="alert alert-info mb-0 mt-3">
+                                    <i class="fas fa-lightbulb"></i> 
+                                    <strong>Tip:</strong> Only items with sufficient stock can be used. 
+                                    You can add more items after creating the work order.
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 
+                            FORM ACTIONS
+                            Submit and cancel buttons with clear styling
+                        -->
+                        <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+                            <a href="{{ url_for('maintenance_orders') }}" class="btn btn-lg btn-secondary">
+                                <i class="fas fa-times"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-lg btn-success">
+                                <i class="fas fa-save"></i> Create Work Order
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- 
+                HELP SECTION
+                Guidance on when to use general vs game-specific orders
+            -->
+            <div class="card mt-4 border-primary">
+                <div class="card-header bg-primary bg-opacity-10">
+                    <h5 class="mb-0 text-primary">
+                        <i class="fas fa-question-circle"></i> When to Use General Work Orders
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <h6 class="text-warning">
+                                <i class="fas fa-building"></i> Facility Issues
+                            </h6>
+                            <ul class="small">
+                                <li>HVAC repairs</li>
+                                <li>Plumbing issues</li>
+                                <li>Electrical problems</li>
+                                <li>Flooring/carpet</li>
+                                <li>Doors/windows</li>
+                                <li>Lighting fixtures</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-4">
+                            <h6 class="text-info">
+                                <i class="fas fa-toolbox"></i> Equipment
+                            </h6>
+                            <ul class="small">
+                                <li>Coin changers</li>
+                                <li>Bill breakers</li>
+                                <li>Cleaning equipment</li>
+                                <li>Security systems</li>
+                                <li>POS systems</li>
+                                <li>General tools</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-4">
+                            <h6 class="text-secondary">
+                                <i class="fas fa-wrench"></i> General Maintenance
+                            </h6>
+                            <ul class="small">
+                                <li>Painting/touch-ups</li>
+                                <li>Signage updates</li>
+                                <li>Safety equipment</li>
+                                <li>Furniture repairs</li>
+                                <li>General upkeep</li>
+                                <li>Inspections</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <hr>
+                    <p class="mb-0 text-muted">
+                        <i class="fas fa-gamepad"></i> 
+                        <strong>For game-specific issues:</strong> 
+                        Use the maintenance form on the individual game's detail page instead.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 
+    DYNAMIC INVENTORY SELECTION SCRIPT
+    Enables/disables quantity input and shows stock levels
+-->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle inventory item selection
+    const inventoryRows = document.querySelectorAll('.inventory-item-row');
+    
+    inventoryRows.forEach(row => {
+        const selectElement = row.querySelector('.inventory-select');
+        const quantityInput = row.querySelector('.quantity-input');
+        const stockIndicator = row.querySelector('.stock-indicator');
+        
+        if (!selectElement || !quantityInput || !stockIndicator) return;
+        
+        // Function to update row based on selection
+        function updateRow() {
+            const selectedOption = selectElement.options[selectElement.selectedIndex];
+            const selectedValue = selectElement.value;
+            
+            if (selectedValue && selectedValue !== '-1') {
+                // Extract stock from option text (format: "Item Name (Stock: 10)")
+                const stockMatch = selectedOption.text.match(/Stock:\s*(\d+)/);
+                const stock = stockMatch ? parseInt(stockMatch[1]) : 0;
+                
+                // Enable quantity input and show stock
+                quantityInput.disabled = false;
+                quantityInput.max = stock;
+                quantityInput.placeholder = `Max: ${stock}`;
+                
+                // Update stock indicator
+                if (stock > 10) {
+                    stockIndicator.className = 'badge bg-success stock-indicator';
+                    stockIndicator.textContent = `${stock} available`;
+                } else if (stock > 0) {
+                    stockIndicator.className = 'badge bg-warning text-dark stock-indicator';
+                    stockIndicator.textContent = `${stock} available`;
+                } else {
+                    stockIndicator.className = 'badge bg-danger stock-indicator';
+                    stockIndicator.textContent = 'Out of stock';
+                    quantityInput.disabled = true;
+                }
+                
+                // Highlight selected row
+                row.classList.add('table-active');
+                quantityInput.focus();
+            } else {
+                // Reset row
+                quantityInput.disabled = true;
+                quantityInput.value = '';
+                quantityInput.placeholder = '0';
+                quantityInput.max = '';
+                stockIndicator.className = 'badge bg-secondary stock-indicator';
+                stockIndicator.textContent = '-';
+                row.classList.remove('table-active');
+            }
+        }
+        
+        // Attach event listener
+        selectElement.addEventListener('change', updateRow);
+        
+        // Initialize row state
+        updateRow();
+    });
+    
+    // Work order type descriptions
+    const workOrderType = document.getElementById('work_order_type');
+    const descriptions = {
+        'facility': 'Building-related issues: HVAC, electrical, plumbing, structural',
+        'equipment': 'Non-game equipment: coin changers, POS systems, tools',
+        'general': 'General upkeep, inspections, and miscellaneous maintenance'
+    };
+    
+    if (workOrderType) {
+        const helpText = workOrderType.nextElementSibling;
+        workOrderType.addEventListener('change', function() {
+            if (helpText && descriptions[this.value]) {
+                helpText.innerHTML = `<i class="fas fa-info-circle"></i> ${descriptions[this.value]}`;
+            }
+        });
+    }
+});
+</script>
+
+<style>
+    /* Custom styling for the form */
+    .form-label {
+        margin-bottom: 0.5rem;
+    }
+    
+    .form-label i {
+        margin-right: 0.25rem;
+    }
+    
+    .inventory-item-row.table-active {
+        background-color: #f8f9fa;
+    }
+    
+    .stock-indicator {
+        font-size: 0.85rem;
+        padding: 0.35em 0.65em;
+    }
+    
+    .card-header h3 i,
+    .card-header h5 i {
+        margin-right: 0.5rem;
+    }
+    
+    /* Make form inputs stand out */
+    .form-control:focus,
+    .form-select:focus {
+        border-color: #ffc107;
+        box-shadow: 0 0 0 0.2rem rgba(255, 193, 7, 0.25);
+    }
+    
+    /* Required field indicator */
+    .text-danger {
+        font-weight: bold;
+    }
+</style>
+{% endblock %}

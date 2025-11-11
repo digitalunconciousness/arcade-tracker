@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1>📊 Maintenance Reports</h1>
+<h1> Maintenance Reports</h1>
 
 <!-- Time Frame Filter -->
 <div style="background: var(--dark-card); padding: 20px; border-radius: 8px; border: 1px solid var(--neon-cyan); margin: 20px 0;">
-    <h3>📅 Time Frame Filter</h3>
+    <h3> Time Frame Filter</h3>
     <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
         <a href="{{ url_for('maintenance_reports', days=7) }}" class="btn {{ 'btn-success' if days_filter == 7 else '' }}" style="margin: 5px;">Last 7 Days</a>
         <a href="{{ url_for('maintenance_reports', days=30) }}" class="btn {{ 'btn-success' if days_filter == 30 else '' }}" style="margin: 5px;">Last 30 Days</a>
@@ -44,40 +44,40 @@
 
 <!-- Export Buttons -->
 <div style="text-align: center; margin: 30px 0;">
-    <h3>📄 Export Reports</h3>
+    <h3> Export Reports</h3>
     <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
         <a href="{{ url_for('export_maintenance_report', type='open', days=days_filter) }}" 
            class="btn" style="background: #ff4444; color: white; padding: 12px 20px;">
-           🚨 Export Open Orders PDF
+            Export Open Orders PDF
         </a>
         <a href="{{ url_for('export_maintenance_report', type='closed', days=days_filter) }}" 
            class="btn" style="background: var(--neon-green); color: black; padding: 12px 20px;">
-           ✅ Export Closed Orders PDF
+            Export Closed Orders PDF
         </a>
         <a href="{{ url_for('export_maintenance_report', type='all', days=days_filter) }}" 
            class="btn" style="background: var(--neon-cyan); color: black; padding: 12px 20px;">
-           📋 Export All Orders PDF
+            Export All Orders PDF
         </a>
     </div>
 </div>
 
 <!-- Tabs for different views -->
 <div style="margin: 30px 0;">
-    <button onclick="showReportTab('summary')" id="summaryTab" class="btn btn-success" style="margin-right: 10px;">📊 Summary</button>
-    <button onclick="showReportTab('open')" id="openTab" class="btn btn-warning" style="margin-right: 10px;">🚨 Open ({{ open_records|length }})</button>
-    <button onclick="showReportTab('closed')" id="closedTab" class="btn" style="background: var(--neon-green); margin-right: 10px;">✅ Closed ({{ closed_records|length }})</button>
-    <button onclick="showReportTab('all')" id="allTab" class="btn" style="background: var(--neon-cyan);">📋 All ({{ all_records|length }})</button>
+    <button onclick="showReportTab('summary')" id="summaryTab" class="btn btn-success" style="margin-right: 10px;"> Summary</button>
+    <button onclick="showReportTab('open')" id="openTab" class="btn btn-warning" style="margin-right: 10px;"> Open ({{ open_records|length }})</button>
+    <button onclick="showReportTab('closed')" id="closedTab" class="btn" style="background: var(--neon-green); margin-right: 10px;"> Closed ({{ closed_records|length }})</button>
+    <button onclick="showReportTab('all')" id="allTab" class="btn" style="background: var(--neon-cyan);"> All ({{ all_records|length }})</button>
 </div>
 
 <!-- Summary Tab -->
 <div id="summaryReport" class="report-tab">
-    <h2>📊 Maintenance Summary ({{ days_filter }} days)</h2>
+    <h2> Maintenance Summary ({{ days_filter }} days)</h2>
     
     {% if all_records %}
     <!-- Top Issues -->
     <div style="display: flex; gap: 40px; margin: 30px 0; flex-wrap: wrap;">
         <div style="flex: 1; min-width: 300px;">
-            <h3>🔧 Most Common Issues</h3>
+            <h3> Most Common Issues</h3>
             {% set issue_words = {} %}
             {% for record in all_records %}
                 {% for word in record.issue_description.lower().split() %}
@@ -115,7 +115,7 @@
         </div>
         
         <div style="flex: 1; min-width: 300px;">
-            <h3>💰 Cost Breakdown</h3>
+            <h3> Cost Breakdown</h3>
             <table class="table">
                 <tr>
                     <td>Total Maintenance Cost:</td>
@@ -143,17 +143,17 @@
 
 <!-- Open Orders Tab -->
 <div id="openReport" class="report-tab" style="display: none;">
-    <h2>🚨 Open Maintenance Orders</h2>
+    <h2> Open Maintenance Orders</h2>
     {% if open_records %}
     <table class="table" id="openReportTable">
         <thead>
             <tr>
-                <th onclick="sortReportTable(0, 'openReportTable')" style="cursor: pointer;" title="Click to sort">Priority ↕️</th>
-                <th onclick="sortReportTable(1, 'openReportTable')" style="cursor: pointer;" title="Click to sort">Game ↕️</th>
-                <th onclick="sortReportTable(2, 'openReportTable')" style="cursor: pointer;" title="Click to sort">Issue ↕️</th>
-                <th onclick="sortReportTable(3, 'openReportTable')" style="cursor: pointer;" title="Click to sort">Days Open ↕️</th>
-                <th onclick="sortReportTable(4, 'openReportTable')" style="cursor: pointer;" title="Click to sort">Technician ↕️</th>
-                <th onclick="sortReportTable(5, 'openReportTable')" style="cursor: pointer;" title="Click to sort">Status ↕️</th>
+                <th onclick="sortReportTable(0, 'openReportTable')" style="cursor: pointer;" title="Click to sort">Priority ↕</th>
+                <th onclick="sortReportTable(1, 'openReportTable')" style="cursor: pointer;" title="Click to sort">Game ↕</th>
+                <th onclick="sortReportTable(2, 'openReportTable')" style="cursor: pointer;" title="Click to sort">Issue ↕</th>
+                <th onclick="sortReportTable(3, 'openReportTable')" style="cursor: pointer;" title="Click to sort">Days Open ↕</th>
+                <th onclick="sortReportTable(4, 'openReportTable')" style="cursor: pointer;" title="Click to sort">Technician ↕</th>
+                <th onclick="sortReportTable(5, 'openReportTable')" style="cursor: pointer;" title="Click to sort">Status ↕</th>
             </tr>
         </thead>
         <tbody>
@@ -162,11 +162,11 @@
             <tr style="background-color: {{ '#ffcdd2' if days_open > 7 else '#fff3e0' if days_open > 3 else 'inherit' }};">
                 <td>
                     {% if days_open > 7 %}
-                        <span style="color: #d32f2f; font-weight: bold;">🔴 HIGH</span>
+                        <span style="color: #d32f2f; font-weight: bold;"> HIGH</span>
                     {% elif days_open > 3 %}
-                        <span style="color: #f57c00; font-weight: bold;">🟡 MEDIUM</span>
+                        <span style="color: #f57c00; font-weight: bold;"> MEDIUM</span>
                     {% else %}
-                        <span style="color: #388e3c; font-weight: bold;">🟢 LOW</span>
+                        <span style="color: #388e3c; font-weight: bold;"> LOW</span>
                     {% endif %}
                 </td>
                 <td><a href="{{ url_for('game_detail', game_id=record.game_id) }}">{{ record.game.name }}</a></td>
@@ -179,24 +179,24 @@
         </tbody>
     </table>
     {% else %}
-    <p style="color: var(--neon-green);">🎉 No open maintenance orders! All systems operational.</p>
+    <p style="color: var(--neon-green);"> No open maintenance orders! All systems operational.</p>
     {% endif %}
 </div>
 
 <!-- Closed Orders Tab -->
 <div id="closedReport" class="report-tab" style="display: none;">
-    <h2>✅ Closed Maintenance Orders</h2>
+    <h2> Closed Maintenance Orders</h2>
     {% if closed_records %}
     <table class="table" id="closedReportTable">
         <thead>
             <tr>
-                <th onclick="sortReportTable(0, 'closedReportTable')" style="cursor: pointer;" title="Click to sort">Game ↕️</th>
-                <th onclick="sortReportTable(1, 'closedReportTable')" style="cursor: pointer;" title="Click to sort">Issue ↕️</th>
-                <th onclick="sortReportTable(2, 'closedReportTable')" style="cursor: pointer;" title="Click to sort">Reported ↕️</th>
-                <th onclick="sortReportTable(3, 'closedReportTable')" style="cursor: pointer;" title="Click to sort">Fixed ↕️</th>
-                <th onclick="sortReportTable(4, 'closedReportTable')" style="cursor: pointer;" title="Click to sort">Days to Fix ↕️</th>
-                <th onclick="sortReportTable(5, 'closedReportTable')" style="cursor: pointer;" title="Click to sort">Cost ↕️</th>
-                <th onclick="sortReportTable(6, 'closedReportTable')" style="cursor: pointer;" title="Click to sort">Technician ↕️</th>
+                <th onclick="sortReportTable(0, 'closedReportTable')" style="cursor: pointer;" title="Click to sort">Game ↕</th>
+                <th onclick="sortReportTable(1, 'closedReportTable')" style="cursor: pointer;" title="Click to sort">Issue ↕</th>
+                <th onclick="sortReportTable(2, 'closedReportTable')" style="cursor: pointer;" title="Click to sort">Reported ↕</th>
+                <th onclick="sortReportTable(3, 'closedReportTable')" style="cursor: pointer;" title="Click to sort">Fixed ↕</th>
+                <th onclick="sortReportTable(4, 'closedReportTable')" style="cursor: pointer;" title="Click to sort">Days to Fix ↕</th>
+                <th onclick="sortReportTable(5, 'closedReportTable')" style="cursor: pointer;" title="Click to sort">Cost ↕</th>
+                <th onclick="sortReportTable(6, 'closedReportTable')" style="cursor: pointer;" title="Click to sort">Technician ↕</th>
                 <th>Work Summary</th>
                 <th>Actions</th>
             </tr>
@@ -222,7 +222,7 @@
                     {% endif %}
                 </td>
                 <td>
-                    <a href="{{ url_for('maintenance_detail', record_id=record.id) }}" class="btn" style="background: var(--neon-cyan); font-size: 10px; padding: 3px 8px; color: black;">👁️ View</a>
+                    <a href="{{ url_for('maintenance_detail', record_id=record.id) }}" class="btn" style="background: var(--neon-cyan); font-size: 10px; padding: 3px 8px; color: black;"> View</a>
                 </td>
             </tr>
             {% endfor %}
@@ -235,17 +235,17 @@
 
 <!-- All Orders Tab -->
 <div id="allReport" class="report-tab" style="display: none;">
-    <h2>📋 All Maintenance Orders</h2>
+    <h2> All Maintenance Orders</h2>
     {% if all_records %}
     <table class="table" id="allReportTable">
         <thead>
             <tr>
-                <th onclick="sortReportTable(0, 'allReportTable')" style="cursor: pointer;" title="Click to sort">Status ↕️</th>
-                <th onclick="sortReportTable(1, 'allReportTable')" style="cursor: pointer;" title="Click to sort">Game ↕️</th>
-                <th onclick="sortReportTable(2, 'allReportTable')" style="cursor: pointer;" title="Click to sort">Issue ↕️</th>
-                <th onclick="sortReportTable(3, 'allReportTable')" style="cursor: pointer;" title="Click to sort">Reported ↕️</th>
-                <th onclick="sortReportTable(4, 'allReportTable')" style="cursor: pointer;" title="Click to sort">Cost ↕️</th>
-                <th onclick="sortReportTable(5, 'allReportTable')" style="cursor: pointer;" title="Click to sort">Technician ↕️</th>
+                <th onclick="sortReportTable(0, 'allReportTable')" style="cursor: pointer;" title="Click to sort">Status ↕</th>
+                <th onclick="sortReportTable(1, 'allReportTable')" style="cursor: pointer;" title="Click to sort">Game ↕</th>
+                <th onclick="sortReportTable(2, 'allReportTable')" style="cursor: pointer;" title="Click to sort">Issue ↕</th>
+                <th onclick="sortReportTable(3, 'allReportTable')" style="cursor: pointer;" title="Click to sort">Reported ↕</th>
+                <th onclick="sortReportTable(4, 'allReportTable')" style="cursor: pointer;" title="Click to sort">Cost ↕</th>
+                <th onclick="sortReportTable(5, 'allReportTable')" style="cursor: pointer;" title="Click to sort">Technician ↕</th>
                 <th>Work Summary</th>
                 <th>Actions</th>
             </tr>
@@ -255,13 +255,13 @@
             <tr>
                 <td>
                     {% if record.status == 'Open' %}
-                        <span style="color: #ff4444; font-weight: bold;">🔴 Open</span>
+                        <span style="color: #ff4444; font-weight: bold;"> Open</span>
                     {% elif record.status == 'In_Progress' %}
-                        <span style="color: #ffaa00; font-weight: bold;">🟡 In Progress</span>
+                        <span style="color: #ffaa00; font-weight: bold;"> In Progress</span>
                     {% elif record.status == 'Fixed' %}
-                        <span style="color: var(--neon-green); font-weight: bold;">✅ Fixed</span>
+                        <span style="color: var(--neon-green); font-weight: bold;"> Fixed</span>
                     {% elif record.status == 'Deferred' %}
-                        <span style="color: #888; font-weight: bold;">⏸️ Deferred</span>
+                        <span style="color: #888; font-weight: bold;">⏸ Deferred</span>
                     {% endif %}
                 </td>
                 <td><a href="{{ url_for('game_detail', game_id=record.game_id) }}">{{ record.game.name }}</a></td>
@@ -279,7 +279,7 @@
                     {% endif %}
                 </td>
                 <td>
-                    <a href="{{ url_for('maintenance_detail', record_id=record.id) }}" class="btn" style="background: var(--neon-cyan); font-size: 10px; padding: 3px 8px; color: black;">👁️ View</a>
+                    <a href="{{ url_for('maintenance_detail', record_id=record.id) }}" class="btn" style="background: var(--neon-cyan); font-size: 10px; padding: 3px 8px; color: black;"> View</a>
                 </td>
             </tr>
             {% endfor %}
@@ -366,12 +366,12 @@ function sortReportTable(columnIndex, tableId) {
 function updateReportHeaders(sortedColumn, isAscending, tableId) {
     const headers = document.querySelectorAll(`#${tableId} th[onclick]`);
     headers.forEach((header, index) => {
-        const baseText = header.textContent.replace(' ↕️', '').replace(' ↑', '').replace(' ↓', '');
+        const baseText = header.textContent.replace(' ↕', '').replace(' ↑', '').replace(' ↓', '');
         if (index === sortedColumn) {
             header.textContent = baseText + (isAscending ? ' ↑' : ' ↓');
             header.style.color = 'var(--neon-cyan)';
         } else {
-            header.textContent = baseText + ' ↕️';
+            header.textContent = baseText + ' ↕';
             header.style.color = '';
         }
     });

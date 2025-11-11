@@ -36,7 +36,7 @@
             html.setAttribute('data-theme', next);
             try { localStorage.setItem('theme', next); } catch {}
             const icon = document.querySelector('.theme-icon');
-            if (icon) icon.textContent = next === 'dark' ? '🌙' : '☀️';
+            if (icon) icon.textContent = next === 'dark' ? '' : '';
         }
     </script>
 
@@ -109,7 +109,7 @@
             position: relative;
         }
         .nav-dropdown-toggle::after {
-            content: " ▾";
+            content: " ";
             font-size: 0.9em;
         }
 
@@ -188,7 +188,7 @@
 <body>
     <div class="container">
         <nav class="nav">
-            <button class="nav-toggle" onclick="document.querySelector('.nav').classList.toggle('open')">☰</button>
+            <button class="nav-toggle" onclick="document.querySelector('.nav').classList.toggle('open')"></button>
 
             {% if current_user.is_authenticated %}
             <div class="nav-links">
@@ -202,6 +202,7 @@
                         {% if current_user.has_role('manager') %}
                         <a href="{{ url_for('add_game') }}">Add Game</a>
                         {% endif %}
+                        <a href="{{ url_for('skeeball.skeeball_home') }}"> Skeeball</a>
                     </div>
                 </div>
 
@@ -211,7 +212,7 @@
                     <a href="{{ url_for('maintenance_orders') }}" class="nav-dropdown-toggle">Maintenance</a>
                     <div class="nav-dropdown-menu">
                         <a href="{{ url_for('maintenance_orders') }}">All Work Orders</a>
-                        <a href="{{ url_for('general_maintenance') }}">➕ Create General Work Order</a>
+                        <a href="{{ url_for('general_maintenance') }}"> Create General Work Order</a>
                         {% if current_user.has_role('manager') %}
                         <a href="{{ url_for('maintenance_reports') }}">Maintenance Reports</a>
                         {% endif %}
@@ -270,8 +271,8 @@
                     </a>
                     <div class="nav-dropdown-menu nav-dropdown-menu-right">
                         <div class="user-role-info">{{ current_user.role.title() }}</div>
-                        <a href="{{ url_for('profile') }}">👤 Profile</a>
-                        <a href="{{ url_for('logout') }}">🚪 Logout</a>
+                        <a href="{{ url_for('profile') }}"> Profile</a>
+                        <a href="{{ url_for('logout') }}"> Logout</a>
                     </div>
                 </div>
             </div>
@@ -290,7 +291,7 @@
     </div>
 
     <button onclick="toggleTheme()" class="theme-toggle" title="Toggle theme">
-        <span class="theme-icon">🌙</span>
+        <span class="theme-icon"></span>
     </button>
 
     <script>

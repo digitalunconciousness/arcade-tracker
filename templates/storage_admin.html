@@ -4,13 +4,13 @@
 
 {% block content %}
 <div class="container">
-    <h1>💾 Storage Management</h1>
+    <h1> Storage Management</h1>
     
     <div class="row">
         <div class="col-md-6">
             <div class="card">
                 <div class="card-header">
-                    <h3>📊 Storage Usage</h3>
+                    <h3> Storage Usage</h3>
                 </div>
                 <div class="card-body">
                     <div class="storage-stats">
@@ -41,7 +41,7 @@
         <div class="col-md-6">
             <div class="card">
                 <div class="card-header">
-                    <h3>🧹 Cleanup Tools</h3>
+                    <h3> Cleanup Tools</h3>
                 </div>
                 <div class="card-body">
                     <p>Remove old photos that are no longer referenced by maintenance records.</p>
@@ -49,7 +49,7 @@
                     <form method="POST" action="{{ url_for('admin_cleanup_photos') }}" 
                           onsubmit="return confirm('This will permanently delete unreferenced photos older than 1 year. Continue?')">
                         <button type="submit" class="btn btn-warning">
-                            🗑️ Clean Up Old Photos
+                             Clean Up Old Photos
                         </button>
                     </form>
                     
@@ -69,13 +69,13 @@
     
     {% if stats.usage_percent > 80 %}
     <div class="alert alert-warning">
-        <strong>⚠️ Warning:</strong> Storage usage is above 80%. Consider running cleanup or increasing storage limits.
+        <strong> Warning:</strong> Storage usage is above 80%. Consider running cleanup or increasing storage limits.
     </div>
     {% endif %}
     
     {% if stats.usage_percent > 95 %}
     <div class="alert alert-danger">
-        <strong>🚨 Critical:</strong> Storage nearly full! Photo uploads may fail.
+        <strong> Critical:</strong> Storage nearly full! Photo uploads may fail.
     </div>
     {% endif %}
 </div>

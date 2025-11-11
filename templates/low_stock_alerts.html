@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="header-section">
-    <h1>⚠️ Low Stock Alerts</h1>
+    <h1> Low Stock Alerts</h1>
     <div class="header-actions">
         <a href="{{ url_for('inventory_list') }}" class="btn btn-secondary">← Back to Inventory</a>
     </div>
@@ -13,7 +13,7 @@
 <div class="alerts-container">
     {% if active_alerts %}
     <div class="alert-section">
-        <h2>🔴 Active Alerts</h2>
+        <h2> Active Alerts</h2>
         <div class="alerts-grid">
             {% for alert in active_alerts %}
             <div class="alert-card active">
@@ -84,7 +84,7 @@
     </div>
     {% else %}
     <div class="no-alerts">
-        <div class="no-alerts-icon">✅</div>
+        <div class="no-alerts-icon"></div>
         <h2>No Active Low Stock Alerts</h2>
         <p>All inventory items are adequately stocked!</p>
         <a href="{{ url_for('inventory_list') }}" class="btn btn-primary">View Inventory</a>
@@ -93,7 +93,7 @@
     
     {% if recent_resolved %}
     <div class="alert-section">
-        <h2>✅ Recently Resolved (Last 30 Days)</h2>
+        <h2> Recently Resolved (Last 30 Days)</h2>
         <div class="table-responsive">
             <table class="table">
                 <thead>

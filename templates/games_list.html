@@ -5,9 +5,9 @@
 {% block content %}
 <div class="container">
     <div class="page-header">
-        <h1>🎮 Arcade Games Database</h1>
+        <h1> Arcade Games Database</h1>
         {% if current_user.has_role('manager') %}
-        <a href="{{ url_for('add_game') }}" class="btn btn-primary">➕ Add New Game</a>
+        <a href="{{ url_for('add_game') }}" class="btn btn-primary"> Add New Game</a>
         {% endif %}
     </div>
 
@@ -15,7 +15,7 @@
     <div class="filters">
         <form method="get" action="{{ url_for('games_list') }}">
             <div class="filter-row">
-                <input type="text" name="search" placeholder="🔍 Search games..." value="{{ search }}" class="form-control">
+                <input type="text" name="search" placeholder=" Search games..." value="{{ search }}" class="form-control">
                 
                 <select name="location" class="form-control">
                     <option value="">All Locations</option>
@@ -46,11 +46,11 @@
                 <strong id="selectedCountText">0 selected</strong>
             </span>
             <div class="bulk-action-buttons">
-                <button onclick="bulkAction('move_to_floor')" class="bulk-btn btn-floor">📍 Move to Floor</button>
-                <button onclick="bulkAction('move_to_warehouse')" class="bulk-btn btn-warehouse">📦 Move to Warehouse</button>
-                <button onclick="bulkAction('set_working')" class="bulk-btn btn-working">✅ Set Working</button>
-                <button onclick="bulkAction('set_not_working')" class="bulk-btn btn-broken">❌ Set Not Working</button>
-                <button onclick="exportSelected()" class="bulk-btn btn-export">💾 Export Selected</button>
+                <button onclick="bulkAction('move_to_floor')" class="bulk-btn btn-floor"> Move to Floor</button>
+                <button onclick="bulkAction('move_to_warehouse')" class="bulk-btn btn-warehouse"> Move to Warehouse</button>
+                <button onclick="bulkAction('set_working')" class="bulk-btn btn-working"> Set Working</button>
+                <button onclick="bulkAction('set_not_working')" class="bulk-btn btn-broken"> Set Not Working</button>
+                <button onclick="exportSelected()" class="bulk-btn btn-export"> Export Selected</button>
                 <button onclick="clearSelection()" class="bulk-btn btn-clear">Clear Selection</button>
             </div>
         </div>
@@ -94,7 +94,7 @@
                         <span class="status-indicator status-retired">{{ game.status.replace('_', ' ') }}</span>
                         {% endif %}
                         {% if game.has_open_maintenance %}
-                        <span class="maintenance-badge" title="Has open maintenance">⚠️</span>
+                        <span class="maintenance-badge" title="Has open maintenance"></span>
                         {% endif %}
                     </td>
                     <td class="game-name">
