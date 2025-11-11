@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1>🔧 Work Order #{{ maintenance.id }}: {{ maintenance.game.name }}</h1>
+<h1> Work Order #{{ maintenance.id }}{% if maintenance.game %}: {{ maintenance.game.name }}{% else %} - General Maintenance{% endif %}</h1>
 
 <div style="background: var(--dark-card); padding: 20px; border-radius: 8px; border: 1px solid var(--neon-cyan); margin-bottom: 30px;">
-    <h3>📋 Original Request</h3>
+    <h3> Original Request</h3>
     <p><strong>Reported:</strong> {{ maintenance.date_reported.strftime('%Y-%m-%d %H:%M') }}</p>
     <p><strong>Issue:</strong> {{ maintenance.issue_description }}</p>
     {% if maintenance.fix_description %}
@@ -12,12 +12,12 @@
     {% endif %}
     {% if maintenance.work_logs %}
     <p><strong>Previous Work Entries:</strong> {{ maintenance.work_logs|length }} entries logged</p>
-    <a href="{{ url_for('view_maintenance', maintenance_id=maintenance.id) }}" class="btn" style="background: var(--neon-purple); font-size: 12px; padding: 5px 10px; margin-top: 10px;">📋 View All Work History</a>
+    <a href="{{ url_for('maintenance_detail', record_id=maintenance.id) }}" class="btn" style="background: var(--neon-purple); font-size: 12px; padding: 5px 10px; margin-top: 10px;"> View All Work History</a>
     {% endif %}
 </div>
 
 <div style="background: var(--dark-card); padding: 20px; border-radius: 8px; border: 1px solid var(--neon-orange); margin-bottom: 20px;">
-    <h3 style="color: var(--neon-orange); margin-top: 0;">➕ Log New Work Entry</h3>
+    <h3 style="color: var(--neon-orange); margin-top: 0;"> Log New Work Entry</h3>
     <p style="color: var(--text-secondary); margin-bottom: 0;">Each time you update this form, a new timestamped work entry will be created.</p>
 </div>
 
@@ -49,18 +49,18 @@
     <div class="form-group">
         <label for="work_notes">Work Description *</label>
         <textarea id="work_notes" name="work_notes" rows="5" placeholder="What work did you perform during this session? Be specific about steps taken, problems found, solutions tried..." required></textarea>
-        <small style="color: var(--text-secondary); font-size: 12px;">📝 This will create a new timestamped work log entry</small>
+        <small style="color: var(--text-secondary); font-size: 12px;"> This will create a new timestamped work log entry</small>
     </div>
     
     <div class="form-group">
         <label for="parts_used">Parts / Materials Used (This Session)</label>
         <textarea id="parts_used" name="parts_used" rows="3" placeholder="List any parts, components, or materials used during this work session..."></textarea>
-        <small style="color: var(--text-secondary); font-size: 12px;">🔧 Include part numbers, quantities, suppliers if applicable to this work session</small>
+        <small style="color: var(--text-secondary); font-size: 12px;"> Include part numbers, quantities, suppliers if applicable to this work session</small>
     </div>
     
     <!-- Smart Inventory Management Section -->
     <div style="background: var(--dark-card); padding: 20px; border-radius: 8px; border: 1px solid var(--neon-green); margin: 20px 0;">
-        <h3 style="color: var(--neon-green); margin-top: 0;">📦 Inventory Management</h3>
+        <h3 style="color: var(--neon-green); margin-top: 0;"> Inventory Management</h3>
         <p style="color: var(--text-secondary); margin-bottom: 15px;">Use parts from inventory or request items you need.</p>
         
         <div id="inventory-items">
@@ -68,7 +68,7 @@
         </div>
         
         <button type="button" onclick="addInventoryRow()" class="btn" style="background: var(--neon-green); color: black; margin-top: 10px; font-size: 13px;">
-            ➕ Add Inventory Item
+             Add Inventory Item
         </button>
         
         <div style="display: flex; justify-content: space-between; margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--neon-green); flex-wrap: wrap; gap: 10px;">
@@ -87,26 +87,28 @@
         <div class="form-group" style="flex: 1;">
             <label for="time_spent">Time Spent (Hours)</label>
             <input type="number" id="time_spent" name="time_spent" step="0.25" min="0" placeholder="2.5">
-            <small style="color: var(--text-secondary); font-size: 12px;">⏱️ How long did this work session take?</small>
+            <small style="color: var(--text-secondary); font-size: 12px;">⏱ How long did this work session take?</small>
         </div>
         
         <div class="form-group" style="flex: 1;">
             <label for="work_cost">Cost for This Work ($)</label>
             <input type="number" id="work_cost" name="work_cost" step="0.01" min="0" placeholder="25.50">
-            <small style="color: var(--text-secondary); font-size: 12px;">💰 Cost incurred during this specific work session</small>
+            <small style="color: var(--text-secondary); font-size: 12px;"> Cost incurred during this specific work session</small>
         </div>
     </div>
     
     <div class="form-group">
         <label for="cost">Update Total Order Cost ($)</label>
         <input type="number" id="cost" name="cost" step="0.01" min="0" value="{{ maintenance.cost or '' }}" placeholder="Total cumulative cost">
-        <small style="color: var(--text-secondary); font-size: 12px;">🧾 Overall cost for the entire work order (optional - can be calculated from work entries)</small>
+        <small style="color: var(--text-secondary); font-size: 12px;"> Overall cost for the entire work order (optional - can be calculated from work entries)</small>
     </div>
     
     <div style="display: flex; gap: 10px; align-items: center; margin-top: 20px;">
-        <button type="submit" class="btn btn-warning">📝 Log Work Entry</button>
+        <button type="submit" class="btn btn-warning"> Log Work Entry</button>
         <a href="{{ url_for('maintenance_orders') }}" class="btn" style="background: #6c757d; color: white; text-decoration: none;">Cancel</a>
+        {% if maintenance.game_id %}
         <a href="{{ url_for('game_detail', game_id=maintenance.game_id) }}" class="btn" style="background: var(--neon-cyan); color: black; text-decoration: none;">View Game</a>
+        {% endif %}
     </div>
 </form>
 
@@ -154,8 +156,8 @@ function addInventoryRow() {
             <label for="item_action_${index}">Action</label>
             <select id="item_action_${index}" name="item_action_${index}" class="item-action" onchange="updateActionUI(${index})" disabled>
                 <option value="">-- Select --</option>
-                <option value="use">✅ Use Now</option>
-                <option value="request">📋 Request</option>
+                <option value="use"> Use Now</option>
+                <option value="request"> Request</option>
             </select>
         </div>
         <div style="flex: 0.8; min-width: 80px;">
@@ -174,7 +176,7 @@ function addInventoryRow() {
         <div style="flex: 0; min-width: 40px;">
             <label style="font-size: 11px; opacity: 0;">X</label>
             <button type="button" onclick="removeInventoryRow(${index})" class="btn" style="background: var(--neon-pink); padding: 8px 12px; font-size: 12px;" title="Remove item">
-                ✕
+                
             </button>
         </div>
     `;

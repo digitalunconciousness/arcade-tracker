@@ -1,17 +1,17 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1>🔧 Maintenance Orders</h1>
+<h1> Maintenance Orders</h1>
 
 <div style="margin: 20px 0;">
-    <button onclick="showTab('open')" id="openTab" class="btn btn-warning" style="margin-right: 10px;">🚨 Open Orders ({{ open_records|length }})</button>
-    <button onclick="showTab('closed')" id="closedTab" class="btn" style="background: #6c757d; margin-right: 10px;">✅ Closed Orders ({{ closed_records|length }})</button>
-    <button onclick="showTab('all')" id="allTab" class="btn" style="background: var(--neon-cyan);">📋 All Orders ({{ all_records|length }})</button>
+    <button onclick="showTab('open')" id="openTab" class="btn btn-warning" style="margin-right: 10px;"> Open Orders ({{ open_records|length }})</button>
+    <button onclick="showTab('closed')" id="closedTab" class="btn" style="background: #6c757d; margin-right: 10px;"> Closed Orders ({{ closed_records|length }})</button>
+    <button onclick="showTab('all')" id="allTab" class="btn" style="background: var(--neon-cyan);"> All Orders ({{ all_records|length }})</button>
 </div>
 
 <!-- Open Orders Tab -->
 <div id="openOrders" class="maintenance-tab">
-    <h2>🚨 Open Maintenance Orders</h2>
+    <h2> Open Maintenance Orders</h2>
     {% if open_records %}
     <table class="table" id="openOrdersTable" style="--table-cell-padding: 8px 8px;">
 <style>
@@ -27,12 +27,12 @@
 </style>
         <thead>
             <tr>
-                <th onclick="sortMaintenanceTable(0, 'openOrdersTable')" style="cursor: pointer;" title="Click to sort">Status ↕️</th>
-                <th onclick="sortMaintenanceTable(1, 'openOrdersTable')" style="cursor: pointer;" title="Click to sort">Game ↕️</th>
-                <th onclick="sortMaintenanceTable(2, 'openOrdersTable')" style="cursor: pointer;" title="Click to sort">Issue ↕️</th>
-                <th onclick="sortMaintenanceTable(3, 'openOrdersTable')" style="cursor: pointer;" title="Click to sort">Reported ↕️</th>
-                <th onclick="sortMaintenanceTable(4, 'openOrdersTable')" style="cursor: pointer;" title="Click to sort">Technician ↕️</th>
-                <th onclick="sortMaintenanceTable(5, 'openOrdersTable')" style="cursor: pointer;" title="Click to sort">Cost ↕️</th>
+                <th onclick="sortMaintenanceTable(0, 'openOrdersTable')" style="cursor: pointer;" title="Click to sort">Status ↕</th>
+                <th onclick="sortMaintenanceTable(1, 'openOrdersTable')" style="cursor: pointer;" title="Click to sort">Game ↕</th>
+                <th onclick="sortMaintenanceTable(2, 'openOrdersTable')" style="cursor: pointer;" title="Click to sort">Issue ↕</th>
+                <th onclick="sortMaintenanceTable(3, 'openOrdersTable')" style="cursor: pointer;" title="Click to sort">Reported ↕</th>
+                <th onclick="sortMaintenanceTable(4, 'openOrdersTable')" style="cursor: pointer;" title="Click to sort">Technician ↕</th>
+                <th onclick="sortMaintenanceTable(5, 'openOrdersTable')" style="cursor: pointer;" title="Click to sort">Cost ↕</th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -41,9 +41,9 @@
             <tr style="height: 45px; cursor: pointer;" onclick="window.location='{{ url_for('maintenance_detail', record_id=record.id) }}';">
                 <td>
                     {% if record.status == 'Open' %}
-                        <span style="color: #ff4444; font-weight: bold;">🔴 Open</span>
+                        <span style="color: #ff4444; font-weight: bold;"> Open</span>
                     {% elif record.status == 'In_Progress' %}
-                        <span style="color: #ffaa00; font-weight: bold;">🟡 In Progress</span>
+                        <span style="color: #ffaa00; font-weight: bold;"> In Progress</span>
                     {% endif %}
                 </td>
                 <td>{% if record.game_id %}<a href="{{ url_for('game_detail', game_id=record.game_id) }}">{{ record.game.name }}</a>{% else %}<span style="color: var(--neon-purple); font-style: italic;">General Maintenance</span>{% endif %}</td>
@@ -67,24 +67,24 @@
         </tbody>
     </table>
     {% else %}
-    <p style="color: var(--neon-green);">🎉 No open maintenance orders! All systems operational.</p>
+    <p style="color: var(--neon-green);"> No open maintenance orders! All systems operational.</p>
     {% endif %}
 </div>
 
 <!-- Closed Orders Tab -->
 <div id="closedOrders" class="maintenance-tab" style="display: none;">
-    <h2>✅ Closed Maintenance Orders</h2>
+    <h2> Closed Maintenance Orders</h2>
     {% if closed_records %}
     <table class="table" id="closedOrdersTable">
         <thead>
             <tr>
-                <th onclick="sortMaintenanceTable(0, 'closedOrdersTable')" style="cursor: pointer;" title="Click to sort">Status ↕️</th>
-                <th onclick="sortMaintenanceTable(1, 'closedOrdersTable')" style="cursor: pointer;" title="Click to sort">Game ↕️</th>
-                <th onclick="sortMaintenanceTable(2, 'closedOrdersTable')" style="cursor: pointer;" title="Click to sort">Issue ↕️</th>
-                <th onclick="sortMaintenanceTable(3, 'closedOrdersTable')" style="cursor: pointer;" title="Click to sort">Reported ↕️</th>
-                <th onclick="sortMaintenanceTable(4, 'closedOrdersTable')" style="cursor: pointer;" title="Click to sort">Fixed ↕️</th>
-                <th onclick="sortMaintenanceTable(5, 'closedOrdersTable')" style="cursor: pointer;" title="Click to sort">Technician ↕️</th>
-                <th onclick="sortMaintenanceTable(6, 'closedOrdersTable')" style="cursor: pointer;" title="Click to sort">Cost ↕️</th>
+                <th onclick="sortMaintenanceTable(0, 'closedOrdersTable')" style="cursor: pointer;" title="Click to sort">Status ↕</th>
+                <th onclick="sortMaintenanceTable(1, 'closedOrdersTable')" style="cursor: pointer;" title="Click to sort">Game ↕</th>
+                <th onclick="sortMaintenanceTable(2, 'closedOrdersTable')" style="cursor: pointer;" title="Click to sort">Issue ↕</th>
+                <th onclick="sortMaintenanceTable(3, 'closedOrdersTable')" style="cursor: pointer;" title="Click to sort">Reported ↕</th>
+                <th onclick="sortMaintenanceTable(4, 'closedOrdersTable')" style="cursor: pointer;" title="Click to sort">Fixed ↕</th>
+                <th onclick="sortMaintenanceTable(5, 'closedOrdersTable')" style="cursor: pointer;" title="Click to sort">Technician ↕</th>
+                <th onclick="sortMaintenanceTable(6, 'closedOrdersTable')" style="cursor: pointer;" title="Click to sort">Cost ↕</th>
                 <th>Fix Description</th>
                 <th>Actions</th>
             </tr>
@@ -94,9 +94,9 @@
             <tr style="height: 45px; cursor: pointer;" onclick="window.location='{{ url_for('maintenance_detail', record_id=record.id) }}';">
                 <td>
                     {% if record.status == 'Fixed' %}
-                        <span style="color: var(--neon-green); font-weight: bold;">✅ Fixed</span>
+                        <span style="color: var(--neon-green); font-weight: bold;"> Fixed</span>
                     {% elif record.status == 'Deferred' %}
-                        <span style="color: #888; font-weight: bold;">⏸️ Deferred</span>
+                        <span style="color: #888; font-weight: bold;">⏸ Deferred</span>
                     {% endif %}
                 </td>
                 <td>{% if record.game_id %}<a href="{{ url_for('game_detail', game_id=record.game_id) }}">{{ record.game.name }}</a>{% else %}<span style="color: var(--neon-purple); font-style: italic;">General Maintenance</span>{% endif %}</td>
@@ -125,17 +125,17 @@
 
 <!-- All Orders Tab -->
 <div id="allOrders" class="maintenance-tab" style="display: none;">
-    <h2>📋 All Maintenance Orders</h2>
+    <h2> All Maintenance Orders</h2>
     {% if all_records %}
     <table class="table" id="allOrdersTable">
         <thead>
             <tr>
-                <th onclick="sortMaintenanceTable(0, 'allOrdersTable')" style="cursor: pointer;" title="Click to sort">Status ↕️</th>
-                <th onclick="sortMaintenanceTable(1, 'allOrdersTable')" style="cursor: pointer;" title="Click to sort">Game ↕️</th>
-                <th onclick="sortMaintenanceTable(2, 'allOrdersTable')" style="cursor: pointer;" title="Click to sort">Issue ↕️</th>
-                <th onclick="sortMaintenanceTable(3, 'allOrdersTable')" style="cursor: pointer;" title="Click to sort">Reported ↕️</th>
-                <th onclick="sortMaintenanceTable(4, 'allOrdersTable')" style="cursor: pointer;" title="Click to sort">Technician ↕️</th>
-                <th onclick="sortMaintenanceTable(5, 'allOrdersTable')" style="cursor: pointer;" title="Click to sort">Cost ↕️</th>
+                <th onclick="sortMaintenanceTable(0, 'allOrdersTable')" style="cursor: pointer;" title="Click to sort">Status ↕</th>
+                <th onclick="sortMaintenanceTable(1, 'allOrdersTable')" style="cursor: pointer;" title="Click to sort">Game ↕</th>
+                <th onclick="sortMaintenanceTable(2, 'allOrdersTable')" style="cursor: pointer;" title="Click to sort">Issue ↕</th>
+                <th onclick="sortMaintenanceTable(3, 'allOrdersTable')" style="cursor: pointer;" title="Click to sort">Reported ↕</th>
+                <th onclick="sortMaintenanceTable(4, 'allOrdersTable')" style="cursor: pointer;" title="Click to sort">Technician ↕</th>
+                <th onclick="sortMaintenanceTable(5, 'allOrdersTable')" style="cursor: pointer;" title="Click to sort">Cost ↕</th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -144,13 +144,13 @@
             <tr style="height: 45px; cursor: pointer;" onclick="window.location='{{ url_for('maintenance_detail', record_id=record.id) }}';">
                 <td>
                     {% if record.status == 'Open' %}
-                        <span style="color: #ff4444; font-weight: bold;">🔴 Open</span>
+                        <span style="color: #ff4444; font-weight: bold;"> Open</span>
                     {% elif record.status == 'In_Progress' %}
-                        <span style="color: #ffaa00; font-weight: bold;">🟡 In Progress</span>
+                        <span style="color: #ffaa00; font-weight: bold;"> In Progress</span>
                     {% elif record.status == 'Fixed' %}
-                        <span style="color: var(--neon-green); font-weight: bold;">✅ Fixed</span>
+                        <span style="color: var(--neon-green); font-weight: bold;"> Fixed</span>
                     {% elif record.status == 'Deferred' %}
-                        <span style="color: #888; font-weight: bold;">⏸️ Deferred</span>
+                        <span style="color: #888; font-weight: bold;">⏸ Deferred</span>
                     {% endif %}
                 </td>
                 <td>{% if record.game_id %}<a href="{{ url_for('game_detail', game_id=record.game_id) }}">{{ record.game.name }}</a>{% else %}<span style="color: var(--neon-purple); font-style: italic;">General Maintenance</span>{% endif %}</td>
@@ -183,7 +183,7 @@
 <!-- Close Maintenance Modal -->
 <div id="closeModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000;">
     <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--dark-card); padding: 30px; border-radius: 8px; border: 2px solid var(--neon-cyan); max-width: 500px; width: 90%;">
-        <h3>🔧 Close Maintenance Order</h3>
+        <h3> Close Maintenance Order</h3>
         <p><strong>Game:</strong> <span id="modalGameName"></span></p>
         <p><strong>Issue:</strong> <span id="modalIssue"></span></p>
         
@@ -192,8 +192,8 @@
             <div class="form-group">
                 <label for="modalStatus">Final Status *</label>
                 <select id="modalStatus" name="status" required>
-                    <option value="Fixed">✅ Fixed</option>
-                    <option value="Deferred">⏸️ Deferred</option>
+                    <option value="Fixed"> Fixed</option>
+                    <option value="Deferred">⏸ Deferred</option>
                 </select>
             </div>
             
@@ -214,7 +214,7 @@
             
             <div style="text-align: right; margin-top: 20px;">
                 <button type="button" onclick="closeCloseModal()" class="btn" style="background: #6c757d; margin-right: 10px;">Cancel</button>
-                <button type="submit" class="btn btn-success">💾 Close Order</button>
+                <button type="submit" class="btn btn-success"> Close Order</button>
             </div>
         </form>
     </div>
@@ -289,12 +289,12 @@ function sortMaintenanceTable(columnIndex, tableId) {
 function updateMaintenanceHeaders(sortedColumn, isAscending, tableId) {
     const headers = document.querySelectorAll(`#${tableId} th[onclick]`);
     headers.forEach((header, index) => {
-        const baseText = header.textContent.replace(' ↕️', '').replace(' ↑', '').replace(' ↓', '');
+        const baseText = header.textContent.replace(' ↕', '').replace(' ↑', '').replace(' ↓', '');
         if (index === sortedColumn) {
             header.textContent = baseText + (isAscending ? ' ↑' : ' ↓');
             header.style.color = 'var(--neon-cyan)';
         } else {
-            header.textContent = baseText + ' ↕️';
+            header.textContent = baseText + ' ↕';
             header.style.color = '';
         }
     });

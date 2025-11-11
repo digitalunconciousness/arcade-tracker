@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1>💰 Revenue Reports</h1>
+<h1> Revenue Reports</h1>
 
 <!-- Filter Controls -->
 <div style="margin-bottom: 20px; padding: 15px; background: rgba(0, 255, 100, 0.1); border: 1px solid var(--neon-green); border-radius: 8px;">
@@ -28,9 +28,9 @@
             </select>
         </div>
         
-        <button type="submit" class="btn" style="padding: 8px 15px;">🔍 Update Report</button>
+        <button type="submit" class="btn" style="padding: 8px 15px;"> Update Report</button>
         <a href="{{ url_for('export_revenue_report', days=days_filter, location=location_filter) }}" 
-           class="btn" style="padding: 8px 15px; background: var(--neon-green);">📄 Export PDF</a>
+           class="btn" style="padding: 8px 15px; background: var(--neon-green);"> Export PDF</a>
     </form>
 </div>
 
@@ -64,7 +64,7 @@
 <!-- Top Performing Games -->
 {% if top_games %}
 <div style="margin-bottom: 30px;">
-    <h2 style="color: var(--neon-green); margin-bottom: 15px;">🏆 Top Performing Games</h2>
+    <h2 style="color: var(--neon-green); margin-bottom: 15px;"> Top Performing Games</h2>
     <table class="table" style="--table-cell-padding: 8px 12px;">
         <thead>
             <tr>
@@ -111,7 +111,7 @@
 <!-- Daily Revenue Chart -->
 {% if daily_revenue %}
 <div style="margin-bottom: 30px;">
-    <h2 style="color: var(--neon-cyan); margin-bottom: 15px;">📈 Daily Revenue Breakdown</h2>
+    <h2 style="color: var(--neon-cyan); margin-bottom: 15px;"> Daily Revenue Breakdown</h2>
     <div style="background: rgba(0, 0, 0, 0.3); padding: 20px; border-radius: 8px;">
         <canvas id="revenueChart" width="400" height="200"></canvas>
     </div>
@@ -183,7 +183,7 @@ new Chart(ctx, {
 <!-- Recent Revenue Records -->
 {% if all_records %}
 <div>
-    <h2 style="color: var(--neon-orange); margin-bottom: 15px;">📋 Recent Revenue Records</h2>
+    <h2 style="color: var(--neon-orange); margin-bottom: 15px;"> Recent Revenue Records</h2>
     <p style="color: var(--text-secondary); margin-bottom: 15px;">
         Showing {{ all_records|length }} records from {{ start_date.strftime('%Y-%m-%d') }} to today
         {% if location_filter %}({{ location_filter }} only){% endif %}

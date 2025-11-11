@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Edit Maintenance Record</h2>
+
+<form method="POST" action="{{ url_for('edit_maintenance', record_id=record.id) }}" style="max-width: 700px; margin: auto;">
+  <div class="form-group mb-3">
+    <label for="issue_description" class="form-label">Issue Description</label>
+    <textarea id="issue_description" name="issue_description" class="form-control" rows="3" required>{{ record.issue_description or '' }}</textarea>
+  </div>
+
+  <div class="form-group mb-3">
+    <label for="fix_description" class="form-label">Fix Description</label>
+    <textarea id="fix_description" name="fix_description" class="form-control" rows="3">{{ record.fix_description or '' }}</textarea>
+  </div>
+
+  <div class="form-group mb-3">
+    <label for="work_notes" class="form-label">Work Notes</label>
+    <textarea id="work_notes" name="work_notes" class="form-control" rows="3">{{ record.work_notes or '' }}</textarea>
+  </div>
+
+  <div class="form-group mb-3">
+    <label for="parts_used" class="form-label">Parts Used</label>
+    <input type="text" id="parts_used" name="parts_used" class="form-control" value="{{ record.parts_used or '' }}">
+  </div>
+
+  <div class="form-group mb-3">
+    <label for="technician" class="form-label">Technician</label>
+    <input type="text" id="technician" name="technician" class="form-control" value="{{ record.technician or current_user.username }}">
+  </div>
+
+  <div class="form-group mb-3">
+    <label for="status" class="form-label">Status</label>
+    <select id="status" name="status" class="form-select">
+      {% for s in ['Open', 'In_Progress', 'Fixed', 'Deferred'] %}
+        <option value="{{ s }}" {% if record.status == s %}selected{% endif %}>{{ s.replace('_', ' ') }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="d-flex justify-content-between mt-4">
+    <button type="submit" class="btn btn-primary"> Save Changes</button>
+    <a href="{{ url_for('maintenance_orders') }}" class="btn btn-secondary">Cancel</a>
+  </div>
+</form>
+{% endblock %}

@@ -7,23 +7,23 @@
 
 <div class="container">
     <div class="page-header">
-        <h2 style="color: #00ffff; text-shadow: 0 0 10px rgba(0, 255, 255, 0.6); margin: 0;">📦 Inventory Management</h2>
+        <h2 style="color: #00ffff; text-shadow: 0 0 10px rgba(0, 255, 255, 0.6); margin: 0;"> Inventory Management</h2>
         <div class="header-actions">
             {% if current_user.has_role('operator') %}
-                <a href="{{ url_for('request_inventory') }}" class="btn-header" style="background: #9d00ff; color: #fff;">📨 Request Items</a>
+                <a href="{{ url_for('request_inventory') }}" class="btn-header" style="background: #9d00ff; color: #fff;"> Request Items</a>
                 <a href="{{ url_for('inventory_requests_list') }}" class="btn-header" style="background: #00d9ff; color: #000;">
-                    📄 My Requests
+                     My Requests
                     {% if pending_requests_count > 0 %}
                         ({{ pending_requests_count }})
                     {% endif %}
                 </a>
             {% endif %}
             {% if current_user.has_role('manager') %}
-                <a href="{{ url_for('add_inventory_item') }}" class="btn-header" style="background: #00ff64; color: #000;">➕ Add Item</a>
+                <a href="{{ url_for('add_inventory_item') }}" class="btn-header" style="background: #00ff64; color: #000;"> Add Item</a>
             {% endif %}
             {% if low_stock_count > 0 %}
                 <a href="{{ url_for('low_stock_alerts') }}" class="btn-header" style="background: #ff6400; color: #fff;">
-                    ⚠️ Low Stock ({{ low_stock_count }})
+                     Low Stock ({{ low_stock_count }})
                 </a>
             {% endif %}
         </div>
@@ -48,11 +48,11 @@
     <div class="filters">
         <form method="GET">
             <div class="filter-row">
-                <input type="text" name="search" value="{{ search }}" placeholder="🔍 Search items, descriptions, part numbers..." class="form-control">
+                <input type="text" name="search" value="{{ search }}" placeholder=" Search items, descriptions, part numbers..." class="form-control">
                 <label class="checkbox-label">
                     <input type="checkbox" name="low_stock" {% if low_stock_only %}checked{% endif %}> Low Stock
                 </label>
-                <button type="submit" class="btn-filter">🔍 SEARCH</button>
+                <button type="submit" class="btn-filter"> SEARCH</button>
                 {% if search or low_stock_only %}
                     <a href="{{ url_for('inventory_list') }}" class="btn-clear">CLEAR</a>
                 {% endif %}
@@ -64,7 +64,7 @@
 {% if recent_requests %}
 <div style="background: rgba(0, 20, 40, 0.6); border: 2px solid #9c27b0; border-radius: 8px; padding: 20px; margin-bottom: 30px;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-        <h3 style="color: #9c27b0; margin: 0;">📦 Recent Inventory Requests</h3>
+        <h3 style="color: #9c27b0; margin: 0;"> Recent Inventory Requests</h3>
         <a href="{{ url_for('inventory_requests_list') }}" style="color: var(--neon-cyan); text-decoration: none; font-size: 14px;">View All →</a>
     </div>
     <table style="width: 100%; color: #fff; border-collapse: collapse;">
@@ -96,13 +96,13 @@
                     {% if req.status == 'Pending' %}
                         <span style="color: #ffaa00; font-size: 13px;">⏳ Pending</span>
                     {% elif req.status == 'Approved' %}
-                        <span style="color: var(--neon-cyan); font-size: 13px;">✓ Approved</span>
+                        <span style="color: var(--neon-cyan); font-size: 13px;"> Approved</span>
                     {% elif req.status == 'Ordered' %}
-                        <span style="color: var(--neon-purple); font-size: 13px;">📦 Ordered</span>
+                        <span style="color: var(--neon-purple); font-size: 13px;"> Ordered</span>
                     {% elif req.status == 'Received' %}
-                        <span style="color: var(--neon-green); font-size: 13px;">✅ Received</span>
+                        <span style="color: var(--neon-green); font-size: 13px;"> Received</span>
                     {% elif req.status == 'Rejected' %}
-                        <span style="color: #ff4444; font-size: 13px;">✗ Rejected</span>
+                        <span style="color: #ff4444; font-size: 13px;"> Rejected</span>
                     {% endif %}
                 </td>
                 <td style="padding: 10px; font-size: 14px;">{{ req.requested_by.username }}</td>
@@ -136,7 +136,7 @@
                     <div>
                         <strong style="color: #00d9ff;">{{ item.name }}</strong>
                         {% if item.is_low_stock() %}
-                            <span style="background: rgba(255, 100, 0, 0.2); color: #ff6400; padding: 2px 8px; border-radius: 10px; font-size: 11px; margin-left: 8px; border: 1px solid #ff6400;">⚠️ LOW</span>
+                            <span style="background: rgba(255, 100, 0, 0.2); color: #ff6400; padding: 2px 8px; border-radius: 10px; font-size: 11px; margin-left: 8px; border: 1px solid #ff6400;"> LOW</span>
                         {% endif %}
                     </div>
                     {% if item.description %}
@@ -156,13 +156,13 @@
                 <td onclick="event.stopPropagation();">
                     <div style="display: flex; gap: 4px; flex-wrap: wrap;">
                         {% if current_user.has_role('operator') %}
-                            <a href="{{ url_for('adjust_stock', item_id=item.id) }}" class="action-btn-sm" style="border-color: #00d9ff; color: #00d9ff;" title="Adjust Stock">📊</a>
+                            <a href="{{ url_for('adjust_stock', item_id=item.id) }}" class="action-btn-sm" style="border-color: #00d9ff; color: #00d9ff;" title="Adjust Stock"></a>
                         {% endif %}
                         {% if current_user.has_role('manager') %}
-                            <a href="{{ url_for('edit_inventory_item', item_id=item.id) }}" class="action-btn-sm" style="border-color: #00ff64; color: #00ff64;" title="Edit Item">✏️</a>
+                            <a href="{{ url_for('edit_inventory_item', item_id=item.id) }}" class="action-btn-sm" style="border-color: #00ff64; color: #00ff64;" title="Edit Item"></a>
                             <form method="post" action="{{ url_for('delete_inventory_item', item_id=item.id) }}" style="display: inline; margin: 0;" onsubmit="return confirm('Delete {{ item.name }}? This cannot be undone!');">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <button type="submit" class="btn-delete-inline" title="Delete Item">🗑️</button>
+                                <button type="submit" class="btn-delete-inline" title="Delete Item"></button>
                             </form>
                         {% endif %}
                     </div>

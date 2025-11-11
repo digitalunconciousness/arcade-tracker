@@ -62,7 +62,7 @@
     <div class="form-group" id="initial_coin_count_group">
         <label for="initial_coin_count">Initial Coin Count (Baseline Plays)</label>
         <input type="number" id="initial_coin_count" name="initial_coin_count" min="0" placeholder="0">
-        <small style="color: var(--text-secondary);">💰 If this machine already has plays on it, enter the current coin counter reading to set a baseline</small>
+        <small style="color: var(--text-secondary);"> If this machine already has plays on it, enter the current coin counter reading to set a baseline</small>
     </div>
     
     <div class="form-group" id="counter_notes_group" style="display: none;">
@@ -76,7 +76,7 @@
     </div>
     
     <div style="display: flex; gap: 10px; align-items: center; margin-top: 20px;">
-        <button type="submit" class="btn btn-success">✅ Add Game</button>
+        <button type="submit" class="btn btn-success"> Add Game</button>
         <a href="{{ url_for('games_list') }}" class="btn" style="background: #6c757d; color: white; text-decoration: none;">Cancel</a>
     </div>
 </form>

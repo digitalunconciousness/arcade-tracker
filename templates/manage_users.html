@@ -4,7 +4,7 @@
 {% block content %}
 <div class="background-animated">
     <div class="glass-container">
-        <h2 class="glow-title">👥 Manage Users</h2>
+        <h2 class="glow-title"> Manage Users</h2>
 
         <table class="neon-table">
             <thead>
@@ -36,7 +36,7 @@
                             <button type="submit"
                                     onclick="return confirm('{{ '{} user {}'.format('Disable' if user.is_active else 'Enable', user.username) }}?')"
                                     class="btn-outline-cyan">
-                                {{ '🚫 Disable' if user.is_active else '✅ Enable' }}
+                                {{ ' Disable' if user.is_active else ' Enable' }}
                             </button>
                         </form>
                     </td>

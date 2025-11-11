@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GPIO Testing - Skeeball</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #1a1a2e; color: #eee; padding: 20px; }
+        .container { max-width: 900px; }
+        .status-card { background: #16213e; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
+        .gpio-button { margin: 10px; padding: 20px 40px; font-size: 1.2em; }
+        .mode-badge { font-size: 1.5em; padding: 10px 20px; }
+        .mock-mode { background-color: #ffc107; color: #000; }
+        .real-mode { background-color: #28a745; color: #fff; }
+        .game-state { background: #0f3460; padding: 15px; border-radius: 8px; margin: 10px 0; }
+        .event-log { background: #000; color: #0f0; padding: 15px; border-radius: 8px; height: 200px; overflow-y: scroll; font-family: monospace; font-size: 0.9em; }
+        .event-log .event { margin: 5px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1> GPIO Testing Interface</h1>
+        <p class="text-muted">Simulate hardware GPIO button presses for testing</p>
+
+        <!-- GPIO Mode Status -->
+        <div class="status-card">
+            <h3>Current GPIO Mode</h3>
+            <div class="d-flex align-items-center justify-content-between">
+                <span id="gpio-mode" class="mode-badge badge mock-mode">Mock GPIO</span>
+                <div>
+                    <button class="btn btn-warning" onclick="switchMode('mock')">Switch to Mock</button>
+                    <button class="btn btn-success" onclick="switchMode('real')">Switch to Real Hardware</button>
+                </div>
+            </div>
+            <p id="gpio-description" class="mt-3 mb-0 text-muted">Testing mode - no hardware required</p>
+        </div>
+
+        <!-- Game State Display -->
+        <div class="status-card">
+            <h3>Current Game State</h3>
+            <div class="game-state">
+                <div class="row text-center">
+                    <div class="col">
+                        <h4> Credits</h4>
+                        <h2 id="credits">0</h2>
+                    </div>
+                    <div class="col">
+                        <h4> Score</h4>
+                        <h2 id="score">0</h2>
+                    </div>
+                    <div class="col">
+                        <h4> Balls</h4>
+                        <h2 id="balls">0 / 9</h2>
+                    </div>
+                    <div class="col">
+                        <h4> Status</h4>
+                        <h2 id="status">Ready</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- GPIO Button Simulator -->
+        <div class="status-card">
+            <h3>Simulate GPIO Button Presses</h3>
+            <p class="text-muted">Click buttons below to simulate physical hardware switches being pressed</p>
+            
+            <div class="text-center">
+                <button class="btn btn-primary gpio-button" onclick="triggerGPIO('coin')">
+                     Coin Switch
+                </button>
+                <button class="btn btn-info gpio-button" onclick="triggerGPIO('score_10')">
+                    ⊕ 10-Point Switch
+                </button>
+                <button class="btn btn-info gpio-button" onclick="triggerGPIO('score_50')">
+                    ⊕⊕ 50-Point Switch
+                </button>
+                <button class="btn btn-info gpio-button" onclick="triggerGPIO('lane_track')">
+                     Lane Track Switch
+                </button>
+                <button class="btn btn-warning gpio-button" onclick="triggerGPIO('ball_scored')">
+                     Ball Counter Switch
+                </button>
+                <button class="btn btn-danger gpio-button" onclick="resetGame()">
+                     Reset Game
+                </button>
+            </div>
+        </div>
+
+        <!-- Event Log -->
+        <div class="status-card">
+            <h3>Event Log</h3>
+            <div id="event-log" class="event-log"></div>
+            <button class="btn btn-sm btn-secondary mt-2" onclick="clearLog()">Clear Log</button>
+        </div>
+
+        <div class="text-center mt-4">
+            <a href="/skeeball/" class="btn btn-outline-light">← Back to Skeeball Home</a>
+            <a href="/skeeball/simulator" class="btn btn-outline-light">Open Full Simulator</a>
+        </div>
+    </div>
+
+    <script>
+        const lane_id = 'lane_1';
+
+        // Log event to console
+        function logEvent(message) {
+            const log = document.getElementById('event-log');
+            const timestamp = new Date().toLocaleTimeString();
+            const event = document.createElement('div');
+            event.className = 'event';
+            event.textContent = `[${timestamp}] ${message}`;
+            log.insertBefore(event, log.firstChild);
+        }
+
+        // Clear event log
+        function clearLog() {
+            document.getElementById('event-log').innerHTML = '';
+        }
+
+        // Update game state display
+        function updateGameState(status) {
+            document.getElementById('credits').textContent = status.credits || 0;
+            document.getElementById('score').textContent = status.score || 0;
+            document.getElementById('balls').textContent = `${status.balls || 0} / ${status.total_balls || 9}`;
+            
+            if (status.in_progress) {
+                document.getElementById('status').textContent = ' Playing';
+                document.getElementById('status').className = 'text-success';
+            } else if (status.credits > 0) {
+                document.getElementById('status').textContent = ' Ready';
+                document.getElementById('status').className = 'text-warning';
+            } else {
+                document.getElementById('status').textContent = '⏸ Idle';
+                document.getElementById('status').className = 'text-muted';
+            }
+        }
+
+        // Trigger GPIO event
+        async function triggerGPIO(eventType) {
+            try {
+                let endpoint, body;
+                
+                if (eventType === 'coin') {
+                    endpoint = '/skeeball/api/simulator/insert-coin';
+                    body = { lane_id };
+                    logEvent(' Coin inserted');
+                } else if (eventType === 'score_10') {
+                    endpoint = '/skeeball/api/simulator/score-10';
+                    body = { lane_id };
+                    logEvent('⊕ 10-point switch pressed');
+                } else if (eventType === 'score_50') {
+                    endpoint = '/skeeball/api/simulator/score-50';
+                    body = { lane_id };
+                    logEvent('⊕⊕ 50-point switch pressed');
+                } else if (eventType === 'lane_track') {
+                    endpoint = '/skeeball/api/simulator/lane-track';
+                    body = { lane_id };
+                    logEvent(' Lane track switch pressed');
+                } else if (eventType === 'ball_scored') {
+                    endpoint = '/skeeball/api/simulator/ball-scored';
+                    body = { lane_id };
+                    logEvent(' Ball counter switch pressed');
+                }
+                
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                
+                const data = await response.json();
+                updateGameState(data);
+                
+                if (data.balls === data.total_balls) {
+                    logEvent(` Game Over! Final Score: ${data.score}`);
+                }
+            } catch (error) {
+                logEvent(` Error: ${error.message}`);
+            }
+        }
+
+        // Reset game
+        async function resetGame() {
+            try {
+                const response = await fetch(`/skeeball/api/lanes/${lane_id}/reset`, {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                updateGameState(data);
+                logEvent(' Game reset');
+            } catch (error) {
+                logEvent(` Error: ${error.message}`);
+            }
+        }
+
+        // Update GPIO status
+        async function updateGPIOStatus() {
+            try {
+                const response = await fetch('/skeeball/api/gpio/status');
+                const data = await response.json();
+                
+                const modeElement = document.getElementById('gpio-mode');
+                const descElement = document.getElementById('gpio-description');
+                
+                if (data.mode === 'mock') {
+                    modeElement.textContent = ' Mock GPIO';
+                    modeElement.className = 'mode-badge badge mock-mode';
+                } else {
+                    modeElement.textContent = ' Real GPIO';
+                    modeElement.className = 'mode-badge badge real-mode';
+                }
+                
+                descElement.textContent = data.description;
+            } catch (error) {
+                console.error('Failed to update GPIO status:', error);
+            }
+        }
+
+        // Switch GPIO mode
+        async function switchMode(mode) {
+            try {
+                const response = await fetch('/skeeball/api/gpio/switch-mode', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mode })
+                });
+                const data = await response.json();
+                logEvent(data.message);
+                updateGPIOStatus();
+            } catch (error) {
+                logEvent(` Error switching mode: ${error.message}`);
+            }
+        }
+
+        // Initialize
+        updateGPIOStatus();
+        
+        // Refresh game state every 2 seconds
+        setInterval(async () => {
+            try {
+                const response = await fetch(`/skeeball/api/lanes/${lane_id}/status`);
+                const data = await response.json();
+                updateGameState(data);
+            } catch (error) {
+                console.error('Failed to update game state:', error);
+            }
+        }, 2000);
+    </script>
+</body>
+</html>

@@ -10,7 +10,7 @@
   <!-- Request Header Card -->
   <div style="background: rgba(0, 20, 40, 0.6); border: 2px solid #9c27b0; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
     <h2 style="color: #9c27b0; margin-bottom: 15px;">
-      📦 Inventory Request #{{ request.id }}
+       Inventory Request #{{ request.id }}
     </h2>
 
     <!-- Status Badge -->
@@ -18,17 +18,17 @@
       {% if request.status == 'Pending' %}
         <span style="background: #ffaa00; color: #000; padding: 6px 12px; border-radius: 4px; font-size: 0.9em; font-weight: bold;">⏳ Pending</span>
       {% elif request.status == 'Approved' %}
-        <span style="background: var(--neon-cyan); color: #000; padding: 6px 12px; border-radius: 4px; font-size: 0.9em; font-weight: bold;">✓ Approved</span>
+        <span style="background: var(--neon-cyan); color: #000; padding: 6px 12px; border-radius: 4px; font-size: 0.9em; font-weight: bold;"> Approved</span>
       {% elif request.status == 'Ordered' %}
-        <span style="background: var(--neon-purple); color: #fff; padding: 6px 12px; border-radius: 4px; font-size: 0.9em; font-weight: bold;">📦 Ordered</span>
+        <span style="background: var(--neon-purple); color: #fff; padding: 6px 12px; border-radius: 4px; font-size: 0.9em; font-weight: bold;"> Ordered</span>
       {% elif request.status == 'Received' %}
-        <span style="background: var(--neon-green); color: #000; padding: 6px 12px; border-radius: 4px; font-size: 0.9em; font-weight: bold;">✅ Received</span>
+        <span style="background: var(--neon-green); color: #000; padding: 6px 12px; border-radius: 4px; font-size: 0.9em; font-weight: bold;"> Received</span>
       {% elif request.status == 'Rejected' %}
-        <span style="background: #ff4444; color: #fff; padding: 6px 12px; border-radius: 4px; font-size: 0.9em; font-weight: bold;">✗ Rejected</span>
+        <span style="background: #ff4444; color: #fff; padding: 6px 12px; border-radius: 4px; font-size: 0.9em; font-weight: bold;"> Rejected</span>
       {% endif %}
 
       {% if request.urgency == 'Urgent' %}
-        <span style="background: #ff4444; color: #fff; padding: 6px 12px; border-radius: 4px; font-size: 0.9em; font-weight: bold; margin-left: 10px;">⚠️ URGENT</span>
+        <span style="background: #ff4444; color: #fff; padding: 6px 12px; border-radius: 4px; font-size: 0.9em; font-weight: bold; margin-left: 10px;"> URGENT</span>
       {% elif request.urgency == 'High' %}
         <span style="background: #ffaa00; color: #000; padding: 6px 12px; border-radius: 4px; font-size: 0.9em; font-weight: bold; margin-left: 10px;">High Priority</span>
       {% endif %}
@@ -62,12 +62,12 @@
   {% if request.vendor or request.tracking_number or request.estimated_arrival or request.tracking_status %}
   <div style="background: rgba(0, 20, 40, 0.6); border: 2px solid #00d9ff; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-      <h4 style="color: #00d9ff; margin: 0;">📬 Shipping & Tracking Information</h4>
+      <h4 style="color: #00d9ff; margin: 0;"> Shipping & Tracking Information</h4>
       {% if request.tracking_number and current_user.role in ['admin', 'manager'] and request.status not in ['Received', 'Rejected'] %}
         <form method="POST" action="{{ url_for('update_request_tracking', request_id=request.id) }}" style="display: inline;">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
           <button type="submit" style="background: var(--neon-cyan); color: #000; padding: 8px 16px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.transform='scale(1.05)';" onmouseout="this.style.transform='scale(1)';">
-            🔄 Update Tracking
+             Update Tracking
           </button>
         </form>
       {% endif %}
@@ -115,7 +115,7 @@
   <!-- Work Order Link -->
   {% if request.maintenance_id %}
   <div style="background: rgba(0, 20, 40, 0.6); border: 2px solid #ff6400; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
-    <h4 style="color: #ff6400; margin-bottom: 10px;">🔧 Linked Work Order</h4>
+    <h4 style="color: #ff6400; margin-bottom: 10px;"> Linked Work Order</h4>
     <p style="color: #fff;">
       This request is linked to 
       <a href="{{ url_for('maintenance_detail', record_id=request.maintenance_id) }}" style="color: var(--neon-cyan); text-decoration: none; font-weight: bold;">
@@ -132,7 +132,7 @@
 
   <!-- Reason / Notes -->
   <div style="background: rgba(0, 20, 40, 0.6); border: 2px solid #666; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
-    <h4 style="color: #999; margin-bottom: 15px;">📝 Reason / Notes</h4>
+    <h4 style="color: #999; margin-bottom: 15px;"> Reason / Notes</h4>
     
     {% if request.reason %}
     <div style="margin-bottom: 15px;">
@@ -155,7 +155,7 @@
 
   <!-- Audit History Timeline -->
   <div style="background: rgba(0, 20, 40, 0.6); border: 2px solid var(--neon-green); border-radius: 8px; padding: 20px; margin-bottom: 20px;">
-    <h4 style="color: var(--neon-green); margin-bottom: 20px;">📜 Full Audit History</h4>
+    <h4 style="color: var(--neon-green); margin-bottom: 20px;"> Full Audit History</h4>
     
     {% if history %}
     <div style="position: relative;">
@@ -202,30 +202,30 @@
           <!-- Action Description -->
           <div style="color: #fff; font-size: 1em; margin-bottom: 5px;">
             {% if entry.action == 'created' %}
-              <strong style="color: var(--neon-green);">✨ Request Created</strong>
+              <strong style="color: var(--neon-green);"> Request Created</strong>
             {% elif entry.action == 'status_changed' %}
-              <strong style="color: var(--neon-cyan);">🔄 Status Changed:</strong>
+              <strong style="color: var(--neon-cyan);"> Status Changed:</strong>
               <span style="color: #ff6400;">{{ entry.old_value }}</span> → <span style="color: var(--neon-green);">{{ entry.new_value }}</span>
             {% elif entry.action == 'tracking_updated' %}
-              <strong style="color: var(--neon-purple);">📦 Tracking Updated:</strong>
+              <strong style="color: var(--neon-purple);"> Tracking Updated:</strong>
               {% if entry.old_value %}
                 <span style="color: #888; text-decoration: line-through;">{{ entry.old_value }}</span> →
               {% endif %}
               <span style="color: var(--neon-green); font-family: monospace;">{{ entry.new_value }}</span>
             {% elif entry.action == 'vendor_updated' %}
-              <strong style="color: #ffaa00;">🏪 Vendor Updated:</strong>
+              <strong style="color: #ffaa00;"> Vendor Updated:</strong>
               {% if entry.old_value %}
                 <span style="color: #888; text-decoration: line-through;">{{ entry.old_value }}</span> →
               {% endif %}
               <span style="color: var(--neon-green);">{{ entry.new_value }}</span>
             {% elif entry.action == 'eta_updated' %}
-              <strong style="color: #ff6400;">📅 ETA Updated:</strong>
+              <strong style="color: #ff6400;"> ETA Updated:</strong>
               {% if entry.old_value %}
                 <span style="color: #888; text-decoration: line-through;">{{ entry.old_value }}</span> →
               {% endif %}
               <span style="color: var(--neon-green);">{{ entry.new_value }}</span>
             {% elif entry.action == 'notes_updated' %}
-              <strong style="color: #9c27b0;">📝 Notes Updated</strong>
+              <strong style="color: #9c27b0;"> Notes Updated</strong>
             {% else %}
               <strong>{{ entry.action.replace('_', ' ').title() }}</strong>
             {% endif %}
@@ -251,14 +251,14 @@
   <div style="text-align: right; margin-top: 20px;">
     <button onclick="openUpdateModal({{ request.id }}, '{{ request.item_name }}', {{ request.quantity_requested }}, '{{ request.notes|default('', true)|replace('\'', '\\\'')|replace('\n', ' ') }}', '{{ request.tracking_number|default('', true) }}', '{{ request.vendor|default('', true) }}', '{{ request.estimated_arrival.strftime('%Y-%m-%d') if request.estimated_arrival else '' }}', '{{ request.status }}')" 
             class="btn" style="background: var(--neon-purple); color: #fff; padding: 12px 24px; font-size: 16px;">
-      ✏️ Update Request
+       Update Request
     </button>
   </div>
 
   <!-- Update Modal (reuse from list page) -->
   <div id="updateModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; overflow-y: auto;">
     <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--dark-card); padding: 30px; border-radius: 8px; border: 2px solid var(--neon-cyan); max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto;">
-      <h3 style="color: var(--neon-cyan); margin-bottom: 20px;">📦 Update Inventory Request</h3>
+      <h3 style="color: var(--neon-cyan); margin-bottom: 20px;"> Update Inventory Request</h3>
       <p><strong style="color: var(--neon-cyan);">Item:</strong> <span id="modalItemName" style="color: #fff;"></span></p>
       <p><strong style="color: var(--neon-cyan);">Quantity:</strong> <span id="modalQuantity" style="color: #fff;"></span></p>
       
@@ -269,10 +269,10 @@
           <label for="modalStatus">Status *</label>
           <select id="modalStatus" name="status" required>
             <option value="Pending">⏳ Pending</option>
-            <option value="Approved">✓ Approved</option>
-            <option value="Ordered">📦 Ordered</option>
-            <option value="Received">✅ Received</option>
-            <option value="Rejected">✗ Rejected</option>
+            <option value="Approved"> Approved</option>
+            <option value="Ordered"> Ordered</option>
+            <option value="Received"> Received</option>
+            <option value="Rejected"> Rejected</option>
           </select>
         </div>
         
@@ -298,7 +298,7 @@
         
         <div style="text-align: right; margin-top: 20px;">
           <button type="button" onclick="closeUpdateModal()" class="btn" style="background: #6c757d; margin-right: 10px;">Cancel</button>
-          <button type="submit" class="btn btn-success">💾 Save Changes</button>
+          <button type="submit" class="btn btn-success"> Save Changes</button>
         </div>
       </form>
     </div>

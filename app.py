@@ -80,12 +80,16 @@ from security_middleware import init_security
 
 # Initialize Flask app
 app = Flask(__name__)
+
+# Disable CSRF checking by default (will enable selectively on form routes)
+app.config['WTF_CSRF_CHECK_DEFAULT'] = False
+
 csrf = CSRFProtect(app)
 
 
-# -------------------------------------------------------------
+# -------- -------------------------------------------------------
 # 🔧 Core Configuration
-# -------------------------------------------------------------
+# ---------  -------------------------------------------------------
 # It's best to load sensitive values (SECRET_KEY, DB URI) from environment variables in production
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'supersecretkey-change-this')
 app.config['REMEMBER_COOKIE_DURATION'] = dt.timedelta(days=30)
@@ -96,9 +100,9 @@ app.config['REMEMBER_COOKIE_REFRESH_EACH_REQUEST'] = False
 app.config['SESSION_COOKIE_SECURE'] = False  # Set to True if using HTTPS
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-# -------------------------------------------------------------
+# ---------  -------------------------------------------------------
 # ðŸ"§ Core Configuration
-# -------------------------------------------------------------
+# ---------  -------------------------------------------------------
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 INSTANCE_FOLDER = os.path.join(BASE_DIR, 'instance')
 
@@ -117,10 +121,10 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 print(f"✅ Database will be created at: {DB_PATH}")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# -------------------------------------------------------------
+# ---------  -------------------------------------------------------
 # 🔐 Security & CSRF
-# -------------------------------------------------------------
-csrf = CSRFProtect(app)
+# ---------  -------------------------------------------------------
+
 init_security(app)  # from security_middleware.py
 #setup_security_logging(app)  # from security_utils.py
 
@@ -523,6 +527,7 @@ class Game(db.Model):
     # Performance tracking
     times_in_top_5 = db.Column(db.Integer, default=0)
     times_in_top_10 = db.Column(db.Integer, default=0)
+    last_ranking_update = db.Column(db.Date, nullable=True)
     
     play_records = db.relationship('PlayRecord', backref='game', lazy=True, cascade='all, delete-orphan')
     maintenance_records = db.relationship('MaintenanceRecord', backref='game', lazy=True, cascade='all, delete-orphan')
@@ -726,12 +731,9 @@ def login():
             user.last_login = datetime.now(dt.UTC)
             db.session.commit()
             
-            # Make session permanent if remember me is checked
-            if form.remember.data:
-                from flask import session
-                session.permanent = True
-            
-            login_user(user, remember=form.remember.data)
+            # Login user with remember me option
+            # Flask-Login will handle the remember cookie duration from config
+            login_user(user, remember=form.remember.data, duration=dt.timedelta(days=30))
             
             # Log successful login
             log_security_event(
@@ -817,6 +819,8 @@ def profile():
 @app.route('/')
 @login_required
 def home():
+    # Update monthly rankings if needed (idempotent)
+    update_monthly_rankings_if_due()
     # Fetch data for dashboard
     all_games = Game.query.all()
     floor_games = Game.query.filter_by(location='Floor').all()
@@ -1711,8 +1715,21 @@ def update_maintenance(record_id):
         
         return redirect(url_for('maintenance_orders'))
     
-    # GET request - load inventory items
-    inventory_items = InventoryItem.query.order_by(InventoryItem.name.asc()).all()
+    # GET request - load inventory items (convert to dict for JSON serialization)
+    inventory_items_query = InventoryItem.query.order_by(InventoryItem.name.asc()).all()
+    inventory_items = [
+        {
+            'id': item.id,
+            'name': item.name,
+            'description': item.description,
+            'stock_quantity': item.stock_quantity,
+            'unit_price': float(item.unit_price) if item.unit_price else 0,
+            'minimum_stock': item.minimum_stock,
+            'supplier': item.supplier,
+            'part_number': item.part_number
+        }
+        for item in inventory_items_query
+    ]
     return render_template('update_maintenance.html', maintenance=record, inventory_items=inventory_items)
 
 
@@ -2496,38 +2513,107 @@ def reports():
     top_performers = sorted(performers, key=lambda x: x['daily_revenue'], reverse=True)[:10]
     worst_performers = sorted(performers, key=lambda x: x['daily_revenue'])[:10]
     
-    # Update top 5 and top 10 counters
-    _update_top_rankings()
+    # Get top 5 and bottom 3 for report summary
+    top_5_games = top_performers[:5]
+    bottom_3_games = worst_performers[:3]
+    
+    # Calculate total revenue (30 days)
+    total_revenue_30days = sum(daily_revenue.values())
+    
+    # Get inventory data
+    low_stock_items = InventoryItem.query.filter(
+        InventoryItem.stock_quantity <= InventoryItem.minimum_stock
+    ).all()
+    
+    # Get inventory requests (pending/needs)
+    pending_requests = InventoryRequest.query.filter(
+        InventoryRequest.status.in_(['Pending', 'Approved'])
+    ).order_by(InventoryRequest.date_requested.desc()).all()
+    
+    # Get open maintenance orders
+    open_maintenance = MaintenanceRecord.query.filter(
+        MaintenanceRecord.status.in_(['Open', 'In_Progress'])
+    ).order_by(MaintenanceRecord.date_reported.desc()).all()
+    
+    # Ensure monthly rankings are updated at most once per calendar month
+    update_monthly_rankings_if_due()
     
     return render_template('reports.html', 
                          daily_revenue=daily_revenue,
                          top_performers=top_performers,
                          worst_performers=worst_performers,
-                         floor_games_count=len(floor_games))
+                         floor_games_count=len(floor_games),
+                         top_5_games=top_5_games,
+                         bottom_3_games=bottom_3_games,
+                         total_revenue_30days=total_revenue_30days,
+                         low_stock_items=low_stock_items,
+                         pending_requests=pending_requests,
+                         open_maintenance=open_maintenance)
 
 def _update_top_rankings():
-    """Update the times_in_top_5 and times_in_top_10 counters - only floor games with working counters"""
-    games = Game.query.filter_by(location='Floor', counter_status='Working').all()
-    revenue_ranking = []
-    
-    for game in games:
-        # Make game.date_added timezone-aware if it's naive
-        date_added = game.date_added
-        if date_added.tzinfo is None:
-            date_added = date_added.replace(tzinfo=dt.UTC)
-        days_active = (datetime.now(dt.UTC) - date_added).days or 1
-        daily_revenue = game.total_revenue / days_active
-        revenue_ranking.append((game, daily_revenue))
-    
-    revenue_ranking.sort(key=lambda x: x[1], reverse=True)
-    
-    # Update counters
-    for i, (game, _) in enumerate(revenue_ranking):
-        if i < 5:  # Top 5
-            game.times_in_top_5 += 1
-        if i < 10:  # Top 10
-            game.times_in_top_10 += 1
-    
+    """Deprecated: replaced by update_monthly_rankings_if_due()"""
+    return
+
+
+def update_monthly_rankings_if_due():
+    """Increment Top5/Top10 counters once per calendar month based on last month's revenue.
+    - Considers only Floor games with Working counters
+    - Uses PlayRecord revenue summed over the previous calendar month
+    - Safe to call multiple times; updates at most once per month
+    """
+    from datetime import timedelta
+    today = date.today()
+    current_month_start = today.replace(day=1)
+
+    # Determine previous month range
+    prev_month_end = current_month_start - dt.timedelta(days=1)
+    prev_month_start = prev_month_end.replace(day=1)
+
+    # Check if rankings already updated this month
+    last_updates = db.session.query(db.func.max(Game.last_ranking_update)).scalar()
+    if last_updates and last_updates >= current_month_start:
+        return  # Already updated for this month
+
+    # Build revenue per game for previous month
+    records = (
+        PlayRecord.query
+        .join(Game)
+        .filter(
+            PlayRecord.date_recorded >= prev_month_start,
+            PlayRecord.date_recorded <= prev_month_end,
+            Game.location == 'Floor',
+            Game.counter_status == 'Working'
+        )
+        .all()
+    )
+
+    if not records:
+        # Mark update to avoid repeated work this month even if no data
+        for g in Game.query.all():
+            g.last_ranking_update = current_month_start
+        db.session.commit()
+        return
+
+    revenue_by_game = {}
+    for r in records:
+        revenue_by_game.setdefault(r.game_id, 0.0)
+        revenue_by_game[r.game_id] += r.revenue or 0.0
+
+    # Rank games by revenue
+    ranked = sorted(revenue_by_game.items(), key=lambda kv: kv[1], reverse=True)
+
+    # Increment counters
+    top5_ids = set([gid for gid, _ in ranked[:5]])
+    top10_ids = set([gid for gid, _ in ranked[:10]])
+
+    games = Game.query.all()
+    for g in games:
+        if g.id in top5_ids:
+            g.times_in_top_5 = (g.times_in_top_5 or 0) + 1
+        if g.id in top10_ids:
+            g.times_in_top_10 = (g.times_in_top_10 or 0) + 1
+        g.last_ranking_update = current_month_start
+
     db.session.commit()
 
 @app.route('/graphs')
@@ -3875,6 +3961,15 @@ def delete_backup():
         flash('Backup file not found.', 'warning')
 
     return redirect(url_for('backup_management'))
+
+# -------------------------------------------------------------
+# 🎳 Register Skeeball Routes
+# -------------------------------------------------------------
+try:
+    from skeeball_routes import register_skeeball_routes
+    register_skeeball_routes(app)
+except ImportError as e:
+    print(f"⚠️  Skeeball routes not available: {e}")
 
 if __name__ == '__main__':
     with app.app_context():

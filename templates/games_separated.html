@@ -28,7 +28,7 @@
         </div>
         
         <input type="hidden" name="tab" value="{{ view_tab }}">
-        <button type="submit" class="btn" style="padding: 8px 15px;">🔍 Filter</button>
+        <button type="submit" class="btn" style="padding: 8px 15px;"> Filter</button>
         {% if search or status_filter %}
             <a href="{{ url_for('games_list', tab=view_tab) }}" class="btn" style="padding: 8px 15px; background: #666;">Clear</a>
         {% endif %}
@@ -41,18 +41,18 @@
         <a href="{{ url_for('games_list', tab='floor', search=search, status=status_filter) }}" 
            class="tab-button {{ 'active' if view_tab == 'floor' else '' }}"
            style="padding: 12px 24px; text-decoration: none; border-bottom: 3px solid {{ 'var(--neon-cyan)' if view_tab == 'floor' else 'transparent' }}; color: {{ 'var(--neon-cyan)' if view_tab == 'floor' else 'var(--text-primary)' }};">
-            🎮 Floor Games ({{ floor_games|length }})
+             Floor Games ({{ floor_games|length }})
         </a>
         <a href="{{ url_for('games_list', tab='warehouse', search=search, status=status_filter) }}" 
            class="tab-button {{ 'active' if view_tab == 'warehouse' else '' }}"
            style="padding: 12px 24px; text-decoration: none; border-bottom: 3px solid {{ 'var(--neon-cyan)' if view_tab == 'warehouse' else 'transparent' }}; color: {{ 'var(--neon-cyan)' if view_tab == 'warehouse' else 'var(--text-primary)' }};">
-            📦 Warehouse Games ({{ warehouse_games|length }})
+             Warehouse Games ({{ warehouse_games|length }})
         </a>
         {% if other_games %}
         <a href="{{ url_for('games_list', tab='other', search=search, status=status_filter) }}" 
            class="tab-button {{ 'active' if view_tab == 'other' else '' }}"
            style="padding: 12px 24px; text-decoration: none; border-bottom: 3px solid {{ 'var(--neon-cyan)' if view_tab == 'other' else 'transparent' }}; color: {{ 'var(--neon-cyan)' if view_tab == 'other' else 'var(--text-primary)' }};">
-            🚚 Other Locations ({{ other_games|length }})
+             Other Locations ({{ other_games|length }})
         </a>
         {% endif %}
     </div>
@@ -61,7 +61,7 @@
 <!-- Floor Games Tab -->
 {% if view_tab == 'floor' %}
     <div class="tab-content">
-        <h2 style="color: var(--neon-cyan); margin-bottom: 15px;">🎮 Games on Floor</h2>
+        <h2 style="color: var(--neon-cyan); margin-bottom: 15px;"> Games on Floor</h2>
         {% if floor_games %}
             {% set games = floor_games %}
             {% include 'games_table.html' %}
@@ -74,7 +74,7 @@
 <!-- Warehouse Games Tab -->
 {% if view_tab == 'warehouse' %}
     <div class="tab-content">
-        <h2 style="color: var(--neon-orange); margin-bottom: 15px;">📦 Games in Warehouse</h2>
+        <h2 style="color: var(--neon-orange); margin-bottom: 15px;"> Games in Warehouse</h2>
         {% if warehouse_games %}
             {% set games = warehouse_games %}
             {% include 'games_table.html' %}
@@ -87,7 +87,7 @@
 <!-- Other Games Tab -->
 {% if view_tab == 'other' and other_games %}
     <div class="tab-content">
-        <h2 style="color: var(--neon-purple); margin-bottom: 15px;">🚚 Other Locations</h2>
+        <h2 style="color: var(--neon-purple); margin-bottom: 15px;"> Other Locations</h2>
         {% if other_games %}
             {% set games = other_games %}
             {% include 'games_table.html' %}
