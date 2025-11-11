@@ -146,7 +146,25 @@ This basic version can be extended with:
 - **Backup system**: Automated data backups
 - **Advanced reports**: Charts, graphs, and trend analysis
 
-## 📈 Recent Updates (v2.0)
+## 📈 Recent Updates (v2.1)
+
+### 🎯 Monthly Performance Tracking
+- **Monthly Top 5/Top 10 Rankings**: Automatic monthly updates on the 1st of each month
+- **Historical Performance Counters**: Track how many times games rank in top 5 and top 10
+- **Previous Month Revenue**: Rankings based on prior month's total revenue
+- **Smart Update Logic**: Updates at most once per calendar month, preventing double-counting
+
+### 📊 Executive Summary Dashboard
+- **Revenue Overview**: Total 30-day revenue with Top 5 and Bottom 3 games at a glance
+- **Inventory Status**: Real-time low stock alerts and pending request tracking
+- **Maintenance Dashboard**: Active work orders with priority and status indicators
+- **Actionable Insights**: Quick links to games, orders, and inventory items
+
+### 🔧 Technical Improvements
+- **Multi-Photo Upload Fix**: Resolved duplicate file input causing upload issues
+- **30-Day Login Persistence**: Fixed "Remember Me" functionality for extended sessions
+- **Clean Interface**: Removed all emoji characters for consistent cross-platform rendering
+- **Database Migration**: Added last_ranking_update field for tracking monthly updates
 
 ### 🔧 Work Logging System
 - **New WorkLog Database Table**: Stores individual work entries with timestamps
