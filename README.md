@@ -110,45 +110,163 @@ pip install -r requirements.txt
 python app.py
 ```
 
-## Skeeball Integration
+## 🎳 Skeeball Integration
 
-Arcade Tracker includes a complete Raspberry Pi-based skeeball scoring system with real-time tracking.
+Arcade Tracker includes a complete Raspberry Pi-based skeeball scoring system with automatic scoring, real-time revenue tracking, and scalable multi-lane architecture.
 
-### Features
-- **Automatic Scoring**: 6-hole detection (10, 20, 30, 40, 50, 100 points)
-- **Game Management**: Full 9-ball games with bonus tracking
-- **Coin Counter**: Integrated coin acceptor support
-- **Real-time Sync**: Automatic data upload to Arcade Tracker
-- **Multi-Lane Support**: Scalable architecture for multiple machines
-- **Web Interface**: Control panel, simulator, and statistics dashboard
-- **GPIO Testing**: Built-in hardware testing tools
+### 🌟 Key Features
 
-### Access Points
-- **Main Hub**: `/skeeball/` - Overview and lane selection
-- **Control Panel**: `/skeeball/control` - Lane management and monitoring
-- **Simulator**: `/skeeball/simulator` - Test without hardware
-- **Statistics**: `/skeeball/stats` - Performance analytics
-- **GPIO Testing**: `/skeeball/gpio-test` - Hardware diagnostics
+#### Automatic Scoring System
+- **7-Sensor Configuration**: Coin input + ball counter + 5 scoring holes
+  - **Score 10**: 5 switches (10 points each)
+  - **Score 50**: 2 switches (50 points each)  
+  - **Lane Track**: Ball roll detection (50 points)
+- **Infrared Sensors**: Break-beam detection for accurate, reliable scoring
+- **Debounce Logic**: Prevents double-counting from sensor bounce (configurable)
+- **Real-time Score Display**: Instant feedback on each ball scored
 
-### Hardware Setup
-**Minimum Requirements:**
-- Raspberry Pi (any model with GPIO)
-- Coin acceptor/switch
-- 6x infrared break-beam sensors
-- Optional: TM1637 display for on-machine scoring
+#### Game Management
+- **9-Ball Standard Games**: Traditional skeeball format
+- **Bonus Games**: Automatic bonus game awards at configurable thresholds
+- **Ball Timeout**: Configurable timeout between balls (prevents stuck games)
+- **Coin Integration**: Start games via coin acceptor or manual trigger
+- **Persistent State**: Game state survives power loss and restarts
+- **Revenue Reconciliation**: Daily automated revenue sync with Arcade Tracker database
 
-**Architecture Options:**
-- **Single Lane**: Pi 4 directly connected to one machine
-- **Multi-Lane**: Pi 4 coordinator with Pi Pico per lane via USB
+#### Multi-Lane Architecture
+- **Single Lane Mode**: Raspberry Pi 4 connected directly to one machine
+- **Multi-Lane Mode**: Unlimited scalability
+  - Pi 4 acts as coordinator running Arcade Tracker
+  - One Raspberry Pi Pico per skeeball lane
+  - USB serial communication between Pi 4 and Picos
+  - Independent lane operation (isolated failures)
+  - Simplified wiring per machine
 
-### Quick Start
-1. Configure GPIO pins in skeeball settings
-2. Wire sensors to assigned GPIO pins
-3. Navigate to `/skeeball/simulator` to test without hardware
-4. Use `/skeeball/gpio-test` to verify sensor connections
-5. Launch games from `/skeeball/control`
+#### Web Interface & APIs
+- **Main Hub** (`/skeeball/`): Overview, lane selection, and navigation
+- **Control Panel** (`/skeeball/control`): Start/stop lanes, view status, test modes
+- **Simulator** (`/skeeball/simulator`): Full gameplay testing without GPIO hardware
+- **Statistics** (`/skeeball/stats`): Revenue analytics, game counts, performance metrics
+- **GPIO Testing** (`/skeeball/gpio-test`): Real-time hardware diagnostics and sensor monitoring
+- **RESTful API**: Authenticated endpoints for programmatic control and monitoring
 
-For detailed setup instructions, see `rpi_skeeball/README.md` and `DEPLOYMENT_CHECKLIST.md`.
+### 🛠️ Hardware Requirements
+
+#### Minimum Setup (Single Lane)
+- **Raspberry Pi** (any model with GPIO - Pi 4 recommended)
+- **MicroSD Card**: 16GB+ recommended
+- **Power Supply**: Appropriate for Pi model (Pi 4: 5V 3A USB-C)
+- **Coin Acceptor**: Standard arcade coin mechanism or pushbutton
+- **Ball Counter Sensor**: Detects balls entering play area
+- **Scoring Sensors**: 7 infrared break-beam sensors
+  - 5 for 10-point holes
+  - 2 for 50-point holes
+  - 1 for lane track (roll-down)
+- **Wiring**: Breadboard, jumper wires, pull-up resistors (if not built into sensors)
+
+#### Optional Components
+- **TM1637 Display**: 4-digit 7-segment display for on-machine score display
+- **Raspberry Pi Pico**: For multi-lane setups (one per lane)
+- **USB Cables**: For Pi Pico ↔ Pi 4 communication
+- **Relay Modules**: For solenoid control (ball release) and LED power management
+
+#### Default GPIO Pin Assignments (BCM Numbering)
+```
+Coin Input:       GPIO 2
+Ball Counter:     GPIO 3
+Score 10 (5x):    GPIO 4, 5, 6, 7, 8
+Score 50 (2x):    GPIO 9, 10
+Lane Track:       GPIO 11
+Solenoid Relay:   GPIO 10 (output)
+LED Power Relay:  GPIO 26 (output)
+```
+
+### 🚀 Quick Start Guide
+
+#### 1. Installation
+The skeeball system is integrated into Arcade Tracker. Dependencies are installed automatically:
+```bash
+source venv/bin/activate
+pip install -r requirements.txt
+```
+
+#### 2. Development Testing (No Hardware Required)
+```bash
+# Start Arcade Tracker
+python app.py
+
+# Navigate to simulator
+open http://localhost:5000/skeeball/simulator
+
+# Test game logic by clicking buttons:
+# - Insert Coin → Start Game
+# - Score buttons → Simulate scoring
+# - Watch game state and revenue tracking
+```
+
+#### 3. Hardware Setup
+1. **Wire sensors** to GPIO pins (see pin assignments above)
+2. **Configure settings** in `/skeeball/control`
+3. **Test sensors** at `/skeeball/gpio-test`
+   - Monitor real-time pin states
+   - Trigger each sensor to verify connections
+   - Check debounce behavior
+4. **Launch games** from `/skeeball/control`
+
+#### 4. Production Deployment
+See `DEPLOYMENT_CHECKLIST.md` for comprehensive deployment instructions including:
+- Sensor wiring diagrams
+- Pi Pico firmware setup (multi-lane)
+- Production configuration
+- Troubleshooting guide
+
+### 📊 Revenue Integration
+
+#### Automatic Revenue Tracking
+- **Per-Game Revenue**: Each coin insertion tracked with timestamp
+- **Daily Reconciliation**: Automated daily sync at midnight
+- **Database Integration**: Revenue stored in Arcade Tracker's play_records table
+- **Statistics Dashboard**: Real-time revenue analytics per lane
+- **CSV Export**: Revenue data exportable with all other game data
+
+#### Revenue Workflow
+1. Player inserts coin → Revenue logged to lane controller
+2. Game completes → Final score and revenue stored
+3. Daily scheduler (midnight) → Sync all lane revenue to database
+4. Arcade Tracker reports → Include skeeball revenue in analytics
+
+### 🔧 Configuration
+
+All configuration is done via Python config files:
+- **`config.py`**: GPIO pin assignments, point values, game parameters
+- **`.env.skeeball`**: Environment-specific settings (production vs development)
+- **Web Interface**: Runtime configuration via control panel
+
+### 📚 Documentation
+
+Comprehensive documentation included:
+- **`SKEEBALL_INTEGRATION_SUMMARY.md`**: Integration overview and verification
+- **`DEPLOYMENT_CHECKLIST.md`**: Step-by-step production deployment
+- **`FLASK_INTEGRATION.md`**: Technical integration details
+- **`MULTI_LANE_ARCHITECTURE.md`**: Multi-lane system architecture
+- **`GPIO_TESTING_README.md`**: Hardware testing and troubleshooting
+- **`SKEEBALL_TROUBLESHOOTING.md`**: Common issues and solutions
+
+### 🔐 Security
+
+All skeeball features protected by:
+- **Flask-Login**: Authentication required for all endpoints
+- **CSRF Protection**: All forms secured via Flask-WTF
+- **Role-Based Access**: Same permission model as main Arcade Tracker
+- **API Authentication**: All API endpoints require valid session
+
+### 🎯 Use Cases
+
+- **Arcade Operators**: Automated revenue tracking without manual coin counting
+- **Family Entertainment Centers**: Multi-lane management from single interface
+- **Developers**: Test game logic with simulator before hardware deployment
+- **Technicians**: Hardware diagnostics and sensor testing tools
+- **Managers**: Real-time performance analytics and revenue reports
 
 ## Usage
 
