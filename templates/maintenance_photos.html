@@ -147,9 +147,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 previewDiv.innerHTML = preview;
                 e.target.closest('.mb-3').appendChild(previewDiv);
                 
-                // Enable submit button
+                // Update submit button text
                 if (submitBtn) {
-                    submitBtn.disabled = false;
                     submitBtn.textContent = `Upload ${files.length} Photo${files.length > 1 ? 's' : ''}`;
                 }
             } else {
@@ -160,7 +159,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 
                 if (submitBtn) {
-                    submitBtn.disabled = true;
                     submitBtn.textContent = 'Upload Photos';
                 }
             }
@@ -185,10 +183,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Initially disable submit if no files
-    if (submitBtn && fileInput && fileInput.files.length === 0) {
-        submitBtn.disabled = true;
-    }
+    // Don't disable submit initially - let user click and we'll validate on submit
 });
 </script>
 {% endblock %}

@@ -162,6 +162,16 @@
         <a href="/skeeball/" class="back-link">← Back to Control Center</a>
         <h1> Lane Control Panel</h1>
         
+        <div style="background: rgba(255, 255, 255, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+            <div style="color: white;">
+                <strong>System Controls</strong>
+                <p style="margin: 5px 0 0 0; font-size: 0.9rem; opacity: 0.8;">Manage the Raspberry Pi system</p>
+            </div>
+            <button class="btn-danger" onclick="rebootSystem()" style="padding: 12px 24px;">
+                 Reboot Raspberry Pi
+            </button>
+        </div>
+        
         <div class="lanes-grid" id="lanesContainer">
             <div class="empty-state">
                 <h2>Loading lanes...</h2>
@@ -256,6 +266,24 @@
                     method: 'POST'
                 });
                 loadLanes();
+            }
+        }
+        
+        async function rebootSystem() {
+            if (confirm('WARNING: This will reboot the Raspberry Pi system. All games will be interrupted. Continue?')) {
+                try {
+                    const response = await fetch('/skeeball/api/system/reboot', {
+                        method: 'POST'
+                    });
+                    if (response.ok) {
+                        alert('Reboot command sent. The system will restart in a few seconds.');
+                    } else {
+                        const error = await response.json();
+                        alert('Reboot failed: ' + (error.error || 'Unknown error'));
+                    }
+                } catch (e) {
+                    alert('Failed to send reboot command: ' + e.message);
+                }
             }
         }
         

@@ -21,6 +21,44 @@ skeeball_bp = Blueprint(
 )
 
 
+def get_or_create_game_for_lane(lane_id):
+    """Get or create a Game entry for a skeeball lane.
+    
+    Args:
+        lane_id: Lane identifier (e.g. 'lane_1')
+    
+    Returns:
+        Game model instance
+    """
+    from app import db, Game
+    
+    # Create a standardized game name from lane_id
+    # Extract number from lane_id (e.g. "lane_1" -> "1")
+    lane_number = lane_id.split('_')[-1] if '_' in lane_id else lane_id
+    game_name = f"Skeeball Lane {lane_number}"
+    
+    # Check if game already exists
+    game = Game.query.filter_by(name=game_name).first()
+    
+    if not game:
+        # Create new game entry
+        game = Game(
+            name=game_name,
+            manufacturer="Custom",
+            genre="Skeeball",
+            location="Floor",
+            status="Working",
+            counter_status="Working",
+            coins_per_play=1.0,  # $1 per game
+            notes=f"Automated skeeball lane managed by Raspberry Pi (lane_id: {lane_id})"
+        )
+        db.session.add(game)
+        db.session.commit()
+        print(f"✅ Created Game entry for {lane_id}: '{game_name}' (ID: {game.id})")
+    
+    return game
+
+
 def get_lane_manager():
     """Get or create the lane manager singleton."""
     if not hasattr(current_app, 'lane_manager'):
@@ -34,6 +72,20 @@ def get_lane_manager():
         current_app.lane_manager = LaneManager(auto_discover=False)
         current_app.lane_manager.register_local_lane("lane_1", None)
         current_app.lane_manager.start_polling()
+        
+        # Ensure Game entry exists for the lane
+        game = get_or_create_game_for_lane("lane_1")
+        
+        # Link the lane to the game for revenue tracking
+        lane = current_app.lane_manager.get_lane("lane_1")
+        if lane:
+            lane.link_to_game(game.id)
+            print(f"🔗 Linked lane_1 to Game ID {game.id}")
+        
+        # Store game_id mapping for reference
+        if not hasattr(current_app, 'lane_game_mapping'):
+            current_app.lane_game_mapping = {}
+        current_app.lane_game_mapping["lane_1"] = game.id
         
         # Initialize revenue scheduler
         if not hasattr(current_app, 'revenue_scheduler'):
@@ -252,6 +304,28 @@ def api_hardware_control():
         return jsonify({"error": "Request to Raspberry Pi timed out"}), 504
     except Exception as e:
         return jsonify({"error": f"Hardware control failed: {str(e)}"}), 500
+
+
+@skeeball_bp.route('/api/system/reboot', methods=['POST'])
+@login_required
+def api_system_reboot():
+    """Reboot the Raspberry Pi system."""
+    import subprocess
+    import os
+    
+    # Only allow on actual Raspberry Pi (check for /boot/firmware or /boot directory)
+    if not (os.path.exists('/boot/firmware') or os.path.exists('/proc/device-tree/model')):
+        return jsonify({
+            "error": "System reboot is only available on Raspberry Pi hardware",
+            "hint": "This is a development system"
+        }), 403
+    
+    try:
+        # Use subprocess to run reboot command
+        subprocess.Popen(['sudo', 'reboot'])
+        return jsonify({"message": "Reboot command sent successfully"})
+    except Exception as e:
+        return jsonify({"error": f"Reboot failed: {str(e)}"}), 500
 
 
 @skeeball_bp.route('/api/roll-outcome', methods=['POST'])
