@@ -1,430 +1,308 @@
 {% extends "base.html" %}
 
-{% block title %} Skeeball Simulator - Arcade Tracker{% endblock %}
+{% block title %}Skeeball Simulator - Arcade Tracker{% endblock %}
 
 {% block content %}
-<style>
-    .simulator-container {
-        max-width: 1000px;
-        margin: 0 auto;
-    }
-    
-    .sim-card {
-        background: var(--card-bg, #16213e);
-        border-radius: 12px;
-        padding: 25px;
-        margin-bottom: 20px;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
-        border: 1px solid var(--border-color, rgba(0, 255, 255, 0.2));
-    }
-    
-    .sim-card h2 {
-        color: var(--primary-color, #00ffff);
-        margin-bottom: 20px;
-        font-size: 1.3rem;
-    }
-    
-    .status-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-        gap: 15px;
-        margin-bottom: 20px;
-    }
-    
-    .status-item {
-        background: var(--option-bg, rgba(0, 255, 255, 0.1));
-        padding: 15px;
-        border-radius: 8px;
-        border-left: 4px solid var(--primary-color, #00ffff);
-        text-align: center;
-    }
-    
-    .status-label {
-        font-size: 0.85rem;
-        color: var(--text-secondary, #a0aec0);
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-    
-    .status-value {
-        font-size: 1.8rem;
-        font-weight: bold;
-        color: var(--primary-color, #00ffff);
-        margin-top: 5px;
-    }
-    
-    .controls {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-        gap: 10px;
-        margin-bottom: 20px;
-    }
-    
-    button {
-        padding: 12px 16px;
-        border: none;
-        border-radius: 8px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        font-size: 0.95rem;
-    }
-    
-    .btn-primary {
-        background: var(--primary-color, #00ffff);
-        color: #000;
-    }
-    
-    .btn-primary:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0, 255, 255, 0.4);
-    }
-    
-    .btn-success {
-        background: #48bb78;
-        color: white;
-    }
-    
-    .btn-success:hover {
-        background: #38a169;
-    }
-    
-    .btn-danger {
-        background: #f56565;
-        color: white;
-    }
-    
-    .btn-danger:hover {
-        background: #e53e3e;
-    }
-    
-    .btn-warning {
-        background: #ffc107;
-        color: #000;
-    }
-    
-    .btn-warning:hover {
-        background: #e0a800;
-    }
-    
-    .roll-outcomes {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-        gap: 10px;
-    }
-    
-    .outcome-btn {
-        padding: 15px;
-        background: var(--option-bg, rgba(0, 255, 255, 0.1));
-        border: 2px solid var(--primary-color, #00ffff);
-        border-radius: 8px;
-        color: var(--primary-color, #00ffff);
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        font-size: 1rem;
-    }
-    
-    .outcome-btn:hover {
-        background: var(--primary-color, #00ffff);
-        color: #000;
-        transform: scale(1.05);
-    }
-    
-    .outcome-btn:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-    }
-    
-    .event-log {
-        background: var(--log-bg, #000);
-        color: var(--log-text, #0f0);
-        border-radius: 8px;
-        padding: 15px;
-        font-family: 'Monaco', 'Courier New', monospace;
-        font-size: 0.9rem;
-        max-height: 300px;
-        overflow-y: auto;
-        margin-top: 15px;
-    }
-    
-    .log-entry {
-        padding: 5px 0;
-        border-bottom: 1px solid rgba(0, 255, 255, 0.1);
-    }
-    
-    .log-entry:last-child {
-        border-bottom: none;
-    }
-    
-    .log-time {
-        color: #90cdf4;
-    }
-    
-    .log-event {
-        color: #68d391;
-    }
-    
-    .log-info {
-        color: #f6ad55;
-    }
-</style>
+<div class="page-header">
+    <h1>🎳 Skeeball Simulator</h1>
+    <p>Interactive testing interface for skeeball lane mechanics</p>
+</div>
 
-<div class="simulator-container">
-    <h1 style="text-align: center; margin-bottom: 10px;"> Skeeball Simulator</h1>
-    
-    <!-- Game Status -->
-    <div class="sim-card">
-        <h2> Game Status</h2>
-        
-        <div class="status-grid">
-            <div class="status-item">
-                <div class="status-label">Credits</div>
-                <div class="status-value" id="credits">0</div>
+<div class="row">
+    <!-- Game Status Display -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h3>🎮 Game Status</h3>
             </div>
-            <div class="status-item">
-                <div class="status-label">Score</div>
-                <div class="status-value" id="score">0</div>
+            <div class="card-body" id="game-status">
+                <div class="status-item">
+                    <strong>State:</strong> <span id="game-state">Idle</span>
+                </div>
+                <div class="status-item">
+                    <strong>Credits:</strong> <span id="credits">0</span>
+                </div>
+                <div class="status-item">
+                    <strong>Ball:</strong> <span id="ball">0</span> / {{ config.TOTAL_BALLS }}
+                </div>
+                <div class="status-item">
+                    <strong>Score:</strong> <span id="score">0</span>
+                </div>
+                <div class="status-item">
+                    <strong>Daily Coins:</strong> <span id="daily-coins">0</span>
+                </div>
             </div>
-            <div class="status-item">
-                <div class="status-label">Balls</div>
-                <div class="status-value" id="balls">0/9</div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header">
+                <h3>📊 Statistics</h3>
             </div>
-            <div class="status-item">
-                <div class="status-label">Status</div>
-                <div class="status-value" id="status" style="font-size: 1rem;">Idle</div>
+            <div class="card-body" id="stats">
+                <div class="status-item">
+                    <strong>Total Games:</strong> <span id="total-games">0</span>
+                </div>
+                <div class="status-item">
+                    <strong>Total Score:</strong> <span id="total-score">0</span>
+                </div>
+                <div class="status-item">
+                    <strong>Best Score:</strong> <span id="best-score">0</span>
+                </div>
+                <div class="status-item">
+                    <strong>Total Coins:</strong> <span id="total-coins">0</span>
+                </div>
             </div>
         </div>
     </div>
-    
-    <!-- Main Controls -->
-    <div class="sim-card">
-        <h2> Controls</h2>
-        <div class="controls">
-            <button class="btn-success" onclick="insertCoin()"> Coin</button>
-            <button class="btn-primary" onclick="trigger('score_10')">⊕ +10</button>
-            <button class="btn-primary" onclick="trigger('score_50')">⊕⊕ +50</button>
-            <button class="btn-primary" onclick="trigger('lane_track')"> Lane</button>
-            <button class="btn-primary" onclick="trigger('ball_scored')"> Ball</button>
-            <button class="btn-danger" onclick="resetGame()"> Reset</button>
-            <button class="btn-warning" onclick="machineReset()"> Machine Reset</button>
-        </div>
-    </div>
-    
-    <!-- Roll Simulator -->
-    <div class="sim-card">
-        <h2> Roll Outcomes</h2>
-        <p style="color: var(--text-secondary, #a0aec0); margin-bottom: 15px;">Simulate complete roll sequences</p>
-        <div class="roll-outcomes">
-            <button class="outcome-btn" onclick="rollOutcome('Miss')">Miss</button>
-            <button class="outcome-btn" onclick="rollOutcome('10')">10</button>
-            <button class="outcome-btn" onclick="rollOutcome('20')">20</button>
-            <button class="outcome-btn" onclick="rollOutcome('30')">30</button>
-            <button class="outcome-btn" onclick="rollOutcome('40')">40</button>
-            <button class="outcome-btn" onclick="rollOutcome('50')">50</button>
-            <button class="outcome-btn" onclick="rollOutcome('100')">100 </button>
-        </div>
-    </div>
-    
-    <!-- Game Log -->
-    <div class="sim-card">
-        <h2> Game Log</h2>
-        <div class="event-log" id="eventLog">
-            <div class="log-entry"><span class="log-time">[Ready]</span> <span class="log-event">Insert a coin to start playing...</span></div>
+
+    <!-- Simulator Controls -->
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h3>🕹️ Simulator Controls</h3>
+            </div>
+            <div class="card-body">
+                <!-- Coin Insert -->
+                <div class="control-section">
+                    <h4>💰 Coin Insert</h4>
+                    <button class="btn btn-primary btn-lg" onclick="insertCoin()">
+                        🪙 Insert Coin
+                    </button>
+                </div>
+
+                <hr>
+
+                <!-- Score Buttons -->
+                <div class="control-section">
+                    <h4>🎯 Score Buttons</h4>
+                    <div class="button-grid">
+                        <div>
+                            <label>10 Points ({{ config.PINS.score_10|length }} switches)</label>
+                            {% for i in range(config.PINS.score_10|length) %}
+                            <button class="btn btn-success" onclick="score10()">
+                                🔟 Score 10 (Pin {{ config.PINS.score_10[i] }})
+                            </button>
+                            {% endfor %}
+                        </div>
+
+                        <div class="mt-3">
+                            <label>50 Points ({{ config.PINS.score_50|length }} switches)</label>
+                            {% for i in range(config.PINS.score_50|length) %}
+                            <button class="btn btn-warning" onclick="score50()">
+                                5️⃣0️⃣ Score 50 (Pin {{ config.PINS.score_50[i] }})
+                            </button>
+                            {% endfor %}
+                        </div>
+
+                        <div class="mt-3">
+                            <label>Lane Track (50 points)</label>
+                            <button class="btn btn-info" onclick="laneTrack()">
+                                🛤️ Lane Track (Pin {{ config.PINS.lane_track }})
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <hr>
+
+                <!-- Ball Management -->
+                <div class="control-section">
+                    <h4>⚾ Ball Management</h4>
+                    <button class="btn btn-secondary" onclick="ballScored()">
+                        ✅ Ball Scored (Complete Ball)
+                    </button>
+                </div>
+
+                <hr>
+
+                <!-- Quick Actions -->
+                <div class="control-section">
+                    <h4>⚡ Quick Actions</h4>
+                    <div class="button-grid">
+                        <button class="btn btn-sm btn-outline-primary" onclick="quickRoll('Miss')">
+                            ❌ Miss
+                        </button>
+                        <button class="btn btn-sm btn-outline-success" onclick="quickRoll('10')">
+                            🎯 10 pts
+                        </button>
+                        <button class="btn btn-sm btn-outline-success" onclick="quickRoll('20')">
+                            🎯 20 pts
+                        </button>
+                        <button class="btn btn-sm btn-outline-success" onclick="quickRoll('30')">
+                            🎯 30 pts
+                        </button>
+                        <button class="btn btn-sm btn-outline-success" onclick="quickRoll('40')">
+                            🎯 40 pts
+                        </button>
+                        <button class="btn btn-sm btn-outline-success" onclick="quickRoll('50')">
+                            🎯 50 pts
+                        </button>
+                        <button class="btn btn-sm btn-outline-warning" onclick="quickRoll('100')">
+                            ⭐ 100 pts
+                        </button>
+                    </div>
+                </div>
+
+                <hr>
+
+                <!-- Reset -->
+                <div class="control-section">
+                    <h4>🔄 Reset</h4>
+                    <button class="btn btn-danger" onclick="resetMachine(false)">
+                        🔄 Reset Game
+                    </button>
+                    <button class="btn btn-danger-outline" onclick="resetMachine(true)">
+                        🗑️ Reset Game + Stats
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 </div>
 
+<style>
+    .control-section {
+        margin: 20px 0;
+    }
+
+    .button-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .status-item {
+        padding: 8px 0;
+        border-bottom: 1px solid rgba(0, 255, 255, 0.2);
+    }
+
+    .status-item:last-child {
+        border-bottom: none;
+    }
+
+    #game-state {
+        font-weight: bold;
+        color: #00ffff;
+    }
+
+    .btn {
+        margin: 5px;
+    }
+</style>
+
 <script>
-    let gameState = {
-        credits: 0,
-        score: 0,
-        balls: 0,
-        total_balls: 9,
-        in_progress: false
-    };
+    const LANE_ID = 'lane_1';
     
-    // Auto-refresh status every second
-    setInterval(updateStatus, 1000);
-    
-    // Force immediate update on page load
-    setTimeout(updateStatus, 100);
-    
+    // Fetch and update game status
     async function updateStatus() {
         try {
-            const response = await fetch('/skeeball/api/lanes/lane_1/status');
-            if (!response.ok) {
-                console.error('Status fetch failed:', response.status, response.statusText);
+            const response = await fetch(`/skeeball/api/lanes/${LANE_ID}/status`);
+            
+            // If redirected to login (401/403), stop polling
+            if (response.status === 401 || response.status === 403 || response.redirected) {
+                console.log('Not logged in, stopping auto-refresh');
+                clearInterval(refreshInterval);
                 return;
             }
-            const data = await response.json();
-            gameState = data;
             
-            // Always show credits
+            const data = await response.json();
+            
+            if (data.error) {
+                console.error('Error fetching status:', data.error);
+                return;
+            }
+            
+            // Update game status
+            document.getElementById('game-state').textContent = data.state || 'Idle';
             document.getElementById('credits').textContent = data.credits || 0;
+            document.getElementById('ball').textContent = data.ball || 0;
             document.getElementById('score').textContent = data.score || 0;
-            document.getElementById('balls').textContent = `${data.balls || 0}/${data.total_balls || 9}`;
+            document.getElementById('daily-coins').textContent = data.daily_coins || 0;
             
-            if (data.in_progress) {
-                document.getElementById('status').textContent = ' Playing';
-            } else if (data.credits > 0) {
-                document.getElementById('status').textContent = ' Ready';
-            } else {
-                document.getElementById('status').textContent = '⏸ Idle';
+            // Update stats
+            if (data.stats) {
+                document.getElementById('total-games').textContent = data.stats.total_games || 0;
+                document.getElementById('total-score').textContent = data.stats.total_score || 0;
+                document.getElementById('best-score').textContent = data.stats.best_score || 0;
+                document.getElementById('total-coins').textContent = data.stats.total_coins || 0;
             }
-        } catch (e) {
-            console.error('Failed to update status:', e);
-            logEvent('error', ` Connection error - check if logged in`);
-        }
-    }
-    
-    async function insertCoin() {
-        try {
-            logEvent('coin', ' Coin inserted');
-            const response = await fetch('/skeeball/api/simulator/insert-coin', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({lane_id: 'lane_1'})
-            });
-            if (!response.ok) {
-                logEvent('error', ` Server error: ${response.status}`);
-                return;
-            }
-            const data = await response.json();
-            gameState = data; // Update local state immediately
-            logEvent('ready', ` Ready to play! Credits: ${data.credits}`);
-            await updateStatus();
         } catch (error) {
-            logEvent('error', ` Error: ${error.message}`);
+            console.error('Failed to update status:', error);
         }
     }
     
-    async function trigger(eventType) {
-        // Check if we need to insert coin first
-        if (!gameState.in_progress && gameState.credits === 0) {
-            logEvent('error', ' Insert a coin first!');
-            return;
-        }
-        
-        // Check if game is over
-        if (gameState.in_progress && gameState.balls >= gameState.total_balls) {
-            logEvent('error', ' Game over! Insert a new coin to play again.');
-            return;
-        }
-        
-        let endpoint = '';
-        let eventName = '';
-        
-        if (eventType === 'score_10') {
-            endpoint = '/skeeball/api/simulator/score-10';
-            eventName = '⊕ +10 points';
-        } else if (eventType === 'score_50') {
-            endpoint = '/skeeball/api/simulator/score-50';
-            eventName = '⊕⊕ +50 points';
-        } else if (eventType === 'lane_track') {
-            endpoint = '/skeeball/api/simulator/lane-track';
-            eventName = ' Lane track (+50 points)';
-        } else if (eventType === 'ball_scored') {
-            endpoint = '/skeeball/api/simulator/ball-scored';
-            eventName = ' Ball counted';
-        }
-        
-        if (!endpoint) return;
-        
-        const response = await fetch(endpoint, {
+    // Simulator API calls
+    async function insertCoin() {
+        await fetch('/skeeball/api/simulator/insert-coin', {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({lane_id: 'lane_1'})
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ lane_id: LANE_ID })
         });
-        const data = await response.json();
-        
-        // Log game start if this was the first action
-        if (data.balls === 1 && data.score > 0) {
-            logEvent('game_start', ' Game started!');
-        }
-        
-        logEvent('action', `${eventName} | Score: ${data.score} | Balls: ${data.balls}/${data.total_balls}`);
-        
-        if (data.balls >= data.total_balls) {
-            logEvent('game_over', ` Game Over! Final Score: ${data.score}`);
-        }
-        
         await updateStatus();
     }
     
-    async function rollOutcome(outcome) {
-        // Check if we need a coin first
-        if (!gameState.in_progress && gameState.credits === 0) {
-            logEvent('error', ' Insert a coin first!');
-            return;
-        }
-        
-        if (gameState.balls >= gameState.total_balls && gameState.in_progress) {
-            logEvent('error', ' Game over! Insert a new coin to play again.');
-            return;
-        }
-        
-        logEvent('roll', ` Rolling for ${outcome} points...`);
-        const response = await fetch('/skeeball/api/roll-outcome', {
+    async function score10() {
+        await fetch('/skeeball/api/simulator/score-10', {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({lane_id: 'lane_1', outcome: outcome})
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ lane_id: LANE_ID })
         });
-        const data = await response.json();
-        
-        // Log game start if this is first ball
-        if (data.lane_status.balls === 1) {
-            logEvent('game_start', ' Game started!');
-        }
-        
-        logEvent('roll_result', ` Ball scored ${outcome} points! Score: ${data.lane_status.score} | Balls: ${data.lane_status.balls}/${data.lane_status.total_balls}`);
-        
-        if (data.lane_status.balls >= data.lane_status.total_balls) {
-            logEvent('game_over', ` Game Over! Final Score: ${data.lane_status.score}`);
-        }
-        
         await updateStatus();
     }
     
-    async function resetGame() {
-        logEvent('reset', ' Resetting game...');
-        const response = await fetch('/skeeball/api/lanes/lane_1/reset', {
+    async function score50() {
+        await fetch('/skeeball/api/simulator/score-50', {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'}
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ lane_id: LANE_ID })
         });
-        await response.json();
-        logEvent('reset', ' Game reset complete');
         await updateStatus();
     }
     
-    async function machineReset() {
-        if (confirm('Reset the entire machine? This will clear the current game.')) {
-            logEvent('reset', ' Machine reset initiated...');
-            const response = await fetch('/skeeball/api/machine/reset', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({lane_id: 'lane_1', reset_stats: false})
-            });
-            const data = await response.json();
-            logEvent('reset', ' Machine reset complete');
-            await updateStatus();
-        }
+    async function laneTrack() {
+        await fetch('/skeeball/api/simulator/lane-track', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ lane_id: LANE_ID })
+        });
+        await updateStatus();
     }
     
-    function logEvent(type, message) {
-        const log = document.getElementById('eventLog');
-        const time = new Date().toLocaleTimeString();
-        const entry = document.createElement('div');
-        entry.className = 'log-entry';
-        entry.innerHTML = `<span class="log-time">[${time}]</span> <span class="log-${type === 'error' ? 'event' : 'info'}">${message}</span>`;
-        log.appendChild(entry);
-        log.scrollTop = log.scrollHeight;
-        
-        // Keep only last 50 entries
-        while (log.children.length > 50) {
-            log.removeChild(log.firstChild);
-        }
+    async function ballScored() {
+        await fetch('/skeeball/api/simulator/ball-scored', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ lane_id: LANE_ID })
+        });
+        await updateStatus();
     }
+    
+    async function quickRoll(outcome) {
+        await fetch('/skeeball/api/roll-outcome', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                lane_id: LANE_ID,
+                outcome: outcome
+            })
+        });
+        await updateStatus();
+    }
+    
+    async function resetMachine(resetStats) {
+        await fetch('/skeeball/api/machine/reset', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                lane_id: LANE_ID,
+                reset_stats: resetStats
+            })
+        });
+        await updateStatus();
+    }
+    
+    // Auto-refresh status every 2 seconds
+    let refreshInterval = setInterval(updateStatus, 2000);
     
     // Initial load
     updateStatus();

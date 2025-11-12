@@ -1,0 +1,308 @@
+/* ========================================
+   SHARED STYLES - Arcade Tracker
+   Standardized components for consistent UI
+   ======================================== */
+
+/* Standardized Search/Filter Bar */
+.filters {
+    margin-bottom: 20px;
+    padding: 20px;
+    background: linear-gradient(145deg, #1a1a2e, #16213e);
+    border-radius: 8px;
+    border: 1px solid #00d9ff;
+    box-shadow: 0 4px 15px rgba(0, 217, 255, 0.2);
+}
+
+.filter-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.filter-row .form-control {
+    flex: 1;
+    min-width: 200px;
+    padding: 12px 16px;
+    background: #0f0f23;
+    border: 2px solid #00d9ff;
+    border-radius: 6px;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 500;
+    transition: all 0.3s;
+}
+
+.filter-row .form-control:focus {
+    outline: none;
+    border-color: #ff00ff;
+    box-shadow: 0 0 12px rgba(255, 0, 255, 0.4);
+    transform: translateY(-1px);
+}
+
+.filter-row .form-control::placeholder {
+    color: #888;
+    font-weight: 400;
+}
+
+/* Standardized Buttons */
+.btn-filter,
+.btn-clear,
+.btn-search {
+    padding: 12px 24px;
+    background: linear-gradient(145deg, #00d9ff, #00b8d4);
+    color: #000;
+    border: none;
+    border-radius: 6px;
+    font-weight: bold;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 2px 8px rgba(0, 217, 255, 0.3);
+}
+
+.btn-filter:hover,
+.btn-search:hover {
+    background: linear-gradient(145deg, #00ffff, #00d9ff);
+    box-shadow: 0 4px 16px rgba(0, 255, 255, 0.6);
+    transform: translateY(-2px);
+}
+
+.btn-clear {
+    background: linear-gradient(145deg, #444, #333);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(68, 68, 68, 0.3);
+}
+
+.btn-clear:hover {
+    background: linear-gradient(145deg, #555, #444);
+    box-shadow: 0 4px 16px rgba(85, 85, 85, 0.6);
+    transform: translateY(-2px);
+}
+
+/* Clickable Table Rows */
+.table-responsive {
+    overflow-x: auto;
+    margin-top: 20px;
+}
+
+.clickable-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 8px;
+}
+
+.clickable-table thead th {
+    padding: 15px 12px;
+    text-align: left;
+    font-weight: bold;
+    color: #00d9ff;
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    border-bottom: 2px solid #00d9ff;
+    background: linear-gradient(145deg, #1e3a5f, #16213e);
+}
+
+.clickable-row {
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: linear-gradient(145deg, #0f0f23, #16213e);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.clickable-row:hover {
+    background: linear-gradient(145deg, #1e3a5f, #2a4a7f);
+    box-shadow: 0 4px 16px rgba(0, 217, 255, 0.4);
+    transform: translateY(-2px);
+}
+
+.clickable-row td {
+    padding: 16px 12px;
+    color: #fff;
+    font-size: 14px;
+    border-top: 1px solid rgba(0, 217, 255, 0.1);
+    border-bottom: 1px solid rgba(0, 217, 255, 0.1);
+}
+
+.clickable-row td:first-child {
+    border-left: 3px solid #00d9ff;
+    border-top-left-radius: 8px;
+    border-bottom-left-radius: 8px;
+}
+
+.clickable-row td:last-child {
+    border-right: 1px solid rgba(0, 217, 255, 0.1);
+    border-top-right-radius: 8px;
+    border-bottom-right-radius: 8px;
+}
+
+.clickable-row:hover td:first-child {
+    border-left-color: #ff00ff;
+}
+
+/* Priority Badges */
+.priority-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.priority-low {
+    background: rgba(0, 255, 100, 0.2);
+    color: #00ff64;
+    border: 1px solid #00ff64;
+}
+
+.priority-medium {
+    background: rgba(255, 200, 0, 0.2);
+    color: #ffc800;
+    border: 1px solid #ffc800;
+}
+
+.priority-high {
+    background: rgba(255, 100, 0, 0.2);
+    color: #ff6400;
+    border: 1px solid #ff6400;
+}
+
+.priority-critical {
+    background: rgba(255, 0, 0, 0.2);
+    color: #ff0000;
+    border: 1px solid #ff0000;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}
+
+/* Status Indicators */
+.status-badge {
+    display: inline-block;
+    padding: 5px 12px;
+    border-radius: 15px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.status-open {
+    background: rgba(0, 200, 255, 0.2);
+    color: #00c8ff;
+    border: 1px solid #00c8ff;
+}
+
+.status-in-progress {
+    background: rgba(255, 200, 0, 0.2);
+    color: #ffc800;
+    border: 1px solid #ffc800;
+}
+
+.status-fixed {
+    background: rgba(0, 255, 100, 0.2);
+    color: #00ff64;
+    border: 1px solid #00ff64;
+}
+
+.status-deferred {
+    background: rgba(128, 128, 128, 0.2);
+    color: #888;
+    border: 1px solid #888;
+}
+
+/* Action Buttons in Rows */
+.action-buttons {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.action-btn-sm {
+    padding: 6px 12px;
+    border-radius: 5px;
+    font-size: 11px;
+    font-weight: bold;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    border: 1px solid;
+    background: transparent;
+}
+
+.action-btn-sm:hover {
+    transform: scale(1.05);
+}
+
+/* Delete Button */
+.btn-delete-inline {
+    background: transparent;
+    border: 1px solid #ff3232;
+    color: #ff3232;
+    padding: 6px 12px;
+    border-radius: 5px;
+    font-size: 11px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-delete-inline:hover {
+    background: #ff3232;
+    color: #fff;
+    box-shadow: 0 0 10px rgba(255, 50, 50, 0.6);
+}
+
+/* Checkbox in filters */
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #fff;
+    white-space: nowrap;
+    padding: 0 10px;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .filter-row {
+        flex-direction: column;
+    }
+    
+    .filter-row .form-control {
+        width: 100%;
+        min-width: unset;
+    }
+    
+    .btn-filter,
+    .btn-clear,
+    .btn-search {
+        width: 100%;
+        padding: 10px 20px;
+    }
+    
+    .clickable-row td {
+        padding: 12px 8px;
+        font-size: 13px;
+    }
+    
+    .clickable-table thead th {
+        padding: 12px 8px;
+        font-size: 11px;
+    }
+}

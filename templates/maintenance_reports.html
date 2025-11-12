@@ -169,7 +169,7 @@
                         <span style="color: #388e3c; font-weight: bold;"> LOW</span>
                     {% endif %}
                 </td>
-                <td><a href="{{ url_for('game_detail', game_id=record.game_id) }}">{{ record.game.name }}</a></td>
+                <td>{% if record.game_id %}<a href="{{ url_for('game_detail', game_id=record.game_id) }}">{{ record.game.name }}</a>{% else %}<em>General Facility</em>{% endif %}</td>
                 <td>{{ record.issue_description[:60] }}{% if record.issue_description|length > 60 %}...{% endif %}</td>
                 <td>{{ days_open }} days</td>
                 <td>{{ record.technician or 'Unassigned' }}</td>
@@ -205,7 +205,7 @@
             {% for record in closed_records %}
             {% set days_to_fix = (record.date_fixed.date() - record.date_reported.date()).days if record.date_fixed else 0 %}
             <tr>
-                <td><a href="{{ url_for('game_detail', game_id=record.game_id) }}">{{ record.game.name }}</a></td>
+                <td>{% if record.game_id %}<a href="{{ url_for('game_detail', game_id=record.game_id) }}">{{ record.game.name }}</a>{% else %}<em>General Facility</em>{% endif %}</td>
                 <td>{{ record.issue_description[:50] }}{% if record.issue_description|length > 50 %}...{% endif %}</td>
                 <td>{{ record.date_reported.strftime('%Y-%m-%d') }}</td>
                 <td>{{ record.date_fixed.strftime('%Y-%m-%d') if record.date_fixed else 'N/A' }}</td>
@@ -264,7 +264,7 @@
                         <span style="color: #888; font-weight: bold;">⏸ Deferred</span>
                     {% endif %}
                 </td>
-                <td><a href="{{ url_for('game_detail', game_id=record.game_id) }}">{{ record.game.name }}</a></td>
+                <td>{% if record.game_id %}<a href="{{ url_for('game_detail', game_id=record.game_id) }}">{{ record.game.name }}</a>{% else %}<em>General Facility</em>{% endif %}</td>
                 <td>{{ record.issue_description[:50] }}{% if record.issue_description|length > 50 %}...{% endif %}</td>
                 <td>{{ record.date_reported.strftime('%Y-%m-%d') }}</td>
                 <td>${{ "%.2f"|format(record.cost or 0) }}</td>

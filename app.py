@@ -74,6 +74,9 @@ from security_utils import (
 from security_middleware import init_security
 
 # Load environment variables
+from dotenv import load_dotenv
+load_dotenv()  # Load .env file before reading os.environ
+
 # -------------------------------------------------------------
 # ⚙️ Flask Application Configuration
 # -------------------------------------------------------------
@@ -91,7 +94,11 @@ csrf = CSRFProtect(app)
 # 🔧 Core Configuration
 # ---------  -------------------------------------------------------
 # It's best to load sensitive values (SECRET_KEY, DB URI) from environment variables in production
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'supersecretkey-change-this')
+secret_key = os.environ.get('SECRET_KEY')
+if not secret_key or secret_key == 'your-secret-key-change-this-for-production':
+    print("WARNING: Using temporary SECRET_KEY. Set SECRET_KEY environment variable!")
+    secret_key = 'dev-secret-key-' + str(uuid.uuid4())
+app.config['SECRET_KEY'] = secret_key
 app.config['REMEMBER_COOKIE_DURATION'] = dt.timedelta(days=30)
 app.config['PERMANENT_SESSION_LIFETIME'] = dt.timedelta(days=30)
 app.config['REMEMBER_COOKIE_SECURE'] = False  # Set to True if using HTTPS
@@ -243,7 +250,7 @@ login_manager.init_app(app)
 login_manager.login_view = 'login'
 login_manager.login_message = 'Please log in to access this page.'
 login_manager.login_message_category = 'info'
-login_manager.session_protection = "strong"
+login_manager.session_protection = None  # Disable strict session protection for remember me
 
 # -------------------------------------------------------------
 # 🛡️ Initialize Security (includes rate limiting and logging)
@@ -702,7 +709,7 @@ class InventoryRequestHistory(db.Model):
 
 # Authentication Routes
 @app.route('/login', methods=['GET', 'POST'])
-@limiter.limit("5 per minute")
+@limiter.limit("50 per minute")  # Increased for development
 def login():
     if current_user.is_authenticated:
         return redirect(url_for('home'))
@@ -733,6 +740,8 @@ def login():
             
             # Login user with remember me option
             # Flask-Login will handle the remember cookie duration from config
+            from flask import session
+            session.permanent = True  # Make session permanent
             login_user(user, remember=form.remember.data, duration=dt.timedelta(days=30))
             
             # Log successful login
@@ -2330,7 +2339,7 @@ def export_maintenance_report():
     from reportlab.lib import colors
     
     # Get parameters with error handling
-    report_type = request.args.get('type', 'all')
+    report_type = request.args.get('type', 'all')  # all, open, closed
     try:
         days = request.args.get('days', 30, type=int)
         if days is None or days <= 0:
@@ -2340,7 +2349,147 @@ def export_maintenance_report():
     
     start_date = date.today() - timedelta(days=days)
     
-    # Get records based on type - USE OUTERJOIN
+    # Get records based on type - USE OUTERJOIN for general facility maintenance
+    if report_type == 'open':
+        records = MaintenanceRecord.query.outerjoin(Game).filter(
+            MaintenanceRecord.status.in_(['Open', 'In_Progress'])
+        ).order_by(MaintenanceRecord.date_reported.desc()).all()
+        title = f"Open Maintenance Orders"
+    elif report_type == 'closed':
+        records = MaintenanceRecord.query.outerjoin(Game).filter(
+            MaintenanceRecord.status.in_(['Fixed', 'Deferred']),
+            MaintenanceRecord.date_reported >= start_date
+        ).order_by(MaintenanceRecord.date_reported.desc()).all()
+        title = f"Closed Maintenance Orders (Last {days} Days)"
+    else:
+        records = MaintenanceRecord.query.outerjoin(Game).filter(
+            MaintenanceRecord.date_reported >= start_date
+        ).order_by(MaintenanceRecord.date_reported.desc()).all()
+        title = f"All Maintenance Orders (Last {days} Days)"
+    
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=letter)
+    styles = getSampleStyleSheet()
+    story = []
+    
+    # Title
+    story.append(Paragraph(title, styles['Title']))
+    story.append(Spacer(1, 12))
+    
+    # Summary stats
+    total_records = len(records)
+    open_count = len([r for r in records if r.status in ['Open', 'In_Progress']])
+    closed_count = len([r for r in records if r.status in ['Fixed', 'Deferred']])
+    total_cost = sum(r.cost or 0 for r in records if r.status in ['Fixed', 'Deferred'])
+    
+    summary_data = [
+        ['Metric', 'Value'],
+        ['Total Records', str(total_records)],
+        ['Open Orders', str(open_count)],
+        ['Closed Orders', str(closed_count)],
+        ['Total Cost', f'${total_cost:.2f}']
+    ]
+    
+    summary_table = Table(summary_data)
+    summary_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 14),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black)
+    ]))
+    
+    story.append(summary_table)
+    story.append(Spacer(1, 20))
+    
+    # Maintenance records table
+    if records:
+        story.append(Paragraph("Maintenance Records", styles['Heading2']))
+        
+        maintenance_data = [['Game', 'Issue', 'Status', 'Date', 'Cost', 'Work Summary']]
+        
+        for record in records[:15]:  # Limit to 15 for better PDF formatting
+            # Get work summary - prioritize work_logs, then work_notes, then fix_description
+            work_summary = 'No work logged'
+            if hasattr(record, 'work_logs') and record.work_logs:
+                # Use the most recent work log entry
+                latest_work = record.work_logs[-1]
+                work_summary = latest_work.work_description[:35] + '...' if len(latest_work.work_description) > 35 else latest_work.work_description
+            elif record.work_notes:
+                work_summary = record.work_notes[:35] + '...' if len(record.work_notes) > 35 else record.work_notes
+            elif record.fix_description:
+                work_summary = record.fix_description[:35] + '...' if len(record.fix_description) > 35 else record.fix_description
+            elif record.status in ['Open', 'In_Progress']:
+                work_summary = 'In progress...'
+            
+            # Handle general facility maintenance (no game)
+            game_name = record.game.name if record.game else 'General Facility'
+            game_name = game_name[:12] + '...' if len(game_name) > 12 else game_name
+            
+            maintenance_data.append([
+                game_name,
+                record.issue_description[:20] + '...' if len(record.issue_description) > 20 else record.issue_description,
+                record.status.replace('_', ' '),
+                record.date_reported.strftime('%m/%d'),
+                f'${record.cost:.0f}' if record.cost else '$0',
+                work_summary
+            ])
+        
+        # Define column widths (in points) - total should be around 540 for letter size
+        col_widths = [90, 120, 60, 40, 40, 190]  # Game, Issue, Status, Date, Cost, Work Summary
+        
+        maintenance_table = Table(maintenance_data, colWidths=col_widths)
+        maintenance_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.lightblue),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 10),
+            ('FONTSIZE', (0, 1), (-1, -1), 9),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+            ('TOPPADDING', (0, 1), (-1, -1), 4),
+            ('BOTTOMPADDING', (0, 1), (-1, -1), 4),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+            ('WORDWRAP', (0, 0), (-1, -1), True)
+        ]))
+        
+        story.append(maintenance_table)
+        
+        # Add detailed work log section if there are records with work logs
+        work_log_records = [r for r in records[:10] if hasattr(r, 'work_logs') and r.work_logs]
+        if work_log_records:
+            story.append(Spacer(1, 20))
+            story.append(Paragraph("Detailed Work Logs (Recent Orders)", styles['Heading2']))
+            
+            for record in work_log_records:
+                story.append(Spacer(1, 12))
+                game_name_full = record.game.name if record.game else 'General Facility'
+                story.append(Paragraph(f"<b>{game_name_full}</b> - Work Order #{record.id}", styles['Heading3']))
+                story.append(Paragraph(f"<i>Issue: {record.issue_description[:80]}{'...' if len(record.issue_description) > 80 else ''}</i>", styles['Normal']))
+                story.append(Spacer(1, 8))
+                
+                # Work log entries
+                for i, work_log in enumerate(record.work_logs[-3:], 1):  # Show last 3 work entries
+                    work_text = f"<b>Entry {i}:</b> {work_log.timestamp.strftime('%m/%d %H:%M')} - {work_log.user.username}<br/>"
+                    work_text += f"{work_log.work_description[:120]}{'...' if len(work_log.work_description) > 120 else ''}"
+                    if work_log.time_spent:
+                        work_text += f"<br/><i>Time: {work_log.time_spent}h</i>"
+                    if work_log.cost_incurred:
+                        work_text += f" <i>Cost: ${work_log.cost_incurred:.2f}</i>"
+                    
+                    story.append(Paragraph(work_text, styles['Normal']))
+                    story.append(Spacer(1, 6))
+    
+    doc.build(story)
+    buffer.seek(0)
+    
+    filename = f'maintenance_report_{report_type}_{days}days.pdf'
+    return send_file(buffer, as_attachment=True, download_name=filename, mimetype='application/pdf')
 @app.route('/export_revenue_report')
 @login_required
 @requires_role('manager')

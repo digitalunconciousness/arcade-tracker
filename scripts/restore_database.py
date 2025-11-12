@@ -151,6 +151,8 @@ def restore_database(backup_path, target_path=None):
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
         tables = [row[0] for row in cursor.fetchall()]
         for table in tables:
+            if table == 'sqlite_sequence':
+                continue
             cursor.execute(f"DROP TABLE IF EXISTS {table};")
         target_conn.commit()
         
