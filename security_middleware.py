@@ -1,4 +1,5 @@
 # security_middleware.py
+from flask import request
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
@@ -24,8 +25,10 @@ def init_security(app):
     limiter = Limiter(
         app=app,
         key_func=get_remote_address,
-        default_limits=["200 per day", "50 per hour"],
-        storage_uri="memory://"
+        default_limits=["1000 per day", "200 per hour"],
+        storage_uri="memory://",
+        # Exempt skeeball API status endpoints from rate limiting (polled every second)
+        default_limits_exempt_when=lambda: request.path.startswith('/skeeball/api/lanes/') and request.path.endswith('/status')
     )
     
     # Add security headers middleware

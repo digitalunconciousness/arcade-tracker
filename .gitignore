@@ -1,1 +1,38 @@
 .env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Logs
+app.log
+app_test.log
+logs/
+
+# Database
+arcade.db
+instance/
+backups/
+*.db
+
+# Backups and ISOs
+*.iso
+ArcadeTracker_Complete_Backup_*/
+
+# SSH keys
+y
+y.pub
+
+# Mounted directories
+skeeproto@*/
+
+# Static uploads
+static/maintenance_photos/
+static/profile_pics/
+
+# Test files
+testgen.py
+dupe.py
+fixdb.py
+fixindent.py

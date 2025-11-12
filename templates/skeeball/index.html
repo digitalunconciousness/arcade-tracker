@@ -64,9 +64,122 @@
         color: var(--text-secondary, #a0aec0);
         margin-bottom: 15px;
     }
+    
+    .system-status {
+        background: var(--card-bg, #16213e);
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        border: 1px solid var(--border-color, rgba(0, 255, 255, 0.2));
+    }
+    
+    .status-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 0;
+        border-bottom: 1px solid rgba(0, 255, 255, 0.1);
+    }
+    
+    .status-row:last-child {
+        border-bottom: none;
+    }
+    
+    .status-label {
+        color: var(--text-secondary, #a0aec0);
+        font-weight: 500;
+    }
+    
+    .status-value {
+        color: var(--primary-color, #00ffff);
+        font-weight: 600;
+    }
+    
+    .status-online {
+        color: #4ade80;
+    }
+    
+    .status-offline {
+        color: #f87171;
+    }
+    
+    .hardware-controls {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-top: 15px;
+    }
+    
+    .control-button {
+        padding: 12px;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 0.9rem;
+        color: white;
+    }
+    
+    .control-button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    
+    .btn-success {
+        background: #10b981;
+    }
+    
+    .btn-success:hover:not(:disabled) {
+        background: #059669;
+        transform: translateY(-2px);
+    }
+    
+    .btn-warning {
+        background: #f59e0b;
+    }
+    
+    .btn-warning:hover:not(:disabled) {
+        background: #d97706;
+        transform: translateY(-2px);
+    }
 </style>
 
 <h1 style="text-align: center; margin-bottom: 30px;"> Skeeball Control Center</h1>
+
+<!-- System Status Panel -->
+<div class="system-status">
+    <h2> System Status</h2>
+    <div class="status-row">
+        <span class="status-label">Raspberry Pi</span>
+        <span class="status-value" id="systemStatus">🟡 Checking...</span>
+    </div>
+    <div class="status-row">
+        <span class="status-label">GPIO Mode</span>
+        <span class="status-value" id="gpioMode">...</span>
+    </div>
+    <div class="status-row">
+        <span class="status-label">Active Lanes</span>
+        <span class="status-value" id="activeLanes">...</span>
+    </div>
+    
+    <h3 style="color: var(--primary-color, #00ffff); margin-top: 20px; margin-bottom: 10px; font-size: 1.2rem;">⚡ Hardware Controls</h3>
+    <div class="hardware-controls">
+        <button class="control-button btn-success" id="ledPowerOn" onclick="controlHardware('led_power', 'on')">
+            💡 LED Power ON
+        </button>
+        <button class="control-button btn-warning" id="ledPowerOff" onclick="controlHardware('led_power', 'off')">
+            💡 LED Power OFF
+        </button>
+        <button class="control-button btn-success" id="solenoidTrigger" onclick="controlHardware('solenoid', 'pulse')">
+            🎮 Trigger Ball Release
+        </button>
+        <button class="control-button btn-warning" id="systemReset" onclick="controlHardware('system', 'reset')">
+            🔄 Reset System
+        </button>
+    </div>
+</div>
 
 <div class="skeeball-content">
     <div class="skeeball-card">
@@ -105,4 +218,78 @@
         </div>
     </div>
 </div>
+
+<script>
+// Auto-refresh system status
+async function updateSystemStatus() {
+    try {
+        // Check health status
+        const healthResponse = await fetch('/skeeball/api/health');
+        const health = await healthResponse.json();
+        
+        // Check GPIO status
+        const gpioResponse = await fetch('/skeeball/api/gpio/status');
+        const gpioStatus = await gpioResponse.json();
+        
+        // Check lanes
+        const lanesResponse = await fetch('/skeeball/api/lanes');
+        const lanes = await lanesResponse.json();
+        
+        // Update system status
+        const lanesOnline = Object.values(health).filter(l => l.online).length;
+        const totalLanes = Object.keys(health).length;
+        
+        const systemStatusEl = document.getElementById('systemStatus');
+        if (lanesOnline > 0) {
+            systemStatusEl.innerHTML = '🟢 <span class="status-online">Online</span>';
+            systemStatusEl.className = 'status-value status-online';
+        } else {
+            systemStatusEl.innerHTML = '🔴 <span class="status-offline">Offline</span>';
+            systemStatusEl.className = 'status-value status-offline';
+        }
+        
+        // Update GPIO mode
+        const gpioModeEl = document.getElementById('gpioMode');
+        if (gpioStatus.mode === 'real') {
+            gpioModeEl.innerHTML = '🎮 Real Hardware';
+            gpioModeEl.className = 'status-value status-online';
+        } else {
+            gpioModeEl.innerHTML = '🧪 Mock/Testing';
+            gpioModeEl.className = 'status-value';
+        }
+        
+        // Update active lanes
+        document.getElementById('activeLanes').textContent = `${lanesOnline}/${totalLanes}`;
+        
+    } catch (error) {
+        console.error('Failed to update status:', error);
+        document.getElementById('systemStatus').innerHTML = '🔴 <span class="status-offline">Error</span>';
+    }
+}
+
+// Hardware control functions
+async function controlHardware(device, action) {
+    try {
+        const response = await fetch('/skeeball/api/hardware/control', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({device: device, action: action})
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            alert(`✅ ${result.message}`);
+        } else {
+            alert(`❌ Error: ${result.error}`);
+        }
+    } catch (error) {
+        alert(`❌ Failed to control hardware: ${error.message}`);
+    }
+}
+
+// Update status on page load and every 3 seconds
+updateSystemStatus();
+setInterval(updateSystemStatus, 3000);
+</script>
 {% endblock %}

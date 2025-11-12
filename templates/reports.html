@@ -3,9 +3,35 @@
 {% block content %}
 <h1> Performance Reports & Analytics</h1>
 
-<div style="text-align: center; margin: 20px 0;">
-    <a href="{{ url_for('export_report') }}" class="btn" style="background: #dc3545; font-size: 16px; padding: 12px 24px;"> Revenue Report (PDF)</a>
-    <a href="{{ url_for('export_csv') }}" class="btn" style="background: #28a745; font-size: 16px; padding: 12px 24px; margin-left: 15px;"> Export CSV Data</a>
+<!-- Revenue Reports Section -->
+<div style="background: var(--dark-card); padding: 20px; border-radius: 8px; border: 1px solid var(--neon-cyan); margin: 30px 0; box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);">
+    <h2 style="color: var(--neon-cyan); margin-top: 0;"> Revenue Reports</h2>
+    <p style="color: var(--text-secondary); margin-bottom: 20px;">Generate revenue analytics and export reports.</p>
+    
+    <div style="display: flex; gap: 20px; align-items: center; flex-wrap: wrap; margin-bottom: 20px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <label for="revenueTimeRange" style="color: var(--text-primary); font-weight: bold;">Time Range:</label>
+            <select id="revenueTimeRange" style="padding: 8px 12px; background: var(--dark-nav); color: var(--text-primary); border: 1px solid var(--neon-cyan); border-radius: 4px; font-family: inherit;">
+                <option value="7">Last Week</option>
+                <option value="30" selected>Last Month</option>
+                <option value="90">Last Quarter</option>
+                <option value="365">Last Year</option>
+                <option value="9999">All Time</option>
+            </select>
+        </div>
+        
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <button onclick="viewRevenueReport()" class="btn" style="background: var(--neon-cyan); color: black; padding: 8px 16px;">
+                 View Report
+            </button>
+            <button onclick="exportRevenuePDF()" class="btn" style="background: #dc3545; color: white; padding: 8px 16px;">
+                 Export PDF
+            </button>
+            <button onclick="exportCSV()" class="btn" style="background: var(--neon-green); color: black; padding: 8px 16px;">
+                 Export CSV
+            </button>
+        </div>
+    </div>
 </div>
 
 <!-- Executive Summary Section -->
@@ -85,7 +111,7 @@
             <ul style="color: var(--text-primary); margin: 0; padding-left: 20px; max-height: 200px; overflow-y: auto;">
                 {% for order in open_maintenance[:10] %}
                 <li>
-                    <a href="{{ url_for('view_maintenance', maintenance_id=order.id) }}" style="color: #ff6666;">
+                    <a href="{{ url_for('maintenance_detail', record_id=order.id) }}" style="color: #ff6666;">
                         {% if order.game %}
                         {{ order.game.name }}
                         {% else %}
@@ -139,6 +165,21 @@
 </div>
 
 <script>
+// Revenue Report Functions
+function viewRevenueReport() {
+    const days = document.getElementById('revenueTimeRange').value;
+    window.open(`{{ url_for('revenue_reports') }}?days=${days}`, '_blank');
+}
+
+function exportRevenuePDF() {
+    window.open(`{{ url_for('export_report') }}`, '_blank');
+}
+
+function exportCSV() {
+    window.open(`{{ url_for('export_csv') }}`, '_blank');
+}
+
+// Maintenance Report Functions
 function viewMaintenanceReport() {
     const days = document.getElementById('timeRange').value;
     window.open(`{{ url_for('maintenance_reports') }}?days=${days}`, '_blank');
