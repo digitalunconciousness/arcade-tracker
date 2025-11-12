@@ -30,15 +30,22 @@ def get_or_create_game_for_lane(lane_id):
     Returns:
         Game model instance
     """
-    from app import db, Game
+    # Import inside function to avoid circular imports
+    # This function will be called from route handlers which have app context
+    # Use current_app.extensions to access the db instance
+    from flask_sqlalchemy import SQLAlchemy
+    db = current_app.extensions['sqlalchemy']
+    from app import Game
     
     # Create a standardized game name from lane_id
     # Extract number from lane_id (e.g. "lane_1" -> "1")
     lane_number = lane_id.split('_')[-1] if '_' in lane_id else lane_id
     game_name = f"Skeeball Lane {lane_number}"
     
-    # Check if game already exists
-    game = Game.query.filter_by(name=game_name).first()
+    # Check if game already exists (using newer SQLAlchemy 2.0 style)
+    game = db.session.execute(
+        db.select(Game).filter_by(name=game_name)
+    ).scalar_one_or_none()
     
     if not game:
         # Create new game entry
@@ -73,24 +80,59 @@ def get_lane_manager():
         current_app.lane_manager.register_local_lane("lane_1", None)
         current_app.lane_manager.start_polling()
         
-        # Ensure Game entry exists for the lane
-        game = get_or_create_game_for_lane("lane_1")
+        # Defer database operations until after full initialization
+        # Mark that we need to link the game on first real request
+        current_app.lane_needs_db_init = True
         
-        # Link the lane to the game for revenue tracking
-        lane = current_app.lane_manager.get_lane("lane_1")
-        if lane:
-            lane.link_to_game(game.id)
-            print(f"🔗 Linked lane_1 to Game ID {game.id}")
-        
-        # Store game_id mapping for reference
-        if not hasattr(current_app, 'lane_game_mapping'):
-            current_app.lane_game_mapping = {}
-        current_app.lane_game_mapping["lane_1"] = game.id
-        
-        # Initialize revenue scheduler
+        # Initialize revenue scheduler (doesn't require DB immediately)
         if not hasattr(current_app, 'revenue_scheduler'):
             from revenue_scheduler import init_revenue_scheduler
             current_app.revenue_scheduler = init_revenue_scheduler(current_app._get_current_object(), current_app.lane_manager)
+    
+    # On first actual request (not during reloader init), link to database
+    if hasattr(current_app, 'lane_needs_db_init') and current_app.lane_needs_db_init:
+        try:
+            # Import here to ensure app context is ready
+            from flask import has_app_context, has_request_context
+            from flask_sqlalchemy import SQLAlchemy
+            from sqlalchemy import text
+            
+            # Only initialize if we have a proper app+request context and the db is ready
+            if has_app_context() and has_request_context():
+                # Access db through current_app extensions
+                db = current_app.extensions.get('sqlalchemy')
+                if not db:
+                    # DB extension not registered yet
+                    return current_app.lane_manager
+                
+                # Test if database is actually ready by checking if tables exist
+                with db.engine.connect() as connection:
+                    result = connection.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='game'"))
+                    if result.fetchone() is None:
+                        # Tables don't exist yet
+                        return current_app.lane_manager
+                
+                # Ensure Game entry exists for the lane
+                game = get_or_create_game_for_lane("lane_1")
+                
+                # Link the lane to the game for revenue tracking
+                lane = current_app.lane_manager.get_lane("lane_1")
+                if lane:
+                    lane.link_to_game(game.id)
+                    print(f"🔗 Linked lane_1 to Game ID {game.id}")
+                
+                # Store game_id mapping for reference
+                if not hasattr(current_app, 'lane_game_mapping'):
+                    current_app.lane_game_mapping = {}
+                current_app.lane_game_mapping["lane_1"] = game.id
+                
+                current_app.lane_needs_db_init = False
+        except Exception as e:
+            # If DB isn't ready yet, just log and try again next time
+            # Only log if we're in an actual request context (not during startup)
+            from flask import has_request_context
+            if has_request_context():
+                print(f"⚠️ Database not ready for lane initialization: {e}")
     
     return current_app.lane_manager
 
@@ -313,17 +355,30 @@ def api_system_reboot():
     import subprocess
     import os
     
-    # Only allow on actual Raspberry Pi (check for /boot/firmware or /boot directory)
-    if not (os.path.exists('/boot/firmware') or os.path.exists('/proc/device-tree/model')):
+    # Check for development override
+    allow_dev_reboot = os.getenv('ALLOW_DEV_REBOOT', 'false').lower() == 'true'
+    
+    # Check if running on Raspberry Pi hardware
+    is_raspberry_pi = os.path.exists('/boot/firmware') or os.path.exists('/proc/device-tree/model')
+    
+    if not is_raspberry_pi and not allow_dev_reboot:
         return jsonify({
             "error": "System reboot is only available on Raspberry Pi hardware",
-            "hint": "This is a development system"
+            "hint": "This is a development system. Set ALLOW_DEV_REBOOT=true in .env to enable for testing."
         }), 403
     
     try:
         # Use subprocess to run reboot command
-        subprocess.Popen(['sudo', 'reboot'])
-        return jsonify({"message": "Reboot command sent successfully"})
+        if allow_dev_reboot and not is_raspberry_pi:
+            # Development mode - just return success without actually rebooting
+            return jsonify({
+                "message": "[DEV MODE] Reboot command would be sent (system not actually rebooting)",
+                "warning": "Running in development mode - no actual reboot performed"
+            })
+        else:
+            # Production mode on Pi - actually reboot
+            subprocess.Popen(['sudo', 'reboot'])
+            return jsonify({"message": "Reboot command sent successfully"})
     except Exception as e:
         return jsonify({"error": f"Reboot failed: {str(e)}"}), 500
 
