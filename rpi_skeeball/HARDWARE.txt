@@ -1,0 +1,83 @@
+SKEEBALL HARDWARE - Simple Overview
+====================================
+
+TOTAL INPUTS: 9
+- 1x Coin sensor
+- 1x Ball counter
+- 5x Scoring switches (10, 20, 30, 40, 50 points)
+- 2x Bonus switches (100pt holes, add +50 bonus)
+
+TOTAL OUTPUTS: 4 (optional)
+- 2x LED displays (TM1637)
+
+GPIO PIN ASSIGNMENTS (BCM Mode)
+================================
+
+INPUTS:
+  Coin Sensor:     GPIO 17  (Pin 11)
+  Ball Counter:    GPIO 18  (Pin 12)
+  
+  10pt Switch:     GPIO 22  (Pin 15)
+  20pt Switch:     GPIO 23  (Pin 16)
+  30pt Switch:     GPIO 24  (Pin 18)
+  40pt Switch:     GPIO 25  (Pin 22)
+  50pt Switch:     GPIO 27  (Pin 13)
+  
+  100pt Left:      GPIO 19  (Pin 35)
+  100pt Right:     GPIO 13  (Pin 33)
+
+OUTPUTS (Optional):
+  Display 1 CLK:   GPIO 5   (Pin 29)
+  Display 1 DIO:   GPIO 6   (Pin 31)
+  
+  Display 2 CLK:   GPIO 11  (Pin 23)
+  Display 2 DIO:   GPIO 9   (Pin 21)
+
+WIRING (All switches use same pattern):
+========================================
+  Switch NO (Normally Open) → GPIO Pin
+  Switch COM (Common) → GND
+
+HOW IT WORKS:
+=============
+1. Player inserts coin → Game starts (9 balls)
+
+2. Ball enters scoring lane:
+   - 10pt lane → hits 10pt switch → +10 points
+   - 20pt lane → hits 20pt switch → +20 points
+   - 30pt lane → hits 30pt switch → +30 points
+   - 40pt lane → hits 40pt switch → +40 points
+   - 50pt lane → hits 50pt switch → +50 points
+   - 100pt lane → hits 50pt switch + 100pt bonus → +100 points
+
+3. Ball reaches bottom → Counter triggers → Score finalized
+
+4. After 9 balls → Game ends (or bonus if score ≥ 360)
+
+5. Every 5 min → Syncs coin count to Flask server
+
+SCORING LOGIC:
+==============
+Each ball can only trigger each switch ONCE.
+Example: If a ball somehow hits the 20pt switch twice, 
+         it still only scores 20 points for that ball.
+
+100pt holes work like this:
+  - Ball hits 50pt switch first (+50)
+  - Then hits special 100pt switch (+50 bonus)
+  - Total = 100 points
+
+CONFIGURATION FILE:
+===================
+Edit config.json to set:
+- Server URL and game ID
+- Username/password for Flask app
+- GPIO pin assignments (if different from defaults)
+- Number of LED displays (0, 1, or 2)
+- Bonus threshold (default 360)
+
+All switches are "active LOW" with pull-up resistors:
+- Switch at rest = GPIO reads HIGH
+- Switch pressed = GPIO reads LOW
+
+50ms debounce prevents double-triggers.

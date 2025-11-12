@@ -1,0 +1,17 @@
+[Unit]
+Description=Skeeball GPIO Control API Server
+After=network.target
+
+[Service]
+Type=simple
+User=skeeproto
+WorkingDirectory=/home/skeeproto/arcade-tracker/rpi_skeeball
+ExecStart=/usr/bin/python3 /home/skeeproto/arcade-tracker/rpi_skeeball/gpio_api_server.py
+Restart=always
+RestartSec=10
+
+# Environment
+Environment="PYTHONUNBUFFERED=1"
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,150 @@
+SKEEBALL WIRING - SIMPLE DIAGRAM
+=================================
+
+POWER SUPPLIES:
+  12V PSU ──┬─► 12V+ Rail
+            └─► GND Rail
+  
+  5V PSU ──┬─► Raspberry Pi (USB-C)
+           ├─► Optocoupler Modules (VCC)
+           └─► Relay Module (VCC)
+
+
+SWITCHES → OPTOCOUPLERS → RASPBERRY PI:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  [Switch]     [Optocoupler]      [Pi GPIO]
+  ────────     ─────────────      ─────────
+  
+  Coin    ──►  Opto IN1  ──OUT──► GPIO 17
+  Ball    ──►  Opto IN2  ──OUT──► GPIO 18
+  10pt    ──►  Opto IN3  ──OUT──► GPIO 22
+  20pt    ──►  Opto IN4  ──OUT──► GPIO 23
+  30pt    ──►  Opto IN5  ──OUT──► GPIO 24
+  40pt    ──►  Opto IN6  ──OUT──► GPIO 25
+  50pt    ──►  Opto IN7  ──OUT──► GPIO 27
+  100L    ──►  Opto IN8  ──OUT──► GPIO 19
+  100R    ──►  Opto IN9  ──OUT──► GPIO 13
+
+All switch COM terminals → 12V+ (common rail)
+
+
+RASPBERRY PI → RELAY → OUTPUTS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  [Pi GPIO]     [Relay Module]      [Load]
+  ─────────     ──────────────      ──────
+  
+  GPIO 10  ──►  Relay 1 IN  ──COM──► 12V+
+                            ──NO───► Solenoid (+)
+                                     Solenoid (-) → GND
+                                     [1N4007 diode across solenoid]
+  
+  GPIO 26  ──►  Relay 2 IN  ──COM──► 12V+
+                            ──NO───► LED Power (optional)
+
+
+DISPLAYS (Direct connection):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Display 1:                Display 2:
+    VCC → Pi 5V               VCC → Pi 5V
+    GND → Pi GND              GND → Pi GND
+    CLK → GPIO 5              CLK → GPIO 11
+    DIO → GPIO 6              DIO → GPIO 9
+
+
+COMPLETE CONNECTION SUMMARY:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Pi Pin | GPIO | Function        | Connects To
+─────────────────────────────────────────────
+  11   |  17  | Coin sensor     | Optocoupler OUT1
+  12   |  18  | Ball counter    | Optocoupler OUT2
+  15   |  22  | 10pt switch     | Optocoupler OUT3
+  16   |  23  | 20pt switch     | Optocoupler OUT4
+  18   |  24  | 30pt switch     | Optocoupler OUT5
+  22   |  25  | 40pt switch     | Optocoupler OUT6
+  13   |  27  | 50pt switch     | Optocoupler OUT7
+  35   |  19  | 100pt left      | Optocoupler OUT8
+  33   |  13  | 100pt right     | Optocoupler OUT9
+  19   |  10  | Solenoid relay  | Relay Module IN1
+  37   |  26  | LED relay       | Relay Module IN2
+  29   |   5  | Display 1 CLK   | TM1637 CLK
+  31   |   6  | Display 1 DIO   | TM1637 DIO
+  23   |  11  | Display 2 CLK   | TM1637 CLK
+  21   |   9  | Display 2 DIO   | TM1637 DIO
+
+
+TERMINAL BLOCK LAYOUT (Suggested):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Power In:
+  [12V+]  ←─ 12V PSU positive
+  [GND]   ←─ 12V PSU negative
+  [5V]    ←─ 5V PSU positive
+  [GND]   ←─ 5V PSU negative
+
+Switch Inputs (from skeeball machine):
+  [COIN]  ←─ Coin switch NO
+  [BALL]  ←─ Ball counter NO
+  [10PT]  ←─ 10pt switch NO
+  [20PT]  ←─ 20pt switch NO
+  [30PT]  ←─ 30pt switch NO
+  [40PT]  ←─ 40pt switch NO
+  [50PT]  ←─ 50pt switch NO
+  [100L]  ←─ 100pt left NO
+  [100R]  ←─ 100pt right NO
+
+Outputs (back to skeeball machine):
+  [SOL+]  ←─ Solenoid positive wire
+  [SOL-]  ←─ Solenoid negative wire
+
+
+PHYSICAL LAYOUT (Side-by-Side):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+┌───────────────────────────────────────┐
+│                                       │
+│  [Pi]    [Opto1]  [Opto2]  [Relay]   │
+│   │         │        │        │       │
+│   └─────────┴────────┴────────┘       │
+│                                       │
+│  [Terminal Blocks]                    │
+│                                       │
+└───────────────────────────────────────┘
+
+Mounting: DIN rail or wood/acrylic panel
+
+
+QUICK INSTALL CHECKLIST:
+━━━━━━━━━━━━━━━━━━━━━━━
+
+□ Mount all modules on board/DIN rail
+□ Wire power distribution (12V + 5V)
+□ Connect optocoupler modules to Pi 5V
+□ Wire all switches to optocoupler inputs
+□ Wire optocoupler outputs to Pi GPIOs
+□ Connect relay module to Pi 5V
+□ Wire Pi GPIOs to relay inputs
+□ Wire relay outputs to solenoid
+□ Add flyback diode across solenoid
+□ Connect displays to Pi
+□ Label all wires
+□ Test continuity before power on
+□ Power test (no load)
+□ Test each switch individually
+□ Test relays
+□ Full system test
+
+
+NOTES:
+━━━━━
+
+• All switch COM terminals connect to 12V+ rail (common)
+• Optocouplers provide electrical isolation
+• Relay module has built-in transistor drivers
+• Always add flyback diode across solenoid
+• Use 22 AWG or larger wire
+• Keep 12V and 5V systems separated
+• Test in stages, don't power everything at once
