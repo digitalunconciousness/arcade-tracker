@@ -126,6 +126,34 @@
     </div>
 </div>
 
+{% if low_stock_alerts %}
+<div class="card" style="margin: 30px 0; border-left: 4px solid #ff6666;">
+    <h2 style="color: #ff6666;">⚠️ Low Stock Alerts</h2>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Item</th>
+                <th>Current Stock</th>
+                <th>Min Stock</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for alert in low_stock_alerts %}
+            <tr style="background-color: rgba(255, 102, 102, 0.1);">
+                <td><a href="{{ url_for('inventory_detail', item_id=alert.item.id) }}">{{ alert.item.name }}</a></td>
+                <td style="color: #ff6666; font-weight: bold;">{{ alert.item.current_stock }}</td>
+                <td>{{ alert.item.min_stock }}</td>
+                <td>
+                    <a href="{{ url_for('adjust_stock', item_id=alert.item.id) }}" class="btn btn-warning" style="font-size: 12px; padding: 5px 10px;">Restock</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
 {% if current_user.has_role('manager') %}
 <div style="text-align: center; margin: 40px 0;">
     <a href="{{ url_for('graphs') }}" class="btn btn-success" style="font-size: 18px; padding: 15px 30px; margin: 10px;"> System Analytics</a>
