@@ -144,9 +144,16 @@ Arcade Tracker includes a complete Raspberry Pi-based skeeball scoring system wi
 
 #### Web Interface & APIs
 - **Main Hub** (`/skeeball/`): Overview, lane selection, and navigation
-- **Control Panel** (`/skeeball/control`): Start/stop lanes, view status, test modes
+- **Control Panel** (`/skeeball/control`): Real-time game monitoring with 0.5-second updates
+  - Live score tracking during active gameplay
+  - Ball counter showing remaining balls
+  - Game active status (playing/ready/offline)
+  - Instant feedback on coin insertions
 - **Simulator** (`/skeeball/simulator`): Full gameplay testing without GPIO hardware
-- **Statistics** (`/skeeball/stats`): Revenue analytics, game counts, performance metrics
+- **Statistics** (`/skeeball/stats`): Live revenue analytics with 1-second updates
+  - Total coins inserted (cumulative)
+  - Total games played
+  - Real-time revenue tracking
 - **GPIO Testing** (`/skeeball/gpio-test`): Real-time hardware diagnostics and sensor monitoring
 - **RESTful API**: Authenticated endpoints for programmatic control and monitoring
 
@@ -228,6 +235,20 @@ See `DEPLOYMENT_CHECKLIST.md` for comprehensive deployment instructions includin
 - **Database Integration**: Revenue stored in Arcade Tracker's play_records table
 - **Statistics Dashboard**: Real-time revenue analytics per lane
 - **CSV Export**: Revenue data exportable with all other game data
+
+#### 🔄 Real-Time State Synchronization
+- **Live Game State Tracking**: Control panel displays current score, balls remaining, and active game status
+- **File-Based State Sharing**: Raspberry Pi writes game state to JSON file every second
+- **Stats API Server**: Flask API on Pi (port 5002) serves real-time data to main application
+- **Fast Polling**: Control panel updates every 0.5 seconds, statistics every 1 second
+- **Seamless Integration**: Works with existing `skeeball_main.py` without GPIO conflicts
+
+**Data Flow:**
+```
+Hardware (GPIO sensors) → skeeball_main.py → skeeball_state.json
+  → state_sync.py (watches file) → realtime_state.json
+  → stats_api_server.py (HTTP API) → Flask app → Web UI
+```
 
 #### Revenue Workflow
 1. Player inserts coin → Revenue logged to lane controller

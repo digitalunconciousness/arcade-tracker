@@ -1,194 +1,72 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title> Skeeball Statistics</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-        
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        
-        h1 {
-            color: white;
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        
-        .back-link {
-            color: rgba(255, 255, 255, 0.8);
-            text-decoration: none;
-            font-size: 0.9rem;
-            margin-bottom: 20px;
-            display: inline-block;
-        }
-        
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 20px;
-        }
-        
-        .stat-card {
-            background: white;
-            border-radius: 12px;
-            padding: 25px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
-        }
-        
-        .stat-card h2 {
-            color: #667eea;
-            margin-bottom: 20px;
-            font-size: 1.3rem;
-            border-bottom: 2px solid #f0f0f0;
-            padding-bottom: 10px;
-        }
-        
-        .stat-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 0;
-            border-bottom: 1px solid #f0f0f0;
-        }
-        
-        .stat-row:last-child {
-            border-bottom: none;
-        }
-        
-        .stat-label {
-            color: #666;
-            font-size: 0.95rem;
-        }
-        
-        .stat-value {
-            font-weight: 700;
-            font-size: 1.2rem;
-            color: #667eea;
-        }
-        
-        .empty-state {
-            text-align: center;
-            padding: 40px;
-            color: white;
-        }
-        
-        .empty-state h2 {
-            font-size: 1.5rem;
-            margin-bottom: 10px;
-        }
-        
-        .highlight {
-            background: linear-gradient(135deg, #667eea20 0%, #764ba220 100%);
-            padding: 15px;
-            border-radius: 8px;
-            margin-top: 15px;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <a href="/skeeball/" class="back-link">← Back to Control Center</a>
-        <h1> Skeeball Statistics</h1>
-        
-        <div class="stats-grid" id="statsContainer">
-            <div class="empty-state">
-                <h2>Loading statistics...</h2>
-                <p>Please wait while we fetch the lane statistics</p>
-            </div>
-        </div>
-    </div>
-    
-    <script>
-        async function loadStats() {
-            try {
-                const response = await fetch('/skeeball/api/lanes');
-                const lanes = await response.json();
-                
-                if (Object.keys(lanes).length === 0) {
-                    document.getElementById('statsContainer').innerHTML = `
-                        <div class="empty-state">
-                            <h2>No lanes active</h2>
-                            <p>No skeeball lanes are currently registered</p>
-                        </div>
-                    `;
-                    return;
-                }
-                
-                let html = '';
-                for (const [laneId, lane] of Object.entries(lanes)) {
-                    // Get stats for this lane
-                    const statsResponse = await fetch(`/skeeball/api/lanes/${laneId}/stats`);
-                    const stats = await statsResponse.json();
-                    
-                    html += `
-                        <div class="stat-card">
-                            <h2> ${laneId}</h2>
-                            
-                            <div class="stat-row">
-                                <span class="stat-label">Total Games</span>
-                                <span class="stat-value">${stats.total_games}</span>
-                            </div>
-                            
-                            <div class="stat-row">
-                                <span class="stat-label">Total Coins</span>
-                                <span class="stat-value">${stats.total_coins}</span>
-                            </div>
-                            
-                            <div class="stat-row">
-                                <span class="stat-label">Total Score</span>
-                                <span class="stat-value">${stats.total_score}</span>
-                            </div>
-                            
-                            <div class="stat-row">
-                                <span class="stat-label">Average Score</span>
-                                <span class="stat-value">${stats.average_score}</span>
-                            </div>
-                            
-                            <div class="stat-row">
-                                <span class="stat-label">Best Score</span>
-                                <span class="stat-value">${stats.best_score}</span>
-                            </div>
-                            
-                            <div class="highlight">
-                                <div class="stat-row">
-                                    <span class="stat-label">Status</span>
-                                    <span class="stat-value" style="font-size: 0.9rem;">
-                                        ${lane.in_progress ? ' Playing' : (lane.is_online ? ' Ready' : ' Offline')}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                }
-                document.getElementById('statsContainer').innerHTML = html;
-            } catch (e) {
-                console.error('Failed to load statistics:', e);
-                document.getElementById('statsContainer').innerHTML = `
-                    <div class="empty-state">
-                        <h2>Error loading statistics</h2>
-                        <p>${e.message}</p>
-                    </div>
-                `;
-            }
-        }
-        
-        // Load stats on page load
-        loadStats();
-    </script>
-</body>
-</html>
+{% extends "base.html" %}
+
+{% block title %}Skeeball Statistics{% endblock %}
+
+{% block content %}
+<style>
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 25px; margin-top: 20px; }
+  .stat-card { background: var(--card-bg, rgba(0, 15, 25, 0.8)); border: 2px solid #00ffff; border-radius: 12px; padding: 25px; box-shadow: 0 0 20px rgba(0,255,255,0.3); }
+  .stat-card h2 { color:#00ffff; margin-bottom: 15px; border-bottom: 2px solid rgba(0,255,255,0.3); padding-bottom: 10px; }
+  .stat-row { display:flex; justify-content: space-between; align-items:center; padding:10px 0; border-bottom: 1px solid rgba(0,255,255,0.15); }
+  .stat-row:last-child { border-bottom: none; }
+  .stat-label { color:#00ffff; font-size:0.95rem; text-transform: uppercase; letter-spacing: 0.5px; }
+  .stat-value { font-weight: 800; font-size: 1.2rem; color: #ff00ff; }
+  .empty-state { text-align: center; padding: 60px; color: #00ffff; background: var(--card-bg, rgba(0,15,25,0.8)); border: 2px dashed rgba(0,255,255,0.3); border-radius: 12px; }
+</style>
+
+<div class="skeeball-header" style="text-align:center; margin-bottom: 30px;">
+  <h1 class="glitch" data-text="SKEEBALL STATISTICS">SKEEBALL STATISTICS</h1>
+  <p style="color:#00ffff; opacity:0.8">Live performance metrics per lane</p>
+</div>
+
+<div class="stats-grid" id="statsContainer">
+  <div class="empty-state">
+    <h2 style="color:#ff00ff;">Loading statistics...</h2>
+    <p>Please wait while we fetch the lane statistics</p>
+  </div>
+</div>
+
+<script>
+  async function loadStats() {
+    try {
+      const response = await fetch('/skeeball/api/lanes');
+      const lanes = await response.json();
+
+      if (!lanes || Object.keys(lanes).length === 0) {
+        document.getElementById('statsContainer').innerHTML = `
+          <div class="empty-state">
+            <h2 style="color:#ff00ff;">No lanes active</h2>
+            <p>No skeeball lanes are currently registered</p>
+          </div>`;
+        return;
+      }
+
+      let html = '';
+      for (const [laneId, lane] of Object.entries(lanes)) {
+        const statsResponse = await fetch(`/skeeball/api/lanes/${laneId}/stats`);
+        const stats = await statsResponse.json();
+        html += `
+          <div class="stat-card">
+            <h2>${laneId}</h2>
+            <div class="stat-row"><span class="stat-label">Total Games</span><span class="stat-value">${stats.total_games}</span></div>
+            <div class="stat-row"><span class="stat-label">Total Coins</span><span class="stat-value">${stats.total_coins}</span></div>
+            <div class="stat-row"><span class="stat-label">Total Score</span><span class="stat-value">${stats.total_score}</span></div>
+            <div class="stat-row"><span class="stat-label">Best Score</span><span class="stat-value">${stats.best_score}</span></div>
+            <div class="stat-row"><span class="stat-label">Status</span><span class="stat-value" style="font-size:0.95rem;">${lane.in_progress ? 'Playing' : (lane.is_online ? 'Ready' : 'Offline')}</span></div>
+          </div>`
+      }
+      document.getElementById('statsContainer').innerHTML = html;
+    } catch (e) {
+      console.error('Failed to load statistics:', e);
+      document.getElementById('statsContainer').innerHTML = `
+        <div class="empty-state">
+          <h2 style="color:#ff00ff;">Error loading statistics</h2>
+          <p>${e.message}</p>
+        </div>`;
+    }
+  }
+
+  loadStats();
+  setInterval(loadStats, 1000);
+</script>
+{% endblock %}
