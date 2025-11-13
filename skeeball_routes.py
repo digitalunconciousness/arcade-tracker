@@ -232,7 +232,6 @@ def skeeball_logs():
 # ============================================================================
 
 @skeeball_bp.route('/api/lanes', methods=['GET'])
-@login_required
 def api_get_lanes():
     """Get all lanes and their status."""
     # Try to fetch from Raspberry Pi first
@@ -247,7 +246,6 @@ def api_get_lanes():
 
 
 @skeeball_bp.route('/api/lanes/<lane_id>/status', methods=['GET'])
-@login_required
 def api_get_lane_status(lane_id):
     """Get status of a specific lane."""
     # Try to fetch from Raspberry Pi first
@@ -297,7 +295,6 @@ def api_reset_lane(lane_id):
 
 
 @skeeball_bp.route('/api/lanes/<lane_id>/stats', methods=['GET'])
-@login_required
 def api_get_lane_stats(lane_id):
     """Get statistics for a specific lane."""
     # Try to fetch from Raspberry Pi first
@@ -314,7 +311,6 @@ def api_get_lane_stats(lane_id):
 
 
 @skeeball_bp.route('/api/health', methods=['GET'])
-@login_required
 def api_health():
     """Get health status of all lanes."""
     manager = get_lane_manager()

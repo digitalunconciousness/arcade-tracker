@@ -78,7 +78,7 @@
         const statsResponse = await fetch(`/skeeball/api/lanes/${laneId}/stats`);
         const stats = await statsResponse.json();
         
-        const stateResponse = await fetch(`/skeeball/api/lanes/${laneId}/state`);
+        const stateResponse = await fetch(`/skeeball/api/lanes/${laneId}/status`);
         const state = await stateResponse.json();
         
         const statusClass = lane.is_online ? (lane.in_progress ? 'status-playing' : 'status-online') : 'status-offline';
