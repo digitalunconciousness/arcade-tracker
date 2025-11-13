@@ -87,8 +87,8 @@
         html += `
           <tr style="border-bottom:1px solid rgba(0,255,255,0.1);">
             <td style="padding:12px; color:#fff;">${laneId}</td>
-            <td style="padding:12px; text-align:center; color:#ff00ff; font-weight:bold;">${state.credits_remaining || 0}</td>
-            <td style="padding:12px; text-align:center; color:#ff00ff; font-weight:bold;">${state.current_score || 0}</td>
+            <td style="padding:12px; text-align:center; color:#ff00ff; font-weight:bold;">${state.credits || 0}</td>
+            <td style="padding:12px; text-align:center; color:#ff00ff; font-weight:bold;">${state.current_score || state.score || 0}</td>
             <td style="padding:12px; text-align:center; color:#ff00ff; font-weight:bold;">${state.balls_remaining || 9}</td>
             <td style="padding:12px; text-align:center; color:#ff00ff; font-weight:bold;">${stats.total_coins}</td>
             <td style="padding:12px; text-align:center; color:#ff00ff; font-weight:bold;">${stats.best_score}</td>
