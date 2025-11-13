@@ -25,6 +25,28 @@
   <p style="color:#00ffff; opacity:0.8">Registered Lanes Overview</p>
 </div>
 
+<!-- Real-time Stats Section -->
+<div class="lane-card" style="margin-bottom: 30px;">
+  <h2 style="color:#00ffff; margin-bottom: 20px;">📊 Real-Time Stats</h2>
+  <div class="stat">
+    <span class="stat-label">Credits</span>
+    <span class="stat-value" id="stat-credits">-</span>
+  </div>
+  <div class="stat">
+    <span class="stat-label">Current Score</span>
+    <span class="stat-value" id="stat-score">-</span>
+  </div>
+  <div class="stat">
+    <span class="stat-label">Balls Remaining</span>
+    <span class="stat-value" id="stat-balls">-</span>
+  </div>
+  <div class="stat">
+    <span class="stat-label">Status</span>
+    <span class="stat-value" id="stat-status">-</span>
+  </div>
+</div>
+
+<!-- Active Lanes Table -->
 <div class="lane-card">
   <h2 style="color:#00ffff; margin-bottom: 20px;">🎮 Active Lanes</h2>
   <div id="lanesContainer">
@@ -104,7 +126,42 @@
   }
 
 
+  async function loadRealtimeStats() {
+    try {
+      const response = await fetch('/skeeball/api/lanes/lane_1/state');
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      
+      const state = await response.json();
+      
+      // Update stats display
+      document.getElementById('stat-credits').textContent = state.credits_remaining || 0;
+      document.getElementById('stat-score').textContent = state.current_score || 0;
+      document.getElementById('stat-balls').textContent = state.balls_remaining || 9;
+      
+      // Update status
+      const statusEl = document.getElementById('stat-status');
+      if (state.in_progress) {
+        statusEl.textContent = 'Playing';
+        statusEl.style.color = '#ff00ff';
+      } else if (state.credits_remaining > 0) {
+        statusEl.textContent = 'Ready';
+        statusEl.style.color = '#00ff00';
+      } else {
+        statusEl.textContent = 'Idle';
+        statusEl.style.color = '#ffaa00';
+      }
+    } catch (e) {
+      console.error('Failed to load real-time stats:', e);
+      document.getElementById('stat-status').textContent = 'Error';
+      document.getElementById('stat-status').style.color = '#ff0000';
+    }
+  }
+
   loadLanes();
+  loadRealtimeStats();
   setInterval(loadLanes, 500);
+  setInterval(loadRealtimeStats, 500);
 </script>
 {% endblock %}

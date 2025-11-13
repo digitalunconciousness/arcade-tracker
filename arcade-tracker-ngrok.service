@@ -1,0 +1,17 @@
+[Unit]
+Description=Ngrok Tunnel for Arcade Tracker
+After=network.target
+
+[Service]
+Type=simple
+User=jackiegreybard
+Group=jackiegreybard
+WorkingDirectory=/home/jackiegreybard/arcade-tracker
+ExecStart=/usr/local/bin/ngrok http 5000 --log=stdout
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

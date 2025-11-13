@@ -98,49 +98,6 @@
 }
 </style>
 
-    <div class="card">
-    <h2> Revenue Over/Under Analysis</h2>
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
-        {% for game in all_games %}
-            {% if game.status in ['Operational', 'operational'] %}
-                {% set days_active = ((today() - game.date_added.date()).days or 1) %}
-                {% set daily_avg = game.total_revenue / days_active %}
-                {% set last_record = game.play_records|last %}
-                {% if last_record %}
-                    {% set last_revenue = last_record.revenue %}
-                    {% set difference = last_revenue - daily_avg %}
-                    {% set percentage = ((difference / daily_avg) * 100) if daily_avg > 0 else 0 %}
-                    
-                    <div class="stat-card" style="text-align: left;">
-                        <h3 style="margin-top: 0; color: var(--neon-cyan);">{{ game.name }}</h3>
-                        <div style="margin: 10px 0;">
-                            <strong>Daily Average:</strong> ${{ "%.2f"|format(daily_avg) }}
-                        </div>
-                        <div style="margin: 10px 0;">
-                            <strong>Last Record:</strong> ${{ "%.2f"|format(last_revenue) }}
-                        </div>
-                        <div style="margin: 10px 0;">
-                            <strong>Difference:</strong> 
-                            {% if difference > 0 %}
-                                <span class="revenue-indicator revenue-over">
-                                    +${{ "%.2f"|format(difference) }} ({{ "%.1f"|format(percentage) }}%)
-                                </span>
-                            {% elif difference < 0 %}
-                                <span class="revenue-indicator revenue-under">
-                                    ${{ "%.2f"|format(difference) }} ({{ "%.1f"|format(percentage) }}%)
-                                </span>
-                            {% else %}
-                                <span class="revenue-indicator revenue-neutral">
-                                    On Target
-                                </span>
-                            {% endif %}
-                        </div>
-                    </div>
-                {% endif %}
-            {% endif %}
-        {% endfor %}
-    </div>
-</div>
 
 <script>
 // Cyberpunk chart styling
