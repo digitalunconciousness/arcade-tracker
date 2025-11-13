@@ -393,9 +393,20 @@ textarea {
     cursor: pointer;
 }
 
+.item-action {
+    cursor: pointer;
+    background: var(--dark-card);
+    color: var(--text-primary);
+    border: 1px solid var(--neon-cyan);
+    border-radius: 4px;
+    padding: 8px;
+    font-family: 'Share Tech Mono', monospace;
+}
+
 .item-action:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+    background: rgba(128, 128, 128, 0.2);
 }
 
 .inventory-quantity:invalid {
