@@ -1,0 +1,233 @@
+{% extends "base.html" %}
+
+{% block title %}Skeeball Live Logs{% endblock %}
+
+{% block content %}
+<style>
+  .log-container { background: var(--card-bg, rgba(0, 15, 25, 0.8)); border: 2px solid #00ffff; border-radius: 12px; padding: 25px; box-shadow: 0 0 20px rgba(0,255,255,0.3); margin-bottom: 20px; }
+  .log-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid rgba(0,255,255,0.3); }
+  .log-title { font-size: 1.5rem; font-weight: 700; color: #00ffff; text-shadow: 0 0 10px rgba(0,255,255,0.5); }
+  .log-controls { display: flex; gap: 10px; }
+  .log-viewer { background: rgba(0,0,0,0.5); border: 1px solid rgba(0,255,255,0.3); border-radius: 8px; padding: 15px; font-family: 'Courier New', monospace; font-size: 0.9rem; height: 500px; overflow-y: auto; color: #00ff00; }
+  .log-entry { padding: 5px 0; border-bottom: 1px solid rgba(0,255,255,0.1); }
+  .log-entry:last-child { border-bottom: none; }
+  .log-timestamp { color: #00ffff; margin-right: 10px; }
+  .log-type { padding: 2px 6px; border-radius: 4px; margin-right: 8px; font-size: 0.85rem; font-weight: bold; }
+  .log-type-switch { background: rgba(0,255,0,0.2); color: #00ff00; border: 1px solid #00ff00; }
+  .log-type-ball { background: rgba(255,0,255,0.2); color: #ff00ff; border: 1px solid #ff00ff; }
+  .log-type-coin { background: rgba(255,255,0,0.2); color: #ffff00; border: 1px solid #ffff00; }
+  .log-type-error { background: rgba(255,0,0,0.2); color: #ff0000; border: 1px solid #ff0000; }
+  .log-message { color: #ffffff; }
+  .stats-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
+  .stat-box { background: rgba(0,255,255,0.05); border: 1px solid rgba(0,255,255,0.3); border-radius: 8px; padding: 15px; text-align: center; }
+  .stat-label { color: #00ffff; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; }
+  .stat-value { color: #ff00ff; font-size: 1.5rem; font-weight: 900; font-family: 'Courier New', monospace; }
+  .control-btn { background: rgba(0,255,255,0.1); border: 2px solid #00ffff; color: #00ffff; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 700; transition: all 0.3s; }
+  .control-btn:hover { background: rgba(0,255,255,0.3); box-shadow: 0 0 15px rgba(0,255,255,0.5); }
+  .control-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+</style>
+
+<div class="skeeball-header" style="text-align:center; margin-bottom: 30px;">
+  <h1>🔧 SKEEBALL LIVE LOGS</h1>
+  <p style="color:#00ffff; opacity:0.8">Real-time switch and event monitoring</p>
+</div>
+
+<div class="stats-bar">
+  <div class="stat-box">
+    <div class="stat-label">Switch Hits</div>
+    <div class="stat-value" id="switchCount">0</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-label">Balls Detected</div>
+    <div class="stat-value" id="ballCount">0</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-label">Coins Inserted</div>
+    <div class="stat-value" id="coinCount">0</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-label">Log Entries</div>
+    <div class="stat-value" id="logCount">0</div>
+  </div>
+</div>
+
+<div class="log-container">
+  <div class="log-header">
+    <div class="log-title">📋 Event Log</div>
+    <div class="log-controls">
+      <button class="control-btn" onclick="toggleAutoScroll()">
+        <span id="scrollIcon">⬇️</span> Auto-scroll: <span id="scrollStatus">ON</span>
+      </button>
+      <button class="control-btn" onclick="clearLogs()">🗑️ Clear</button>
+      <button class="control-btn" onclick="exportLogs()">💾 Export</button>
+    </div>
+  </div>
+  <div class="log-viewer" id="logViewer">
+    <div class="log-entry">
+      <span class="log-timestamp">Waiting for events...</span>
+    </div>
+  </div>
+</div>
+
+<script>
+let autoScroll = true;
+let logs = [];
+let switchCount = 0;
+let ballCount = 0;
+let coinCount = 0;
+let logCount = 0;
+
+function formatTimestamp() {
+  const now = new Date();
+  return now.toLocaleTimeString() + '.' + String(now.getMilliseconds()).padStart(3, '0');
+}
+
+function addLog(type, message) {
+  const timestamp = formatTimestamp();
+  const entry = { timestamp, type, message };
+  logs.push(entry);
+  logCount++;
+  
+  // Update counters
+  if (type === 'switch') switchCount++;
+  else if (type === 'ball') ballCount++;
+  else if (type === 'coin') coinCount++;
+  
+  updateCounters();
+  
+  // Add to display
+  const logViewer = document.getElementById('logViewer');
+  const logEntry = document.createElement('div');
+  logEntry.className = 'log-entry';
+  logEntry.innerHTML = `
+    <span class="log-timestamp">[${timestamp}]</span>
+    <span class="log-type log-type-${type}">${type.toUpperCase()}</span>
+    <span class="log-message">${message}</span>
+  `;
+  logViewer.appendChild(logEntry);
+  
+  // Keep only last 500 entries
+  if (logViewer.children.length > 500) {
+    logViewer.removeChild(logViewer.firstChild);
+  }
+  
+  if (autoScroll) {
+    logViewer.scrollTop = logViewer.scrollHeight;
+  }
+}
+
+function updateCounters() {
+  document.getElementById('switchCount').textContent = switchCount;
+  document.getElementById('ballCount').textContent = ballCount;
+  document.getElementById('coinCount').textContent = coinCount;
+  document.getElementById('logCount').textContent = logCount;
+}
+
+function toggleAutoScroll() {
+  autoScroll = !autoScroll;
+  document.getElementById('scrollStatus').textContent = autoScroll ? 'ON' : 'OFF';
+  document.getElementById('scrollIcon').textContent = autoScroll ? '⬇️' : '⏸️';
+}
+
+function clearLogs() {
+  if (!confirm('Clear all logs? This cannot be undone.')) return;
+  logs = [];
+  switchCount = 0;
+  ballCount = 0;
+  coinCount = 0;
+  logCount = 0;
+  updateCounters();
+  document.getElementById('logViewer').innerHTML = '<div class="log-entry"><span class="log-timestamp">Logs cleared. Waiting for events...</span></div>';
+}
+
+function exportLogs() {
+  const data = logs.map(l => `[${l.timestamp}] [${l.type.toUpperCase()}] ${l.message}`).join('\\n');
+  const blob = new Blob([data], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `skeeball-logs-${new Date().toISOString()}.txt`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// Poll for new events
+async function fetchLogs() {
+  try {
+    const response = await fetch('/skeeball/api/lanes');
+    const lanes = await response.json();
+    
+    // Check for any events (this is a simplified version - in production
+    // you'd want a dedicated endpoint that streams events)
+    for (const [laneId, lane] of Object.entries(lanes)) {
+      // Store last known state to detect changes
+      if (!window.lastLaneState) window.lastLaneState = {};
+      if (!window.lastLaneState[laneId]) {
+        window.lastLaneState[laneId] = { score: 0, balls: 0, credits: 0 };
+      }
+      
+      const lastState = window.lastLaneState[laneId];
+      
+      // Detect score changes
+      if (lane.score > lastState.score) {
+        const points = lane.score - lastState.score;
+        addLog('switch', `${laneId}: +${points} points scored`);
+      }
+      
+      // Detect ball changes
+      if (lane.balls > lastState.balls) {
+        addLog('ball', `${laneId}: Ball ${lane.balls} detected`);
+      }
+      
+      // Detect coin insertions
+      if (lane.credits > lastState.credits) {
+        addLog('coin', `${laneId}: Coin inserted (${lane.credits} credits)`);
+      }
+      
+      // Update last state
+      window.lastLaneState[laneId] = {
+        score: lane.score,
+        balls: lane.balls,
+        credits: lane.credits
+      };
+    }
+    
+    // Add heartbeat log every 10 minutes
+    if (!window.lastHeartbeat || Date.now() - window.lastHeartbeat > 600000) {
+      addLog('switch', '💓 System heartbeat - monitoring active');
+      window.lastHeartbeat = Date.now();
+    }
+  } catch (error) {
+    console.error('Failed to fetch logs:', error);
+  }
+}
+
+// Initial load and polling
+document.getElementById('logViewer').innerHTML = '';
+addLog('switch', 'System initialized - monitoring for events...');
+
+// Smart polling: slower rate (2 seconds) to be bandwidth-friendly
+let pollInterval = 2000; // 2 seconds = 30 requests/min (well under ngrok's 40/min limit)
+window.logPollInterval = setInterval(fetchLogs, pollInterval);
+
+// Pause polling when page is hidden (user switched tabs/apps)
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    if (window.logPollInterval) {
+      clearInterval(window.logPollInterval);
+      window.logPollInterval = null;
+      console.log('Polling paused (page hidden)');
+    }
+  } else {
+    if (!window.logPollInterval) {
+      window.logPollInterval = setInterval(fetchLogs, pollInterval);
+      fetchLogs(); // Immediate fetch when returning
+      console.log('Polling resumed (page visible)');
+    }
+  }
+});
+
+// Initial fetch
+fetchLogs();
+</script>
+{% endblock %}

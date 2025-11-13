@@ -35,8 +35,12 @@
             const next = current === 'dark' ? 'light' : 'dark';
             html.setAttribute('data-theme', next);
             try { localStorage.setItem('theme', next); } catch {}
+            updateThemeIcon(next);
+        }
+
+        function updateThemeIcon(theme) {
             const icon = document.querySelector('.theme-icon');
-            if (icon) icon.textContent = next === 'dark' ? '' : '';
+            if (icon) icon.textContent = theme === 'dark' ? '🌙' : '☀️';
         }
     </script>
 
@@ -294,6 +298,12 @@
     </button>
 
     <script>
+    // === Initialize theme icon on load ===
+    if (typeof updateThemeIcon === 'function') {
+        const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+        updateThemeIcon(currentTheme);
+    }
+
     // === Mobile Dropdown Handling ===
     document.addEventListener("DOMContentLoaded", function() {
         document.querySelectorAll(".nav-dropdown-toggle").forEach(toggle => {

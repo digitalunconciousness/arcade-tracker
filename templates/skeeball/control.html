@@ -21,24 +21,14 @@
 </style>
 
 <div class="skeeball-header" style="text-align:center; margin-bottom: 30px;">
-  <h1>🎳 SKEEBALL CONTROL PANEL</h1>
-  <p style="color:#00ffff; opacity:0.8">Real-Time Lane Monitoring & Control</p>
+  <h1>🎳 SKEEBALL CONTROL CENTER</h1>
+  <p style="color:#00ffff; opacity:0.8">Registered Lanes Overview</p>
 </div>
 
-<div class="system-controls">
-  <div style="display:flex; justify-content: space-between; align-items:center; gap: 15px; flex-wrap: wrap;">
-    <div>
-      <strong style="color:#00ffff; font-size:1.1rem;">🖥️ System Controls</strong>
-      <p style="margin:6px 0 0 0; color: rgba(0,255,255,0.7); font-size:0.95rem;">Manage the Raspberry Pi system</p>
-    </div>
-    <button class="reboot-btn" onclick="rebootSystem()">⚡ Reboot Raspberry Pi</button>
-  </div>
-</div>
-
-<div class="lanes-grid" id="lanesContainer">
-  <div class="empty-state">
-    <h2 style="color:#ff00ff; margin-bottom: 10px;">Loading lanes...</h2>
-    <p>Please wait while we fetch the lane information</p>
+<div class="lane-card">
+  <h2 style="color:#00ffff; margin-bottom: 20px;">🎮 Active Lanes</h2>
+  <div id="lanesContainer">
+    <p style="text-align:center; padding: 40px; color:#00ffff;">Loading lane information...</p>
   </div>
 </div>
 
@@ -63,39 +53,44 @@
 
       if (!lanes || Object.keys(lanes).length === 0) {
         document.getElementById('lanesContainer').innerHTML = `
-          <div class="empty-state">
-            <h2 style="color:#ff00ff;">No lanes active</h2>
-            <p>No skeeball lanes are currently registered</p>
-          </div>`;
+          <p style="text-align:center; padding: 40px; color:#ff6666;">No lanes registered</p>`;
         return;
       }
 
-      let html = '';
+      // Fetch stats for each lane to get coin count and high score
+      let html = `
+        <table class="table" style="width:100%; border-collapse: collapse;">
+          <thead>
+            <tr>
+              <th style="text-align:left; padding:12px; color:#00ffff; border-bottom:2px solid rgba(0,255,255,0.3);">Lane ID</th>
+              <th style="text-align:center; padding:12px; color:#00ffff; border-bottom:2px solid rgba(0,255,255,0.3);">Coin Count</th>
+              <th style="text-align:center; padding:12px; color:#00ffff; border-bottom:2px solid rgba(0,255,255,0.3);">High Score</th>
+              <th style="text-align:center; padding:12px; color:#00ffff; border-bottom:2px solid rgba(0,255,255,0.3);">Status</th>
+            </tr>
+          </thead>
+          <tbody>`;
+      
       for (const [laneId, lane] of Object.entries(lanes)) {
-        console.log('Processing lane:', laneId, lane);
+        // Fetch stats for this lane
+        const statsResponse = await fetch(`/skeeball/api/lanes/${laneId}/stats`);
+        const stats = await statsResponse.json();
+        
         const statusClass = lane.is_online ? (lane.in_progress ? 'status-playing' : 'status-online') : 'status-offline';
         const statusText = lane.is_online ? (lane.in_progress ? 'Playing' : 'Ready') : 'Offline';
-        console.log('Status:', statusClass, statusText);
+        
         html += `
-          <div class="lane-card">
-            <div class="lane-header">
-              <div class="lane-title">${laneId}</div>
-              <div class="lane-status ${statusClass}">${statusText}</div>
-            </div>
-            <div class="stat"><div class="stat-label">Credits</div><div class="stat-value">${lane.credits}</div></div>
-            <div class="stat"><div class="stat-label">Score</div><div class="stat-value">${lane.score}</div></div>
-            <div class="stat"><div class="stat-label">Balls</div><div class="stat-value">${lane.balls}/${lane.total_balls}</div></div>
-            <div class="stat"><div class="stat-label">Last Event</div><div class="stat-value" style="font-size:1rem;">${lane.last_event ? new Date(lane.last_event).toLocaleTimeString() : 'None'}</div></div>
-            <div class="action-buttons" style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-top: 15px;">
-              <button class="btn btn-success" onclick="insertCoin('${laneId}')">Insert Coin</button>
-              <button class="btn btn-warning" onclick="resetLane('${laneId}')">Reset Lane</button>
-            </div>
-          </div>`;
+          <tr style="border-bottom:1px solid rgba(0,255,255,0.1);">
+            <td style="padding:12px; color:#fff;">${laneId}</td>
+            <td style="padding:12px; text-align:center; color:#ff00ff; font-weight:bold;">${stats.total_coins}</td>
+            <td style="padding:12px; text-align:center; color:#ff00ff; font-weight:bold;">${stats.best_score}</td>
+            <td style="padding:12px; text-align:center;">
+              <span class="lane-status ${statusClass}" style="padding:6px 12px; border-radius:20px; font-size:0.85rem; font-weight:bold;">${statusText}</span>
+            </td>
+          </tr>`;
       }
-      console.log('Generated HTML length:', html.length);
-      console.log('Setting innerHTML...');
+      
+      html += '</tbody></table>';
       document.getElementById('lanesContainer').innerHTML = html;
-      console.log('innerHTML set successfully');
     } catch (e) {
       console.error('Failed to load lanes:', e);
       console.error('Error stack:', e.stack);
@@ -108,38 +103,6 @@
     }
   }
 
-  async function insertCoin(laneId) {
-    await fetch('/skeeball/api/simulator/insert-coin', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
-      body: JSON.stringify({ lane_id: laneId })
-    });
-    loadLanes();
-  }
-
-  async function resetLane(laneId) {
-    if (!confirm(`Reset lane ${laneId}? This will clear the current game.`)) return;
-    await fetch(`/skeeball/api/lanes/${laneId}/reset`, {
-      method: 'POST',
-      headers: { 'X-CSRFToken': getCsrfToken() }
-    });
-    loadLanes();
-  }
-
-  async function rebootSystem() {
-    if (!confirm('WARNING: This will reboot the Raspberry Pi system. All games will be interrupted. Continue?')) return;
-    try {
-      const response = await fetch('/skeeball/api/system/reboot', { method: 'POST', headers: { 'X-CSRFToken': getCsrfToken() } });
-      if (response.ok) {
-        alert('Reboot command sent. The system will restart in a few seconds.');
-      } else {
-        const error = await response.json();
-        alert('Reboot failed: ' + (error.error || 'Unknown error'));
-      }
-    } catch (e) {
-      alert('Failed to send reboot command: ' + e.message);
-    }
-  }
 
   loadLanes();
   setInterval(loadLanes, 500);

@@ -77,11 +77,7 @@
                         <td>{{ record.plays_count }} plays</td>
                         <td>{{ record.date_recorded.strftime('%Y-%m-%d') }}</td>
                         <td>
-                            {% if current_user.has_role('manager') %}
-                                <a href="{{ url_for('record_plays', game_id=record.game_id) }}" class="btn btn-success" style="font-size: 12px; padding: 5px 10px;">Record More</a>
-                            {% else %}
-                                <a href="{{ url_for('game_detail', game_id=record.game_id) }}" class="btn" style="font-size: 12px; padding: 5px 10px;">View Game</a>
-                            {% endif %}
+                            <a href="{{ url_for('game_detail', game_id=record.game_id) }}" class="btn" style="font-size: 12px; padding: 5px 10px;">View Game</a>
                         </td>
                     </tr>
                     {% endfor %}
