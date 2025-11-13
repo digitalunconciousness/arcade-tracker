@@ -51,7 +51,8 @@ def update_game_state(state_data):
 
 
 def load_realtime_state():
-    """Load latest state from the shared file if it is fresh (<5s old)."""
+    """Load latest state from the shared file and also reload game_history for stats."""
+    global game_history, game_stats
     try:
         path = Path(STATE_FILE)
         if path.exists():
@@ -65,6 +66,29 @@ def load_realtime_state():
                     if age < 5:
                         with state_lock:
                             game_state.update(file_state)
+                        
+                        # Also reload game_history from source file for accurate stats
+                        source_file = Path('/home/skeeproto/rpi_skeeball/skeeball_state.json')
+                        if source_file.exists():
+                            try:
+                                with open(source_file, 'r') as sf:
+                                    source_state = json.load(sf)
+                                history = source_state.get('game_history', [])
+                                game_history = history[-100:]  # Keep last 100 games
+                                
+                                # Recalculate stats
+                                if game_history:
+                                    scores = [g['score'] for g in game_history]
+                                    game_stats["high_score"] = max(scores)
+                                    game_stats["total_score"] = sum(scores)
+                                    game_stats["average_score"] = sum(scores) / len(scores)
+                                else:
+                                    game_stats["high_score"] = 0
+                                    game_stats["total_score"] = 0
+                                    game_stats["average_score"] = 0
+                            except Exception:
+                                pass
+                        
                         return True
                 except Exception:
                     # If timestamp parse fails, still update
@@ -97,7 +121,7 @@ def load_state_from_file():
     """Load persisted state on startup."""
     global game_state, game_history, game_stats
     
-    state_file = Path('skeeball_state.json')
+    state_file = Path('/home/skeeproto/rpi_skeeball/skeeball_state.json')
     if state_file.exists():
         try:
             with open(state_file, 'r') as f:

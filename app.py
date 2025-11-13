@@ -840,6 +840,9 @@ def home():
     # Get recent records and maintenance
     recent_records = PlayRecord.query.order_by(PlayRecord.date_recorded.desc()).limit(5).all()
     recent_maintenance = MaintenanceRecord.query.filter_by(status='Open').limit(5).all()
+    
+    # Get low stock alerts
+    low_stock_alerts = LowStockAlert.query.filter_by(is_resolved=False).limit(10).all()
 
     # Calculate worst performers (optional dashboard detail)
     worst_performers = []
@@ -866,7 +869,8 @@ def home():
         total_revenue=total_revenue,
         recent_records=recent_records,
         recent_maintenance=recent_maintenance,
-        worst_performers=worst_performers)
+        worst_performers=worst_performers,
+        low_stock_alerts=low_stock_alerts)
 
 @app.route('/add_game', methods=['GET', 'POST'])
 @login_required
@@ -2008,7 +2012,7 @@ def maintenance_photos(maintenance_id):
             db.session.commit()
             flash(f'Successfully uploaded {uploaded_count} photo(s) for maintenance record.', 'success')
         
-        return redirect(url_for('view_maintenance', maintenance_id=maintenance_id))
+        return redirect(url_for('maintenance_detail', record_id=maintenance_id))
     
     return render_template('maintenance_photos.html', maintenance=maintenance, form=form)
 
@@ -2034,7 +2038,7 @@ def delete_maintenance_photo(maintenance_id, filename):
     else:
         flash('Photo removed from record.', 'success')
     
-    return redirect(url_for('view_maintenance', maintenance_id=maintenance_id))
+    return redirect(url_for('maintenance_detail', record_id=maintenance_id))
 
 
 @app.route('/admin/cleanup_photos', methods=['POST'])
