@@ -1,6 +1,6 @@
-# 🎮 Arcade Tracker
+# 🎮 Arcade Tracker v1.0
 
-A comprehensive arcade management system for tracking games, play statistics, revenue, and maintenance with advanced work logging capabilities.
+A comprehensive arcade management system for tracking games, play statistics, revenue, and maintenance with advanced work logging capabilities and real-time skeeball integration.
 
 ## 🌟 Features
 
@@ -325,7 +325,37 @@ This basic version can be extended with:
 - **Backup system**: Automated data backups
 - **Advanced reports**: Charts, graphs, and trend analysis
 
-## 📈 Recent Updates (v2.1)
+## 🎉 Version 1.0 Release
+
+### Core Features
+- ✅ Complete game inventory management with location tracking
+- ✅ Revenue and play tracking with automatic calculations
+- ✅ Advanced maintenance system with timestamped work logs
+- ✅ Inventory management with low stock alerts
+- ✅ Role-based access control (readonly, operator, manager, admin)
+- ✅ Professional PDF reports and CSV exports
+- ✅ Database backup and restore with encryption
+- ✅ **Automated daily backups** with cron job setup
+- ✅ Real-time skeeball integration with live scoring
+- ✅ Responsive cyberpunk-themed UI
+
+### Daily Automated Backups
+New in 1.0! Set up automated daily backups at 2 AM:
+```bash
+./scripts/setup_daily_backup.sh
+```
+- Backs up database automatically every day
+- Removes backups older than 30 days
+- Logs all activity to `logs/backup.log`
+
+### Real-Time Skeeball Integration
+New in 1.0! Live game state updates:
+- **Control panel updates every 0.5 seconds** showing current score, balls remaining, game status
+- **Statistics page updates every 1 second** with cumulative totals and best scores  
+- State synchronization from Raspberry Pi hardware to web interface
+- No page refresh needed - see scores update as you play!
+
+## 📈 Recent Updates (v1.0)
 
 ### 🎯 Monthly Performance Tracking
 - **Monthly Top 5/Top 10 Rankings**: Automatic monthly updates on the 1st of each month

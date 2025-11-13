@@ -74,7 +74,7 @@ python scripts/restore_database.py --verify backups/arcade_backup_YYYYMMDD_HHMMS
 python scripts/backup_database.py cleanup
 
 # Setup automated daily backups (cron at 2 AM)
-bash scripts/setup_backup_cron.sh
+bash scripts/setup_daily_backup.sh
 ```
 
 ### Data Export
@@ -258,6 +258,14 @@ Environment variables in `.env` (see `.env.example`):
 9. **Performance Tracking**: The system automatically tracks when games appear in "top 5" or "top 10" performance rankings via `times_in_top_5` and `times_in_top_10` fields.
 
 10. **Counter Management**: Games can have different counter states (Working/No_Counter/Broken_Counter) which affects play tracking reliability.
+
+11. **Skeeball Real-Time Updates**: The skeeball control panel updates every 500ms, statistics every 1000ms. State synchronization:
+   - `skeeball_main.py` calls `save_state()` on coin insert, switch trigger, and ball completion
+   - `state_sync.py` watches `/home/skeeproto/rpi_skeeball/skeeball_state.json` and syncs to `realtime_state.json`
+   - `stats_api_server.py` (port 5002) reads `realtime_state.json` and serves via HTTP API
+   - Flask app polls API and displays live score, balls remaining, and game status
+
+12. **Daily Automated Backups**: Use `scripts/setup_daily_backup.sh` to install a cron job that runs at 2 AM daily. Backups are stored in `backups/` directory and automatically cleaned up after 30 days. Logs are written to `logs/backup.log`.
 
 ## Development Workflow
 
