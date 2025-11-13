@@ -25,28 +25,6 @@
   <p style="color:#00ffff; opacity:0.8">Registered Lanes Overview</p>
 </div>
 
-<!-- Real-time Stats Section -->
-<div class="lane-card" style="margin-bottom: 30px;">
-  <h2 style="color:#00ffff; margin-bottom: 20px;">📊 Real-Time Stats</h2>
-  <div class="stat">
-    <span class="stat-label">Credits</span>
-    <span class="stat-value" id="stat-credits">-</span>
-  </div>
-  <div class="stat">
-    <span class="stat-label">Current Score</span>
-    <span class="stat-value" id="stat-score">-</span>
-  </div>
-  <div class="stat">
-    <span class="stat-label">Balls Remaining</span>
-    <span class="stat-value" id="stat-balls">-</span>
-  </div>
-  <div class="stat">
-    <span class="stat-label">Status</span>
-    <span class="stat-value" id="stat-status">-</span>
-  </div>
-</div>
-
-<!-- Active Lanes Table -->
 <div class="lane-card">
   <h2 style="color:#00ffff; margin-bottom: 20px;">🎮 Active Lanes</h2>
   <div id="lanesContainer">
@@ -85,6 +63,9 @@
           <thead>
             <tr>
               <th style="text-align:left; padding:12px; color:#00ffff; border-bottom:2px solid rgba(0,255,255,0.3);">Lane ID</th>
+              <th style="text-align:center; padding:12px; color:#00ffff; border-bottom:2px solid rgba(0,255,255,0.3);">Credits</th>
+              <th style="text-align:center; padding:12px; color:#00ffff; border-bottom:2px solid rgba(0,255,255,0.3);">Score</th>
+              <th style="text-align:center; padding:12px; color:#00ffff; border-bottom:2px solid rgba(0,255,255,0.3);">Balls</th>
               <th style="text-align:center; padding:12px; color:#00ffff; border-bottom:2px solid rgba(0,255,255,0.3);">Coin Count</th>
               <th style="text-align:center; padding:12px; color:#00ffff; border-bottom:2px solid rgba(0,255,255,0.3);">High Score</th>
               <th style="text-align:center; padding:12px; color:#00ffff; border-bottom:2px solid rgba(0,255,255,0.3);">Status</th>
@@ -93,9 +74,12 @@
           <tbody>`;
       
       for (const [laneId, lane] of Object.entries(lanes)) {
-        // Fetch stats for this lane
+        // Fetch stats and state for this lane
         const statsResponse = await fetch(`/skeeball/api/lanes/${laneId}/stats`);
         const stats = await statsResponse.json();
+        
+        const stateResponse = await fetch(`/skeeball/api/lanes/${laneId}/state`);
+        const state = await stateResponse.json();
         
         const statusClass = lane.is_online ? (lane.in_progress ? 'status-playing' : 'status-online') : 'status-offline';
         const statusText = lane.is_online ? (lane.in_progress ? 'Playing' : 'Ready') : 'Offline';
@@ -103,6 +87,9 @@
         html += `
           <tr style="border-bottom:1px solid rgba(0,255,255,0.1);">
             <td style="padding:12px; color:#fff;">${laneId}</td>
+            <td style="padding:12px; text-align:center; color:#ff00ff; font-weight:bold;">${state.credits_remaining || 0}</td>
+            <td style="padding:12px; text-align:center; color:#ff00ff; font-weight:bold;">${state.current_score || 0}</td>
+            <td style="padding:12px; text-align:center; color:#ff00ff; font-weight:bold;">${state.balls_remaining || 9}</td>
             <td style="padding:12px; text-align:center; color:#ff00ff; font-weight:bold;">${stats.total_coins}</td>
             <td style="padding:12px; text-align:center; color:#ff00ff; font-weight:bold;">${stats.best_score}</td>
             <td style="padding:12px; text-align:center;">
@@ -126,42 +113,7 @@
   }
 
 
-  async function loadRealtimeStats() {
-    try {
-      const response = await fetch('/skeeball/api/lanes/lane_1/state');
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-      
-      const state = await response.json();
-      
-      // Update stats display
-      document.getElementById('stat-credits').textContent = state.credits_remaining || 0;
-      document.getElementById('stat-score').textContent = state.current_score || 0;
-      document.getElementById('stat-balls').textContent = state.balls_remaining || 9;
-      
-      // Update status
-      const statusEl = document.getElementById('stat-status');
-      if (state.in_progress) {
-        statusEl.textContent = 'Playing';
-        statusEl.style.color = '#ff00ff';
-      } else if (state.credits_remaining > 0) {
-        statusEl.textContent = 'Ready';
-        statusEl.style.color = '#00ff00';
-      } else {
-        statusEl.textContent = 'Idle';
-        statusEl.style.color = '#ffaa00';
-      }
-    } catch (e) {
-      console.error('Failed to load real-time stats:', e);
-      document.getElementById('stat-status').textContent = 'Error';
-      document.getElementById('stat-status').style.color = '#ff0000';
-    }
-  }
-
   loadLanes();
-  loadRealtimeStats();
   setInterval(loadLanes, 500);
-  setInterval(loadRealtimeStats, 500);
 </script>
 {% endblock %}
