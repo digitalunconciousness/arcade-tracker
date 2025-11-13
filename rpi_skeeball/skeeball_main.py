@@ -20,6 +20,14 @@ except (ImportError, RuntimeError):
     GPIO_AVAILABLE = False
     print("⚠️  GPIO not available - running in simulation mode")
 
+# Import stats API server
+try:
+    from stats_api_server import update_game_state, update_game_history, start_api_server
+    STATS_API_AVAILABLE = True
+except ImportError:
+    STATS_API_AVAILABLE = False
+    print("⚠️  Stats API server not available")
+
 
 class SkeeballGame:
     """Main skeeball game controller."""
@@ -65,6 +73,10 @@ class SkeeballGame:
         # Initialize hardware
         if GPIO_AVAILABLE and self.config.get('use_gpio', True):
             self.setup_gpio()
+        
+        # Start stats API server
+        if STATS_API_AVAILABLE:
+            start_api_server(port=5002, debug=False)
         
         # Start background sync thread
         self.sync_thread = threading.Thread(target=self.sync_loop, daemon=True)
@@ -253,6 +265,9 @@ class SkeeballGame:
         self.current_ball_switches = set()
         self.current_ball_score = 0
         
+        # Update stats API
+        self._update_stats_api()
+        
         # Activate solenoid to release balls
         self.activate_solenoid()
         
@@ -273,6 +288,9 @@ class SkeeballGame:
             
             self.current_ball_switches.add(switch_key)
             self.current_ball_score += points
+            
+            # Update stats API
+            self._update_stats_api()
             
             if self.config['hardware']['debug']:
                 print(f"   {points}pt switch hit → +{points} pts (ball score: {self.current_ball_score})")
@@ -314,6 +332,9 @@ class SkeeballGame:
             self.current_ball_switches = set()
             self.current_ball_score = 0
             
+            # Update stats API
+            self._update_stats_api()
+            
             # Check if game is over (wait for coin to start new game)
             if self.balls_remaining <= 0:
                 self.end_game()
@@ -340,6 +361,13 @@ class SkeeballGame:
         self.game_history.append(game_record)
         self.total_games_played += 1
         self.save_state()
+        
+        # Update stats API with game history
+        if STATS_API_AVAILABLE and not self.game_active:  # Only if not bonus
+            update_game_history(game_record)
+        
+        # Update current state
+        self._update_stats_api()
         
         # Show stats
         if not self.game_active:  # Only show if not bonus
@@ -577,6 +605,27 @@ class SkeeballGame:
         # Ball completes
         time.sleep(0.2)
         self.ball_completed(None)
+    
+    def _update_stats_api(self):
+        """Update the stats API server with current state."""
+        if not STATS_API_AVAILABLE:
+            return
+        
+        state_data = {
+            "current_score": self.current_score,
+            "balls_remaining": self.balls_remaining,
+            "game_active": self.game_active,
+            "current_ball_score": self.current_ball_score,
+            "total_coins_inserted": self.total_coins_inserted,
+            "total_games_played": self.total_games_played,
+        }
+        
+        try:
+            update_game_state(state_data)
+        except Exception as e:
+            # Don't let stats API errors crash the game
+            if self.config['hardware'].get('debug', False):
+                print(f"⚠️  Stats API update error: {e}")
 
 
 def main():

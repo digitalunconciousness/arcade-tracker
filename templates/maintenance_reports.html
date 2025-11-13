@@ -74,46 +74,8 @@
     <h2> Maintenance Summary ({{ days_filter }} days)</h2>
     
     {% if all_records %}
-    <!-- Top Issues -->
+    <!-- Cost Breakdown -->
     <div style="display: flex; gap: 40px; margin: 30px 0; flex-wrap: wrap;">
-        <div style="flex: 1; min-width: 300px;">
-            <h3> Most Common Issues</h3>
-            {% set issue_words = {} %}
-            {% for record in all_records %}
-                {% for word in record.issue_description.lower().split() %}
-                    {% if word|length > 3 %}
-                        {% if issue_words.update({word: issue_words.get(word, 0) + 1}) %}{% endif %}
-                    {% endif %}
-                {% endfor %}
-            {% endfor %}
-            
-            <ul>
-                {% set screen_count = 0 %}
-                {% set button_count = 0 %}
-                {% set sound_count = 0 %}
-                {% set power_count = 0 %}
-                {% for record in all_records %}
-                    {% set desc_lower = record.issue_description.lower() %}
-                    {% if 'screen' in desc_lower or 'display' in desc_lower or 'monitor' in desc_lower %}
-                        {% set screen_count = screen_count + 1 %}
-                    {% endif %}
-                    {% if 'button' in desc_lower or 'stick' in desc_lower or 'control' in desc_lower %}
-                        {% set button_count = button_count + 1 %}
-                    {% endif %}
-                    {% if 'sound' in desc_lower or 'audio' in desc_lower or 'speaker' in desc_lower %}
-                        {% set sound_count = sound_count + 1 %}
-                    {% endif %}
-                    {% if 'power' in desc_lower or 'electric' in desc_lower or 'voltage' in desc_lower %}
-                        {% set power_count = power_count + 1 %}
-                    {% endif %}
-                {% endfor %}
-                <li><strong>Screen issues:</strong> {{ screen_count }} tickets</li>
-                <li><strong>Button problems:</strong> {{ button_count }} tickets</li>
-                <li><strong>Sound issues:</strong> {{ sound_count }} tickets</li>
-                <li><strong>Power problems:</strong> {{ power_count }} tickets</li>
-            </ul>
-        </div>
-        
         <div style="flex: 1; min-width: 300px;">
             <h3> Cost Breakdown</h3>
             <table class="table">

@@ -30,21 +30,19 @@
                                    id="photos" 
                                    class="form-control" 
                                    accept="image/*" 
-                                   multiple 
-                                   capture="environment">
+                                   multiple>
                             <div class="form-text">
-                                 On mobile: Tap to use camera or select from gallery<br>
-                                 On desktop: Select photos from your computer<br>
+                                Select one or more photos from your device.<br>
                                 Supported formats: JPG, PNG, GIF. Maximum file size: 16MB each.<br>
                                 <strong>You can select multiple photos at once.</strong>
                             </div>
                         </div>
                         
-                        <div class="d-flex justify-content-between">
-                            <a href="{{ url_for('maintenance_detail', record_id=maintenance.id) }}" class="btn btn-secondary">
-                                <i class="fas fa-arrow-left"></i> Back to Record
+                        <div class="d-flex gap-2">
+                            <input type="submit" value="Upload Photos" class="btn btn-primary flex-fill">
+                            <a href="{{ url_for('maintenance_detail', record_id=maintenance.id) }}" class="btn btn-secondary flex-fill">
+                                <i class="fas fa-arrow-left"></i> Back
                             </a>
-                            <input type="submit" value="Upload Photos" class="btn btn-primary">
                         </div>
                     </form>
                     
@@ -102,11 +100,13 @@
 
 {% block extra_js %}
 <script>
-// Improved mobile file upload handling
+// Simple file upload handling
 document.addEventListener('DOMContentLoaded', function() {
     const fileInput = document.querySelector('input[name="photos"]');
     const form = document.querySelector('form');
     const submitBtn = document.querySelector('input[type="submit"]');
+    
+    console.log('Photo upload page loaded');
     
     if (fileInput) {
         fileInput.addEventListener('change', function(e) {
@@ -114,7 +114,7 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('Files selected:', files.length);
             
             if (files.length > 0) {
-                let preview = '<div class="mt-3 alert alert-success"><strong>Files selected:</strong><ul class="mb-0">';
+                let preview = '<div class="mt-3 alert alert-success file-preview"><strong>Files selected:</strong><ul class="mb-0">';
                 let totalSize = 0;
                 
                 for (let i = 0; i < files.length; i++) {
@@ -122,15 +122,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     const sizeMB = (file.size / 1024 / 1024).toFixed(2);
                     totalSize += file.size;
                     preview += `<li>${file.name} (${sizeMB} MB)</li>`;
-                    console.log(`File ${i}: ${file.name}, Size: ${sizeMB}MB, Type: ${file.type}`);
+                    console.log(`File ${i}:`, file.name, sizeMB + 'MB', file.type);
                 }
                 
                 preview += '</ul>';
                 
-                // Check total size
                 const totalSizeMB = (totalSize / 1024 / 1024).toFixed(2);
                 if (totalSize > 16 * 1024 * 1024) {
-                    preview += `<div class="text-warning mt-2">Warning: Total size (${totalSizeMB} MB) exceeds 16MB limit</div>`;
+                    preview += `<div class="text-warning mt-2">⚠️ Warning: Total size (${totalSizeMB} MB) exceeds 16MB limit</div>`;
                 }
                 
                 preview += '</div>';
@@ -142,14 +141,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 
                 // Add new preview
-                const previewDiv = document.createElement('div');
-                previewDiv.className = 'file-preview';
-                previewDiv.innerHTML = preview;
-                e.target.closest('.mb-3').appendChild(previewDiv);
+                const container = fileInput.closest('.mb-3');
+                if (container) {
+                    const previewDiv = document.createElement('div');
+                    previewDiv.innerHTML = preview;
+                    container.appendChild(previewDiv.firstChild);
+                }
                 
-                // Update submit button text
+                // Update submit button
                 if (submitBtn) {
-                    submitBtn.textContent = `Upload ${files.length} Photo${files.length > 1 ? 's' : ''}`;
+                    submitBtn.value = `Upload ${files.length} Photo${files.length > 1 ? 's' : ''}`;
                 }
             } else {
                 // Remove preview if no files
@@ -159,15 +160,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 
                 if (submitBtn) {
-                    submitBtn.textContent = 'Upload Photos';
+                    submitBtn.value = 'Upload Photos';
                 }
             }
         });
-        
-        // Form submission debugging
+    }
+    
+    // Form submission
+    if (form) {
         form.addEventListener('submit', function(e) {
             const files = fileInput.files;
-            console.log('Form submitting with files:', files.length);
+            console.log('Form submitting with', files.length, 'files');
             
             if (files.length === 0) {
                 e.preventDefault();
@@ -178,12 +181,10 @@ document.addEventListener('DOMContentLoaded', function() {
             // Show loading state
             if (submitBtn) {
                 submitBtn.disabled = true;
-                submitBtn.textContent = 'Uploading...';
+                submitBtn.value = 'Uploading...';
             }
         });
     }
-    
-    // Don't disable submit initially - let user click and we'll validate on submit
 });
 </script>
 {% endblock %}

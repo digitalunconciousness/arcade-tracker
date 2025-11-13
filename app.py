@@ -842,7 +842,7 @@ def home():
     recent_maintenance = MaintenanceRecord.query.filter_by(status='Open').limit(5).all()
     
     # Get low stock alerts
-    low_stock_alerts = LowStockAlert.query.filter_by(is_resolved=False).limit(10).all()
+    low_stock_alerts = LowStockAlert.query.filter_by(resolved=False).limit(10).all()
 
     # Calculate worst performers (optional dashboard detail)
     worst_performers = []
