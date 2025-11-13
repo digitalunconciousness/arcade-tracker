@@ -27,8 +27,8 @@ def init_security(app):
         key_func=get_remote_address,
         default_limits=["1000 per day", "200 per hour"],
         storage_uri="memory://",
-        # Exempt skeeball API status endpoints from rate limiting (polled every second)
-        default_limits_exempt_when=lambda: request.path.startswith('/skeeball/api/lanes/') and request.path.endswith('/status')
+        # Exempt all skeeball API endpoints from rate limiting (polled every 2-5 seconds for real-time updates)
+        default_limits_exempt_when=lambda: request.path.startswith('/skeeball/api/')
     )
     
     # Add security headers middleware

@@ -1,295 +1,147 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title> Skeeball Control Panel</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-        
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        
-        h1 {
-            color: white;
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        
-        .back-link {
-            color: rgba(255, 255, 255, 0.8);
-            text-decoration: none;
-            font-size: 0.9rem;
-            margin-bottom: 20px;
-            display: inline-block;
-        }
-        
-        .lanes-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 20px;
-        }
-        
-        .lane-card {
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
-        }
-        
-        .lane-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-            padding-bottom: 15px;
-            border-bottom: 2px solid #f0f0f0;
-        }
-        
-        .lane-title {
-            font-size: 1.3rem;
-            font-weight: 600;
-            color: #667eea;
-        }
-        
-        .lane-status {
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            font-weight: 600;
-        }
-        
-        .status-online {
-            background: #d4edda;
-            color: #155724;
-        }
-        
-        .status-offline {
-            background: #f8d7da;
-            color: #721c24;
-        }
-        
-        .status-playing {
-            background: #cce5ff;
-            color: #004085;
-        }
-        
-        .stat {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-bottom: 10px;
-        }
-        
-        .stat-label {
-            font-size: 0.85rem;
-            color: #666;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        .stat-value {
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: #667eea;
-        }
-        
-        .action-buttons {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-top: 15px;
-            padding-top: 15px;
-            border-top: 1px solid #f0f0f0;
-        }
-        
-        button {
-            padding: 10px;
-            border: none;
-            border-radius: 6px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-size: 0.9rem;
-        }
-        
-        .btn-primary {
-            background: #667eea;
-            color: white;
-        }
-        
-        .btn-primary:hover {
-            background: #5568d3;
-            transform: translateY(-2px);
-        }
-        
-        .btn-danger {
-            background: #f56565;
-            color: white;
-        }
-        
-        .btn-danger:hover {
-            background: #e53e3e;
-        }
-        
-        .empty-state {
-            text-align: center;
-            padding: 40px;
-            color: white;
-        }
-        
-        .empty-state h2 {
-            font-size: 1.5rem;
-            margin-bottom: 10px;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <a href="/skeeball/" class="back-link">← Back to Control Center</a>
-        <h1> Lane Control Panel</h1>
-        
-        <div style="background: rgba(255, 255, 255, 0.1); padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
-            <div style="color: white;">
-                <strong>System Controls</strong>
-                <p style="margin: 5px 0 0 0; font-size: 0.9rem; opacity: 0.8;">Manage the Raspberry Pi system</p>
-            </div>
-            <button class="btn-danger" onclick="rebootSystem()" style="padding: 12px 24px;">
-                 Reboot Raspberry Pi
-            </button>
-        </div>
-        
-        <div class="lanes-grid" id="lanesContainer">
-            <div class="empty-state">
-                <h2>Loading lanes...</h2>
-                <p>Please wait while we fetch the lane information</p>
-            </div>
-        </div>
+{% extends "base.html" %}
+
+{% block title %}Skeeball Control Panel{% endblock %}
+
+{% block content %}
+<style>
+    .lanes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 25px; margin-top: 20px; position: relative; z-index: 1; }
+    .lane-card { background: var(--card-bg, rgba(0, 15, 25, 0.8)); border: 2px solid #00ffff; border-radius: 12px; padding: 25px; box-shadow: 0 0 20px rgba(0, 255, 255, 0.3); position: relative; z-index: 2; min-height: 300px; }
+    .lane-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid rgba(0,255,255,0.3); }
+    .lane-title { font-size: 1.5rem; font-weight: 700; color: #00ffff; text-shadow: 0 0 10px rgba(0,255,255,0.5); }
+    .lane-status { padding: 6px 14px; border-radius: 20px; font-size: 0.9rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+    .status-online { background: rgba(0,255,0,0.2); color:#00ff00; border:1px solid #00ff00; box-shadow: 0 0 10px rgba(0,255,0,0.3);} 
+    .status-offline { background: rgba(255,0,0,0.2); color:#ff0000; border:1px solid #ff0000; box-shadow: 0 0 10px rgba(255,0,0,0.3);} 
+    .status-playing { background: rgba(255,0,255,0.2); color:#ff00ff; border:1px solid #ff00ff; box-shadow: 0 0 10px rgba(255,0,255,0.3);} 
+    .stat { display:flex; justify-content: space-between; align-items:center; margin-bottom:15px; padding:10px; background: rgba(0,255,255,0.05); border-radius:6px; border-left:3px solid #00ffff; }
+    .stat-label { font-size:0.9rem; color:#00ffff; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
+    .stat-value { font-size:1.8rem; font-weight:900; color:#ff00ff; text-shadow: 0 0 10px rgba(255,0,255,0.5); font-family: 'Courier New', monospace; }
+    .empty-state { text-align:center; padding:60px; color:#00ffff; background: var(--card-bg, rgba(0,15,25,0.8)); border: 2px dashed rgba(0,255,255,0.3); border-radius: 12px; }
+    .system-controls { background: var(--card-bg, rgba(0,15,25,0.8)); border: 2px solid #00ffff; border-radius: 8px; padding: 20px; margin-bottom: 30px; box-shadow: 0 0 20px rgba(0,255,255,0.3); }
+    .reboot-btn { background: rgba(255,0,0,0.1); border:2px solid #ff0000; color:#ff0000; padding:12px 24px; border-radius:6px; font-weight:700; }
+</style>
+
+<div class="skeeball-header" style="text-align:center; margin-bottom: 30px;">
+  <h1 class="glitch" data-text="SKEEBALL CONTROL PANEL">🎳 SKEEBALL CONTROL PANEL</h1>
+  <p style="color:#00ffff; opacity:0.8">Real-Time Lane Monitoring & Control</p>
+</div>
+
+<div class="system-controls">
+  <div style="display:flex; justify-content: space-between; align-items:center; gap: 15px; flex-wrap: wrap;">
+    <div>
+      <strong style="color:#00ffff; font-size:1.1rem;">🖥️ System Controls</strong>
+      <p style="margin:6px 0 0 0; color: rgba(0,255,255,0.7); font-size:0.95rem;">Manage the Raspberry Pi system</p>
     </div>
-    
-    <script>
-        async function loadLanes() {
-            try {
-                const response = await fetch('/skeeball/api/lanes');
-                const lanes = await response.json();
-                
-                if (Object.keys(lanes).length === 0) {
-                    document.getElementById('lanesContainer').innerHTML = `
-                        <div class="empty-state">
-                            <h2>No lanes active</h2>
-                            <p>No skeeball lanes are currently registered</p>
-                        </div>
-                    `;
-                    return;
-                }
-                
-                let html = '';
-                for (const [laneId, lane] of Object.entries(lanes)) {
-                    const statusClass = lane.is_online ? 
-                        (lane.in_progress ? 'status-playing' : 'status-online') : 
-                        'status-offline';
-                    const statusText = lane.is_online ? 
-                        (lane.in_progress ? ' Playing' : ' Ready') : 
-                        ' Offline';
-                    
-                    html += `
-                        <div class="lane-card">
-                            <div class="lane-header">
-                                <div class="lane-title"> ${laneId}</div>
-                                <div class="lane-status ${statusClass}">${statusText}</div>
-                            </div>
-                            
-                            <div class="stat">
-                                <div class="stat-label">Credits</div>
-                                <div class="stat-value">${lane.credits}</div>
-                            </div>
-                            
-                            <div class="stat">
-                                <div class="stat-label">Score</div>
-                                <div class="stat-value">${lane.score}</div>
-                            </div>
-                            
-                            <div class="stat">
-                                <div class="stat-label">Balls</div>
-                                <div class="stat-value">${lane.balls}/${lane.total_balls}</div>
-                            </div>
-                            
-                            <div class="stat">
-                                <div class="stat-label">Last Event</div>
-                                <div class="stat-value" style="font-size: 0.85rem;">${lane.last_event ? new Date(lane.last_event).toLocaleTimeString() : 'None'}</div>
-                            </div>
-                            
-                            <div class="action-buttons">
-                                <button class="btn-primary" onclick="insertCoin('${laneId}')"> Coin</button>
-                                <button class="btn-danger" onclick="resetLane('${laneId}')"> Reset</button>
-                            </div>
-                        </div>
-                    `;
-                }
-                document.getElementById('lanesContainer').innerHTML = html;
-            } catch (e) {
-                console.error('Failed to load lanes:', e);
-                document.getElementById('lanesContainer').innerHTML = `
-                    <div class="empty-state">
-                        <h2>Error loading lanes</h2>
-                        <p>${e.message}</p>
-                    </div>
-                `;
-            }
-        }
-        
-        async function insertCoin(laneId) {
-            await fetch(`/skeeball/api/simulator/insert-coin`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({lane_id: laneId})
-            });
-            loadLanes();
-        }
-        
-        async function resetLane(laneId) {
-            if (confirm(`Reset lane ${laneId}? This will clear the current game.`)) {
-                await fetch(`/skeeball/api/lanes/${laneId}/reset`, {
-                    method: 'POST'
-                });
-                loadLanes();
-            }
-        }
-        
-        async function rebootSystem() {
-            if (confirm('WARNING: This will reboot the Raspberry Pi system. All games will be interrupted. Continue?')) {
-                try {
-                    const response = await fetch('/skeeball/api/system/reboot', {
-                        method: 'POST'
-                    });
-                    if (response.ok) {
-                        alert('Reboot command sent. The system will restart in a few seconds.');
-                    } else {
-                        const error = await response.json();
-                        alert('Reboot failed: ' + (error.error || 'Unknown error'));
-                    }
-                } catch (e) {
-                    alert('Failed to send reboot command: ' + e.message);
-                }
-            }
-        }
-        
-        // Load lanes on page load and refresh every 2 seconds
-        loadLanes();
-        setInterval(loadLanes, 2000);
-    </script>
-</body>
-</html>
+    <button class="reboot-btn" onclick="rebootSystem()">⚡ Reboot Raspberry Pi</button>
+  </div>
+</div>
+
+<div class="lanes-grid" id="lanesContainer">
+  <div class="empty-state">
+    <h2 style="color:#ff00ff; margin-bottom: 10px;">Loading lanes...</h2>
+    <p>Please wait while we fetch the lane information</p>
+  </div>
+</div>
+
+<script>
+  function getCsrfToken() {
+    const meta = document.querySelector('meta[name="csrf-token"]');
+    return meta ? meta.getAttribute('content') : '';
+  }
+
+  async function loadLanes() {
+    try {
+      console.log('Fetching lanes from /skeeball/api/lanes...');
+      const response = await fetch('/skeeball/api/lanes');
+      console.log('Response status:', response.status);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const lanes = await response.json();
+      console.log('Lanes data:', lanes);
+
+      if (!lanes || Object.keys(lanes).length === 0) {
+        document.getElementById('lanesContainer').innerHTML = `
+          <div class="empty-state">
+            <h2 style="color:#ff00ff;">No lanes active</h2>
+            <p>No skeeball lanes are currently registered</p>
+          </div>`;
+        return;
+      }
+
+      let html = '';
+      for (const [laneId, lane] of Object.entries(lanes)) {
+        console.log('Processing lane:', laneId, lane);
+        const statusClass = lane.is_online ? (lane.in_progress ? 'status-playing' : 'status-online') : 'status-offline';
+        const statusText = lane.is_online ? (lane.in_progress ? 'Playing' : 'Ready') : 'Offline';
+        console.log('Status:', statusClass, statusText);
+        html += `
+          <div class="lane-card">
+            <div class="lane-header">
+              <div class="lane-title">${laneId}</div>
+              <div class="lane-status ${statusClass}">${statusText}</div>
+            </div>
+            <div class="stat"><div class="stat-label">Credits</div><div class="stat-value">${lane.credits}</div></div>
+            <div class="stat"><div class="stat-label">Score</div><div class="stat-value">${lane.score}</div></div>
+            <div class="stat"><div class="stat-label">Balls</div><div class="stat-value">${lane.balls}/${lane.total_balls}</div></div>
+            <div class="stat"><div class="stat-label">Last Event</div><div class="stat-value" style="font-size:1rem;">${lane.last_event ? new Date(lane.last_event).toLocaleTimeString() : 'None'}</div></div>
+            <div class="action-buttons" style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-top: 15px;">
+              <button class="btn btn-success" onclick="insertCoin('${laneId}')">Insert Coin</button>
+              <button class="btn btn-warning" onclick="resetLane('${laneId}')">Reset Lane</button>
+            </div>
+          </div>`;
+      }
+      console.log('Generated HTML length:', html.length);
+      console.log('Setting innerHTML...');
+      document.getElementById('lanesContainer').innerHTML = html;
+      console.log('innerHTML set successfully');
+    } catch (e) {
+      console.error('Failed to load lanes:', e);
+      console.error('Error stack:', e.stack);
+      document.getElementById('lanesContainer').innerHTML = `
+        <div class="empty-state">
+          <h2 style="color:#ff00ff;">Error loading lanes</h2>
+          <p style="color:#ff6666;">${e.message}</p>
+          <p style="font-size:0.9rem; margin-top:10px;">Check browser console (F12) for details</p>
+        </div>`;
+    }
+  }
+
+  async function insertCoin(laneId) {
+    await fetch('/skeeball/api/simulator/insert-coin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+      body: JSON.stringify({ lane_id: laneId })
+    });
+    loadLanes();
+  }
+
+  async function resetLane(laneId) {
+    if (!confirm(`Reset lane ${laneId}? This will clear the current game.`)) return;
+    await fetch(`/skeeball/api/lanes/${laneId}/reset`, {
+      method: 'POST',
+      headers: { 'X-CSRFToken': getCsrfToken() }
+    });
+    loadLanes();
+  }
+
+  async function rebootSystem() {
+    if (!confirm('WARNING: This will reboot the Raspberry Pi system. All games will be interrupted. Continue?')) return;
+    try {
+      const response = await fetch('/skeeball/api/system/reboot', { method: 'POST', headers: { 'X-CSRFToken': getCsrfToken() } });
+      if (response.ok) {
+        alert('Reboot command sent. The system will restart in a few seconds.');
+      } else {
+        const error = await response.json();
+        alert('Reboot failed: ' + (error.error || 'Unknown error'));
+      }
+    } catch (e) {
+      alert('Failed to send reboot command: ' + e.message);
+    }
+  }
+
+  loadLanes();
+  setInterval(loadLanes, 500);
+</script>
+{% endblock %}

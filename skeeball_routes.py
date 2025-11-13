@@ -8,6 +8,8 @@ Integrates with arcade-tracker for UI and management.
 from flask import Blueprint, render_template, request, jsonify, current_app
 from flask_login import login_required
 import config
+import requests
+import os
 from lane_manager import LaneManager
 from game_logic import GameLogic
 from gpio_init import init_gpio, get_gpio_status, is_using_mock_gpio, switch_to_mock, switch_to_real
@@ -64,6 +66,41 @@ def get_or_create_game_for_lane(lane_id):
         print(f"✅ Created Game entry for {lane_id}: '{game_name}' (ID: {game.id})")
     
     return game
+
+
+def fetch_from_raspberry_pi(endpoint, timeout=3):
+    """Fetch data from Raspberry Pi stats API.
+    
+    Args:
+        endpoint: API endpoint path (e.g., '/api/lanes')
+        timeout: Request timeout in seconds
+    
+    Returns:
+        dict: JSON response from Pi, or None if unavailable
+    """
+    # Get Raspberry Pi address from environment
+    rpi_host = os.getenv('RPI_STATS_HOST', os.getenv('RPI_GPIO_HOST', 'localhost'))
+    rpi_port = os.getenv('RPI_STATS_PORT', '5002')
+    
+    # Handle hostname format (remove username@ if present)
+    if '@' in rpi_host:
+        rpi_host = rpi_host.split('@')[1]
+    
+    # Remove .local suffix for URL construction
+    if rpi_host.endswith('.local'):
+        rpi_host = rpi_host[:-6]
+    
+    url = f"http://{rpi_host}:{rpi_port}{endpoint}"
+    
+    try:
+        response = requests.get(url, timeout=timeout)
+        if response.ok:
+            return response.json()
+        else:
+            return None
+    except (requests.RequestException, requests.Timeout, ConnectionError):
+        # Raspberry Pi not available - fall back to local data
+        return None
 
 
 def get_lane_manager():
@@ -183,6 +220,13 @@ def gpio_test():
     return render_template('skeeball/gpio_test.html')
 
 
+@skeeball_bp.route('/logs')
+@login_required
+def skeeball_logs():
+    """Live log viewer for real-time switch and event monitoring."""
+    return render_template('skeeball/logs.html')
+
+
 # ============================================================================
 # API ROUTES
 # ============================================================================
@@ -191,6 +235,12 @@ def gpio_test():
 @login_required
 def api_get_lanes():
     """Get all lanes and their status."""
+    # Try to fetch from Raspberry Pi first
+    pi_data = fetch_from_raspberry_pi('/api/lanes')
+    if pi_data is not None:
+        return jsonify(pi_data)
+    
+    # Fallback to local lane manager
     manager = get_lane_manager()
     lanes = manager.get_all_status()
     return jsonify(lanes)
@@ -200,6 +250,12 @@ def api_get_lanes():
 @login_required
 def api_get_lane_status(lane_id):
     """Get status of a specific lane."""
+    # Try to fetch from Raspberry Pi first
+    pi_data = fetch_from_raspberry_pi(f'/api/lanes/{lane_id}/status')
+    if pi_data is not None:
+        return jsonify(pi_data)
+    
+    # Fallback to local lane manager
     manager = get_lane_manager()
     lane = manager.get_lane(lane_id)
     if not lane:
@@ -244,6 +300,12 @@ def api_reset_lane(lane_id):
 @login_required
 def api_get_lane_stats(lane_id):
     """Get statistics for a specific lane."""
+    # Try to fetch from Raspberry Pi first
+    pi_data = fetch_from_raspberry_pi(f'/api/lanes/{lane_id}/stats')
+    if pi_data is not None:
+        return jsonify(pi_data)
+    
+    # Fallback to local lane manager
     manager = get_lane_manager()
     lane = manager.get_lane(lane_id)
     if not lane:
