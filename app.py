@@ -1562,6 +1562,11 @@ def maintenance_orders():
     open_records = [r for r in all_records if r.status in ['Open', 'In_Progress']]
     closed_records = [r for r in all_records if r.status in ['Fixed', 'Deferred']]
     
+    # Clean issue descriptions to remove line breaks that break JavaScript
+    for record in all_records:
+        if record.issue_description:
+            record.issue_description = record.issue_description.replace('\n', ' ').replace('\r', '')
+    
     return render_template('maintenance_orders.html', 
                          open_records=open_records, 
                          closed_records=closed_records,
