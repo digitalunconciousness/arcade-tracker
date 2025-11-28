@@ -317,13 +317,6 @@ function closeCloseModal() {
     document.getElementById('closeModal').style.display = 'none';
 }
 
-// Initialize when DOM is ready
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-} else {
-    init();
-}
-
 function init() {
     // Show open tab
     showTab('open');
@@ -340,6 +333,13 @@ function init() {
         const issue = btn.getAttribute('data-issue');
         openCloseModal(maintenanceId, gameName, issue);
     });
+}
+
+// Initialize when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+} else {
+    init();
 }
 </script>
 {% endblock %}
