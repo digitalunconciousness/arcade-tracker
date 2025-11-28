@@ -318,8 +318,12 @@ function closeCloseModal() {
 }
 
 function init() {
-    // Show open tab
-    showTab('open');
+    // Show open tab (with error handling)
+    try {
+        showTab('open');
+    } catch (e) {
+        console.error('Error showing tab:', e);
+    }
     
     // Event delegation for close buttons (robust to clicks on child elements)
     document.addEventListener('click', function(e) {
