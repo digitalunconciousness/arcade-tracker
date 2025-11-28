@@ -58,8 +58,8 @@
                             <a href="{{ url_for('maintenance_photos', maintenance_id=record.id) }}" class="btn" style="background: var(--neon-pink); font-size: 10px; padding: 4px 8px; margin: 0; min-width: 45px; text-align: center;">Photos</a>
                         {% endif %}
                         <a href="{{ url_for('update_maintenance', record_id=record.id) }}" class="btn" style="background: var(--neon-purple); font-size: 10px; padding: 4px 8px; margin: 0; min-width: 50px; text-align: center;">Update</a>
-                        <button class="btn btn-success close-maintenance-btn" 
-                                data-id="{{ record.id }}" 
+                        <button onclick="openCloseModal({{ record.id }}, this.getAttribute('data-game'), this.getAttribute('data-issue')); return false;" 
+                                class="btn btn-success" 
                                 data-game="{{ (record.game.name if record.game else 'General Maintenance')|e }}" 
                                 data-issue="{{ record.issue_description|e }}" 
                                 style="font-size: 10px; padding: 4px 8px; margin: 0; min-width: 45px; text-align: center;">Close</button>
@@ -169,8 +169,8 @@
                         {% endif %}
                         {% if record.status in ['Open', 'In_Progress'] %}
                             <a href="{{ url_for('update_maintenance', record_id=record.id) }}" class="btn" style="background: var(--neon-purple); font-size: 10px; padding: 4px 8px; margin: 0; min-width: 50px; text-align: center;">Update</a>
-                            <button class="btn btn-success close-maintenance-btn" 
-                                    data-id="{{ record.id }}" 
+                            <button onclick="openCloseModal({{ record.id }}, this.getAttribute('data-game'), this.getAttribute('data-issue')); return false;" 
+                                    class="btn btn-success" 
                                     data-game="{{ (record.game.name if record.game else 'General Maintenance')|e }}" 
                                     data-issue="{{ record.issue_description|e }}" 
                                     style="font-size: 10px; padding: 4px 8px; margin: 0; min-width: 45px; text-align: center;">Close</button>
