@@ -317,25 +317,31 @@ function closeCloseModal() {
     document.getElementById('closeModal').style.display = 'none';
 }
 
-// Event delegation for close buttons
-document.addEventListener('click', function(e) {
-    if (e.target && e.target.classList.contains('close-maintenance-btn')) {
-        e.preventDefault();
-        e.stopPropagation();
-        const maintenanceId = e.target.getAttribute('data-id');
-        const gameName = e.target.getAttribute('data-game');
-        const issue = e.target.getAttribute('data-issue');
-        openCloseModal(maintenanceId, gameName, issue);
-    }
-});
-
-// Initialize with open orders tab when DOM is ready
+// Initialize when DOM is ready
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function() {
-        showTab('open');
-    });
+    document.addEventListener('DOMContentLoaded', init);
 } else {
+    init();
+}
+
+function init() {
+    // Show open tab
     showTab('open');
+    
+    // Event delegation for close buttons
+    document.addEventListener('click', function(e) {
+        console.log('Click detected on:', e.target);
+        if (e.target && e.target.classList.contains('close-maintenance-btn')) {
+            console.log('Close button clicked!');
+            e.preventDefault();
+            e.stopPropagation();
+            const maintenanceId = e.target.getAttribute('data-id');
+            const gameName = e.target.getAttribute('data-game');
+            const issue = e.target.getAttribute('data-issue');
+            console.log('Opening modal for:', maintenanceId, gameName, issue);
+            openCloseModal(maintenanceId, gameName, issue);
+        }
+    });
 }
 </script>
 {% endblock %}
