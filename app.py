@@ -1750,12 +1750,25 @@ def update_maintenance(record_id):
 @login_required
 @requires_role('operator')
 def close_maintenance(record_id):
-    """Mark maintenance record as closed"""
-    record = MaintenanceRecord.query.get_or_404(record_id)
-    record.status = 'Fixed'
-    record.date_fixed = datetime.now(dt.UTC)
+    """Quick close a maintenance order"""
+    maintenance = MaintenanceRecord.query.get_or_404(record_id)
+    
+    # Update the maintenance record with form data
+    maintenance.status = request.form.get('status', 'Fixed')
+    maintenance.fix_description = request.form.get('fix_description', '')
+    cost_input = request.form.get('cost')
+    if cost_input:
+        try:
+            maintenance.cost = float(cost_input)
+        except ValueError:
+            maintenance.cost = None
+    maintenance.technician = request.form.get('technician', '')
+    maintenance.date_fixed = datetime.now(dt.UTC)
+    
     db.session.commit()
-    flash(f"Order #{record.id} marked as closed.", "success")
+    
+    game_name = maintenance.game.name if maintenance.game else 'General Maintenance'
+    flash(f'Maintenance order for "{game_name}" marked as {maintenance.status}!', 'success')
     return redirect(url_for('maintenance_orders'))
 
 
@@ -2180,21 +2193,6 @@ def create_user():
         return redirect(url_for('manage_users'))
     
     return render_template('create_user.html')
-
-    """Quick close a maintenance order"""
-    maintenance = MaintenanceRecord.query.get_or_404(maintenance_id)
-    
-    # Update the maintenance record
-    maintenance.status = request.form.get('status', 'Fixed')
-    maintenance.fix_description = request.form.get('fix_description', '')
-    maintenance.cost = float(request.form.get('cost', 0)) if request.form.get('cost') else None
-    maintenance.technician = request.form.get('technician', '')
-    maintenance.date_fixed = datetime.now(dt.UTC)
-    
-    db.session.commit()
-    
-    flash(f'Maintenance order for "{maintenance.game.name}" marked as {maintenance.status}!', 'success')
-    return redirect(url_for('maintenance_orders'))
 
 @app.route('/revenue_reports')
 @login_required
