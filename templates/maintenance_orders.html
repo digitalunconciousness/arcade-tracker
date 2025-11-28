@@ -229,6 +229,18 @@
 <script>
 let sortDirection = {};
 
+// Define all functions first, before any execution
+function openCloseModal(maintenanceId, gameName, issue) {
+    document.getElementById('modalGameName').textContent = gameName;
+    document.getElementById('modalIssue').textContent = issue;
+    document.getElementById('closeForm').action = `/close_maintenance/${maintenanceId}`;
+    document.getElementById('closeModal').style.display = 'block';
+}
+
+function closeCloseModal() {
+    document.getElementById('closeModal').style.display = 'none';
+}
+
 function showTab(tabName) {
     // Hide all tabs
     document.querySelectorAll('.maintenance-tab').forEach(tab => tab.style.display = 'none');
@@ -304,17 +316,6 @@ function updateMaintenanceHeaders(sortedColumn, isAscending, tableId) {
             header.style.color = '';
         }
     });
-}
-
-function openCloseModal(maintenanceId, gameName, issue) {
-    document.getElementById('modalGameName').textContent = gameName;
-    document.getElementById('modalIssue').textContent = issue;
-    document.getElementById('closeForm').action = `/close_maintenance/${maintenanceId}`;
-    document.getElementById('closeModal').style.display = 'block';
-}
-
-function closeCloseModal() {
-    document.getElementById('closeModal').style.display = 'none';
 }
 
 function init() {
