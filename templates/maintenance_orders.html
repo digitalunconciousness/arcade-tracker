@@ -47,7 +47,7 @@
                     {% endif %}
                 </td>
                 <td>{% if record.game_id %}<a href="{{ url_for('game_detail', game_id=record.game_id) }}">{{ record.game.name }}</a>{% else %}<span style="color: var(--neon-purple); font-style: italic;">General Maintenance</span>{% endif %}</td>
-                <td>{{ record.issue_description[:50] }}{% if record.issue_description|length > 50 %}...{% endif %}</td>
+                <td>{{ (record.issue_description[:50]|replace('\n', ' ')|replace('\r', '')) }}{% if record.issue_description|length > 50 %}...{% endif %}</td>
                 <td>{{ record.date_reported.strftime('%Y-%m-%d') }}</td>
                 <td>{{ record.technician or 'Not Assigned' }}</td>
                 <td>${{ "%.2f"|format(record.cost or 0) }}</td>
@@ -101,7 +101,7 @@
                     {% endif %}
                 </td>
                 <td>{% if record.game_id %}<a href="{{ url_for('game_detail', game_id=record.game_id) }}">{{ record.game.name }}</a>{% else %}<span style="color: var(--neon-purple); font-style: italic;">General Maintenance</span>{% endif %}</td>
-                <td>{{ record.issue_description[:50] }}{% if record.issue_description|length > 50 %}...{% endif %}</td>
+                <td>{{ (record.issue_description[:50]|replace('\n', ' ')|replace('\r', '')) }}{% if record.issue_description|length > 50 %}...{% endif %}</td>
                 <td>{{ record.date_reported.strftime('%Y-%m-%d') }}</td>
                 <td>{{ record.date_fixed.strftime('%Y-%m-%d') if record.date_fixed else 'N/A' }}</td>
                 <td>{{ record.technician or 'N/A' }}</td>
@@ -155,7 +155,7 @@
                     {% endif %}
                 </td>
                 <td>{% if record.game_id %}<a href="{{ url_for('game_detail', game_id=record.game_id) }}">{{ record.game.name }}</a>{% else %}<span style="color: var(--neon-purple); font-style: italic;">General Maintenance</span>{% endif %}</td>
-                <td>{{ record.issue_description[:50] }}{% if record.issue_description|length > 50 %}...{% endif %}</td>
+                <td>{{ (record.issue_description[:50]|replace('\n', ' ')|replace('\r', '')) }}{% if record.issue_description|length > 50 %}...{% endif %}</td>
                 <td>{{ record.date_reported.strftime('%Y-%m-%d') }}</td>
                 <td>{{ record.technician or 'Not Assigned' }}</td>
                 <td>${{ "%.2f"|format(record.cost or 0) }}</td>
