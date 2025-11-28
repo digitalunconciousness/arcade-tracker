@@ -328,19 +328,17 @@ function init() {
     // Show open tab
     showTab('open');
     
-    // Event delegation for close buttons
+    // Event delegation for close buttons (robust to clicks on child elements)
     document.addEventListener('click', function(e) {
-        console.log('Click detected on:', e.target);
-        if (e.target && e.target.classList.contains('close-maintenance-btn')) {
-            console.log('Close button clicked!');
-            e.preventDefault();
-            e.stopPropagation();
-            const maintenanceId = e.target.getAttribute('data-id');
-            const gameName = e.target.getAttribute('data-game');
-            const issue = e.target.getAttribute('data-issue');
-            console.log('Opening modal for:', maintenanceId, gameName, issue);
-            openCloseModal(maintenanceId, gameName, issue);
-        }
+        const btn = e.target.closest && e.target.closest('.close-maintenance-btn');
+        if (!btn) return;
+        console.log('Close button clicked!', btn);
+        e.preventDefault();
+        e.stopPropagation();
+        const maintenanceId = btn.getAttribute('data-id');
+        const gameName = btn.getAttribute('data-game');
+        const issue = btn.getAttribute('data-issue');
+        openCloseModal(maintenanceId, gameName, issue);
     });
 }
 </script>
