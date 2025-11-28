@@ -58,10 +58,8 @@
                             <a href="{{ url_for('maintenance_photos', maintenance_id=record.id) }}" class="btn" style="background: var(--neon-pink); font-size: 10px; padding: 4px 8px; margin: 0; min-width: 45px; text-align: center;">Photos</a>
                         {% endif %}
                         <a href="{{ url_for('update_maintenance', record_id=record.id) }}" class="btn" style="background: var(--neon-purple); font-size: 10px; padding: 4px 8px; margin: 0; min-width: 50px; text-align: center;">Update</a>
-                        <button onclick="openCloseModal({{ record.id }}, this.getAttribute('data-game'), this.getAttribute('data-issue')); return false;" 
+                        <button onclick="openCloseModalSimple({{ record.id }}); return false;" 
                                 class="btn btn-success" 
-                                data-game="{{ (record.game.name if record.game else 'General Maintenance')|striptags|truncate(100, True, '')|forceescape }}" 
-                                data-issue="{{ record.issue_description|striptags|truncate(200, True, '')|forceescape }}" 
                                 style="font-size: 10px; padding: 4px 8px; margin: 0; min-width: 45px; text-align: center;">Close</button>
                     </div>
                 </td>
@@ -169,10 +167,8 @@
                         {% endif %}
                         {% if record.status in ['Open', 'In_Progress'] %}
                             <a href="{{ url_for('update_maintenance', record_id=record.id) }}" class="btn" style="background: var(--neon-purple); font-size: 10px; padding: 4px 8px; margin: 0; min-width: 50px; text-align: center;">Update</a>
-                            <button onclick="openCloseModal({{ record.id }}, this.getAttribute('data-game'), this.getAttribute('data-issue')); return false;" 
+                            <button onclick="openCloseModalSimple({{ record.id }}); return false;" 
                                     class="btn btn-success" 
-                                    data-game="{{ (record.game.name if record.game else 'General Maintenance')|striptags|truncate(100, True, '')|forceescape }}" 
-                                    data-issue="{{ record.issue_description|striptags|truncate(200, True, '')|forceescape }}" 
                                     style="font-size: 10px; padding: 4px 8px; margin: 0; min-width: 45px; text-align: center;">Close</button>
                         {% endif %}
                     </div>
@@ -230,6 +226,19 @@
 let sortDirection = {};
 
 // Define all functions first, before any execution
+function openCloseModalSimple(maintenanceId) {
+    // Set the form action
+    document.getElementById('closeForm').action = '/close_maintenance/' + maintenanceId;
+    
+    // Try to get game name and issue from the table row
+    // For now, just show the ID
+    document.getElementById('modalGameName').textContent = 'Record #' + maintenanceId;
+    document.getElementById('modalIssue').textContent = 'Maintenance Order #' + maintenanceId;
+    
+    // Show modal
+    document.getElementById('closeModal').style.display = 'block';
+}
+
 function openCloseModal(maintenanceId, gameName, issue) {
     document.getElementById('modalGameName').textContent = gameName;
     document.getElementById('modalIssue').textContent = issue;
