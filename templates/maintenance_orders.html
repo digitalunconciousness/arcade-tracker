@@ -4,9 +4,9 @@
 <h1> Maintenance Orders</h1>
 
 <div style="margin: 20px 0;">
-    <button onclick="showTab('open')" id="openTab" class="btn btn-warning" style="margin-right: 10px;"> Open Orders ({{ open_records|length }})</button>
-    <button onclick="showTab('closed')" id="closedTab" class="btn" style="background: #6c757d; margin-right: 10px;"> Closed Orders ({{ closed_records|length }})</button>
-    <button onclick="showTab('all')" id="allTab" class="btn" style="background: var(--neon-cyan);"> All Orders ({{ all_records|length }})</button>
+    <button onclick="document.querySelectorAll('.maintenance-tab').forEach(t=>t.style.display='none');document.getElementById('openOrders').style.display='block';[document.getElementById('openTab'),document.getElementById('closedTab'),document.getElementById('allTab')].forEach(b=>{b.className='btn';b.style.background='#6c757d'});this.className='btn btn-warning';this.style.background='';" id="openTab" class="btn btn-warning" style="margin-right: 10px;"> Open Orders ({{ open_records|length }})</button>
+    <button onclick="document.querySelectorAll('.maintenance-tab').forEach(t=>t.style.display='none');document.getElementById('closedOrders').style.display='block';[document.getElementById('openTab'),document.getElementById('closedTab'),document.getElementById('allTab')].forEach(b=>{b.className='btn';b.style.background='#6c757d'});this.style.background='var(--neon-green)';" id="closedTab" class="btn" style="background: #6c757d; margin-right: 10px;"> Closed Orders ({{ closed_records|length }})</button>
+    <button onclick="document.querySelectorAll('.maintenance-tab').forEach(t=>t.style.display='none');document.getElementById('allOrders').style.display='block';[document.getElementById('openTab'),document.getElementById('closedTab'),document.getElementById('allTab')].forEach(b=>{b.className='btn';b.style.background='#6c757d'});this.style.background='var(--neon-cyan)';" id="allTab" class="btn" style="background: var(--neon-cyan);"> All Orders ({{ all_records|length }})</button>
 </div>
 
 <!-- Open Orders Tab -->
