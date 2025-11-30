@@ -1,0 +1,51 @@
+# Virtual environment
+venv/
+env/
+ENV/
+
+# Git
+.git/
+.gitignore
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker files (will be copied separately)
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Documentation
+README.md
+*.md
+docs/
+
+# Test files
+test_*.py
+tests/
+
+# These will be mounted as volumes instead
+instance/
+arcade.db
+uploads/
+backups/
+logs/
+static/maintenance_photos/
+static/profile_pics/
+
+# Environment (will be mounted)
+.env

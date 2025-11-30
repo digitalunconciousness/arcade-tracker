@@ -1568,6 +1568,8 @@ def maintenance_orders():
             record.issue_description = record.issue_description.replace('\n', ' ').replace('\r', '')
         if record.fix_description:
             record.fix_description = record.fix_description.replace('\n', ' ').replace('\r', '')
+        if record.game and record.game.name:
+            record.game.name = record.game.name.replace('\n', ' ').replace('\r', '')
     
     return render_template('maintenance_orders.html', 
                          open_records=open_records, 
