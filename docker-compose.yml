@@ -1,0 +1,66 @@
+services:
+  arcade-tracker:
+    build: .
+    container_name: arcade-tracker
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    volumes:
+      # Persistent data volumes
+      - ./instance:/app/instance
+      - ./arcade.db:/app/arcade.db
+      - ./uploads:/app/uploads
+      - ./static/maintenance_photos:/app/static/maintenance_photos
+      - ./static/profile_pics:/app/static/profile_pics
+      - ./backups:/app/backups
+      - ./logs:/app/logs
+    env_file:
+      - .env
+    environment:
+      - FLASK_ENV=development
+    networks:
+      - arcade-net
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  # Watchtower for automatic updates (disabled - permission issues)
+  # To enable: fix Docker socket permissions on host
+  # watchtower:
+  #   image: containrrr/watchtower
+  #   container_name: arcade-watchtower
+  #   restart: unless-stopped
+  #   group_add:
+  #     - "990"  # docker group ID on Proxmox
+  #   volumes:
+  #     - /var/run/docker.sock:/var/run/docker.sock:rw
+  #     - ./watchtower-config.json:/config.json
+  #   environment:
+  #     - WATCHTOWER_POLL_INTERVAL=300  # Check every 5 minutes
+  #     - WATCHTOWER_CLEANUP=true
+  #     - WATCHTOWER_INCLUDE_RESTARTING=true
+  #     - WATCHTOWER_LABEL_ENABLE=true  # Only update labeled containers
+  #     - WATCHTOWER_NOTIFICATIONS=shoutrrr
+  #     - WATCHTOWER_NOTIFICATION_URL=logger://
+  #   command: --debug --label-enable
+  #   networks:
+  #     - arcade-net
+
+  # Optional: Nginx reverse proxy for HTTPS
+  # nginx:
+  #   image: nginx:alpine
+  #   container_name: arcade-nginx
+  #   restart: unless-stopped
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./nginx.conf:/etc/nginx/nginx.conf:ro
+  #     - ./ssl:/etc/nginx/ssl:ro
+  #   depends_on:
+  #     - arcade-tracker
+  #   networks:
+  #     - arcade-net
+
+networks:
+  arcade-net:
+    driver: bridge
