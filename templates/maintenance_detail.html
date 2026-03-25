@@ -4,15 +4,15 @@
 <div class="container mt-4">
   <!-- Back and Action buttons -->
   <div class="d-flex justify-content-between align-items-center mb-3">
-    <a href="{{ url_for('maintenance_orders') }}" style="color: #00ffff; text-decoration: none;">&larr; Back to Orders</a>
+    <a href="{{ url_for('maintenance.maintenance_orders') }}" style="color: #00ffff; text-decoration: none;">&larr; Back to Orders</a>
     <div style="display: flex; gap: 10px;">
       {% if current_user.has_role('operator') %}
-      <a href="{{ url_for('request_inventory', maintenance_id=record.id) }}" 
+      <a href="{{ url_for('inventory.request_inventory', maintenance_id=record.id) }}" 
          style="background: #9c27b0; color: #fff; padding: 8px 16px; border-radius: 4px; text-decoration: none; font-weight: bold;">
          Request Parts
       </a>
       {% endif %}
-      <a href="{{ url_for('download_maintenance_record', record_id=record.id) }}" 
+      <a href="{{ url_for('maintenance.download_maintenance_record', record_id=record.id) }}" 
          style="background: #00ffff; color: #000; padding: 8px 16px; border-radius: 4px; text-decoration: none; font-weight: bold;">
          Download PDF
       </a>
@@ -147,11 +147,11 @@
       <tbody>
         {% for req in record.inventory_requests %}
         <tr style="border-bottom: 1px solid rgba(156, 39, 176, 0.2); cursor: pointer; transition: background 0.2s;" 
-            onclick="window.location.href='{{ url_for('inventory_request_detail', request_id=req.id) }}';"
+            onclick="window.location.href='{{ url_for('inventory.inventory_request_detail', request_id=req.id) }}';"
             onmouseover="this.style.background='rgba(156, 39, 176, 0.15)';"
             onmouseout="this.style.background='';"
             title="Click to view full details and history">
-          <td style="padding: 8px;"><a href="{{ url_for('inventory_request_detail', request_id=req.id) }}" style="color: var(--neon-cyan); text-decoration: none;" onclick="event.stopPropagation();">#{{ req.id }}</a></td>
+          <td style="padding: 8px;"><a href="{{ url_for('inventory.inventory_request_detail', request_id=req.id) }}" style="color: var(--neon-cyan); text-decoration: none;" onclick="event.stopPropagation();">#{{ req.id }}</a></td>
           <td style="padding: 8px; color: #fff;">{{ req.item_name }}</td>
           <td style="padding: 8px; text-align: center;">{{ req.quantity_requested }}</td>
           <td style="padding: 8px; text-align: center;">

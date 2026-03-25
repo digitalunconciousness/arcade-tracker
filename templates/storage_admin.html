@@ -46,7 +46,7 @@
                 <div class="card-body">
                     <p>Remove old photos that are no longer referenced by maintenance records.</p>
                     
-                    <form method="POST" action="{{ url_for('admin_cleanup_photos') }}" 
+                    <form method="POST" action="{{ url_for('admin.admin_cleanup_photos') }}" 
                           onsubmit="return confirm('This will permanently delete unreferenced photos older than 1 year. Continue?')">
                         <button type="submit" class="btn btn-warning">
                              Clean Up Old Photos
@@ -59,7 +59,7 @@
                     <ul class="tips-list">
                         <li>Photos are automatically compressed to 1200x1200px max</li>
                         <li>JPEG quality set to 85% for size reduction</li>
-                        <li>Limit of {{ app.config.get('MAX_PHOTOS_PER_RECORD', 10) }} photos per record</li>
+                        <li>Limit of {{ config.get('MAX_PHOTOS_PER_RECORD', 10) }} photos per record</li>
                         <li>Old unreferenced photos are cleaned up periodically</li>
                     </ul>
                 </div>

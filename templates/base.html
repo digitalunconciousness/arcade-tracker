@@ -196,15 +196,15 @@
 
             {% if current_user.is_authenticated %}
             <div class="nav-links">
-                <a href="{{ url_for('home') }}" {% if request.endpoint == 'home' %}class="active"{% endif %}>Dashboard</a>
+                <a href="{{ url_for('dashboard.home') }}" {% if request.endpoint == 'dashboard.home' %}class="active"{% endif %}>Dashboard</a>
 
                 <!-- Games Dropdown -->
                 <div class="nav-dropdown">
-                    <a href="{{ url_for('games_list') }}" class="nav-dropdown-toggle">Games</a>
+                    <a href="{{ url_for('games.games_list') }}" class="nav-dropdown-toggle">Games</a>
                     <div class="nav-dropdown-menu">
-                        <a href="{{ url_for('games_list') }}">All Games</a>
+                        <a href="{{ url_for('games.games_list') }}">All Games</a>
                         {% if current_user.has_role('manager') %}
-                        <a href="{{ url_for('add_game') }}">Add Game</a>
+                        <a href="{{ url_for('games.add_game') }}">Add Game</a>
                         {% endif %}
                         <a href="{{ url_for('skeeball.skeeball_home') }}"> Skeeball</a>
                     </div>
@@ -213,12 +213,12 @@
                 <!-- Maintenance -->
                 {% if current_user.has_role('operator') %}
                 <div class="nav-dropdown">
-                    <a href="{{ url_for('maintenance_orders') }}" class="nav-dropdown-toggle">Maintenance</a>
+                    <a href="{{ url_for('maintenance.maintenance_orders') }}" class="nav-dropdown-toggle">Maintenance</a>
                     <div class="nav-dropdown-menu">
-                        <a href="{{ url_for('maintenance_orders') }}">All Work Orders</a>
-                        <a href="{{ url_for('general_maintenance') }}"> Create General Work Order</a>
+                        <a href="{{ url_for('maintenance.maintenance_orders') }}">All Work Orders</a>
+                        <a href="{{ url_for('maintenance.general_maintenance') }}"> Create General Work Order</a>
                         {% if current_user.has_role('manager') %}
-                        <a href="{{ url_for('maintenance_reports') }}">Maintenance Reports</a>
+                        <a href="{{ url_for('maintenance.maintenance_reports') }}">Maintenance Reports</a>
                         {% endif %}
                     </div>
                 </div>
@@ -227,10 +227,10 @@
                 <!-- Graphs -->
                 {% if current_user.has_role('manager') %}
                 <div class="nav-dropdown">
-                    <a href="{{ url_for('graphs') }}" class="nav-dropdown-toggle">Graphs</a>
+                    <a href="{{ url_for('reports.graphs') }}" class="nav-dropdown-toggle">Graphs</a>
                     <div class="nav-dropdown-menu">
-                        <a href="{{ url_for('graphs') }}">Performance Graphs</a>
-                        <a href="{{ url_for('reports') }}">Reports</a>
+                        <a href="{{ url_for('reports.graphs') }}">Performance Graphs</a>
+                        <a href="{{ url_for('reports.reports') }}">Reports</a>
                     </div>
                 </div>
                 {% endif %}
@@ -238,14 +238,14 @@
                 <!-- Inventory -->
                 {% if current_user.has_role('operator') %}
                 <div class="nav-dropdown">
-                    <a href="{{ url_for('inventory_list') }}" class="nav-dropdown-toggle">Inventory</a>
+                    <a href="{{ url_for('inventory.inventory_list') }}" class="nav-dropdown-toggle">Inventory</a>
                     <div class="nav-dropdown-menu">
-                        <a href="{{ url_for('inventory_list') }}">All Items</a>
-                        <a href="{{ url_for('request_inventory') }}">Request Items</a>
-                        <a href="{{ url_for('inventory_requests_list') }}">View Requests</a>
+                        <a href="{{ url_for('inventory.inventory_list') }}">All Items</a>
+                        <a href="{{ url_for('inventory.request_inventory') }}">Request Items</a>
+                        <a href="{{ url_for('inventory.inventory_requests_list') }}">View Requests</a>
                         {% if current_user.has_role('manager') %}
-                        <a href="{{ url_for('add_inventory_item') }}">Add Item</a>
-                        <a href="{{ url_for('low_stock_alerts') }}">Low Stock Alerts</a>
+                        <a href="{{ url_for('inventory.add_inventory_item') }}">Add Item</a>
+                        <a href="{{ url_for('inventory.low_stock_alerts') }}">Low Stock Alerts</a>
                         {% endif %}
                     </div>
                 </div>
@@ -256,8 +256,8 @@
                 <div class="nav-dropdown">
                     <a href="#" class="nav-dropdown-toggle">Admin</a>
                     <div class="nav-dropdown-menu">
-                        <a href="{{ url_for('backup_management') }}">Backups</a>
-                        <a href="{{ url_for('storage_admin') }}">Storage</a>
+                        <a href="{{ url_for('admin.backup_management') }}">Backups</a>
+                        <a href="{{ url_for('admin.storage_admin') }}">Storage</a>
                     </div>
                 </div>
                 {% endif %}
@@ -274,8 +274,8 @@
                     </a>
                     <div class="nav-dropdown-menu nav-dropdown-menu-right">
                         <div class="user-role-info">{{ current_user.role.title() }}</div>
-                        <a href="{{ url_for('profile') }}"> Profile</a>
-                        <a href="{{ url_for('logout') }}"> Logout</a>
+                        <a href="{{ url_for('auth.profile') }}"> Profile</a>
+                        <a href="{{ url_for('auth.logout') }}"> Logout</a>
                     </div>
                 </div>
             </div>

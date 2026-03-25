@@ -80,13 +80,13 @@
                 <div class="card-body">
                     <div class="row">
                         <div class="col-md-6">
-                            <a href="{{ url_for('change_password') }}" class="btn btn-outline-primary btn-block">
+                            <a href="{{ url_for('auth.change_password') }}" class="btn btn-outline-primary btn-block">
                                 <i class="fas fa-key"></i> Change Password
                             </a>
                         </div>
                         <div class="col-md-6">
                             {% if current_user.has_role('admin') %}
-                            <a href="{{ url_for('manage_users') }}" class="btn btn-outline-secondary btn-block">
+                            <a href="{{ url_for('admin.manage_users') }}" class="btn btn-outline-secondary btn-block">
                                 <i class="fas fa-users"></i> Manage Users
                             </a>
                             {% endif %}

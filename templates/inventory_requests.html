@@ -4,8 +4,8 @@
 <h1>Inventory Requests</h1>
 
 <div style="margin: 20px 0;">
-    <a href="{{ url_for('request_inventory') }}" class="btn btn-success">+ New Request</a>
-    <a href="{{ url_for('inventory_list') }}" class="btn" style="background: #6c757d; color: white; text-decoration: none;">Back to Inventory</a>
+    <a href="{{ url_for('inventory.request_inventory') }}" class="btn btn-success">+ New Request</a>
+    <a href="{{ url_for('inventory.inventory_list') }}" class="btn" style="background: #6c757d; color: white; text-decoration: none;">Back to Inventory</a>
 </div>
 
 <!-- Pending Requests -->
@@ -29,11 +29,11 @@
     <tbody>
         {% for req in pending_requests %}
         <tr style="cursor: pointer; transition: background 0.2s;" 
-            onclick="window.location.href='{{ url_for('inventory_request_detail', request_id=req.id) }}';"
+            onclick="window.location.href='{{ url_for('inventory.inventory_request_detail', request_id=req.id) }}';"
             onmouseover="this.style.background='rgba(156, 39, 176, 0.1)';"
             onmouseout="this.style.background='';"
             title="Click to view full details and history">
-            <td><a href="{{ url_for('inventory_request_detail', request_id=req.id) }}" style="color: var(--neon-cyan); text-decoration: none; font-weight: bold;" onclick="event.stopPropagation();">#{{ req.id }}</a></td>
+            <td><a href="{{ url_for('inventory.inventory_request_detail', request_id=req.id) }}" style="color: var(--neon-cyan); text-decoration: none; font-weight: bold;" onclick="event.stopPropagation();">#{{ req.id }}</a></td>
             <td>
                 {{ req.item_name }}
                 {% if not req.item_id %}
@@ -54,7 +54,7 @@
             </td>
             <td>
                 {% if req.maintenance_id %}
-                    <a href="{{ url_for('maintenance_detail', record_id=req.maintenance_id) }}" 
+                    <a href="{{ url_for('maintenance.maintenance_detail', record_id=req.maintenance_id) }}" 
                        style="color: var(--neon-cyan); text-decoration: none;">
                          #{{ req.maintenance_id }}
                     </a>
@@ -86,7 +86,7 @@
                     
                     {% if req.requested_by_id == current_user.id %}
                         <!-- User can delete their own pending requests -->
-                        <form method="POST" action="{{ url_for('delete_inventory_request', request_id=req.id) }}" style="display: inline;">
+                        <form method="POST" action="{{ url_for('inventory.delete_inventory_request', request_id=req.id) }}" style="display: inline;">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                             <button type="submit" onclick="return confirm('Delete this request?')" 
                                     class="btn" style="background: #ff4444; color: white; font-size: 10px; padding: 4px 8px;">
@@ -130,11 +130,11 @@
     <tbody>
         {% for req in all_requests %}
         <tr style="cursor: pointer; transition: background 0.2s;" 
-            onclick="window.location.href='{{ url_for('inventory_request_detail', request_id=req.id) }}';"
+            onclick="window.location.href='{{ url_for('inventory.inventory_request_detail', request_id=req.id) }}';"
             onmouseover="this.style.background='rgba(156, 39, 176, 0.1)';"
             onmouseout="this.style.background='';"
             title="Click to view full details and history">
-            <td><a href="{{ url_for('inventory_request_detail', request_id=req.id) }}" style="color: var(--neon-cyan); text-decoration: none; font-weight: bold;" onclick="event.stopPropagation();">#{{ req.id }}</a></td>
+            <td><a href="{{ url_for('inventory.inventory_request_detail', request_id=req.id) }}" style="color: var(--neon-cyan); text-decoration: none; font-weight: bold;" onclick="event.stopPropagation();">#{{ req.id }}</a></td>
             <td>
                 {{ req.item_name }}
                 {% if not req.item_id and req.status != 'Rejected' %}
@@ -157,7 +157,7 @@
             </td>
             <td>
                 {% if req.maintenance_id %}
-                    <a href="{{ url_for('maintenance_detail', record_id=req.maintenance_id) }}" 
+                    <a href="{{ url_for('maintenance.maintenance_detail', record_id=req.maintenance_id) }}" 
                        style="color: var(--neon-cyan); text-decoration: none;">
                          #{{ req.maintenance_id }}
                     </a>
@@ -185,7 +185,7 @@
             </td>
             {% if current_user.role in ['admin', 'manager'] %}
             <td onclick="event.stopPropagation();">
-                <form method="POST" action="{{ url_for('delete_inventory_request', request_id=req.id) }}" style="display: inline;">
+                <form method="POST" action="{{ url_for('inventory.delete_inventory_request', request_id=req.id) }}" style="display: inline;">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                     <button type="submit" onclick="return confirm('Delete request #{{ req.id }} for {{ req.item_name }}?')" 
                             class="btn" style="background: #ff4444; color: white; font-size: 10px; padding: 4px 8px;">

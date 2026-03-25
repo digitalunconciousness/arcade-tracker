@@ -6,7 +6,7 @@
 <div class="header-section">
     <h1> Add Inventory Item</h1>
     <div class="header-actions">
-        <a href="{{ url_for('inventory_list') }}" class="btn btn-secondary">← Back to Inventory</a>
+        <a href="{{ url_for('inventory.inventory_list') }}" class="btn btn-secondary">← Back to Inventory</a>
     </div>
 </div>
 
@@ -150,7 +150,7 @@
     
     <div class="form-actions">
         {{ form.submit(class="btn btn-primary") }}
-        <a href="{{ url_for('inventory_list') }}" class="btn btn-secondary">Cancel</a>
+        <a href="{{ url_for('inventory.inventory_list') }}" class="btn btn-secondary">Cancel</a>
     </div>
 </form>
 
