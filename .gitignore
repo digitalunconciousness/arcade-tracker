@@ -1,9 +1,11 @@
+# Environment
 .env
 
 # Python
 __pycache__/
 *.pyc
 *.pyo
+venv/
 
 # Logs
 app.log
@@ -30,8 +32,14 @@ skeeproto@*/
 # Static uploads
 static/maintenance_photos/
 static/profile_pics/
+uploads/
 
-# Test files
+# Legacy files (kept for reference during transition)
+app_old.py
+app.py.backup
+arcade.db.backup
+
+# Test artifacts
 testgen.py
 dupe.py
 fixdb.py
