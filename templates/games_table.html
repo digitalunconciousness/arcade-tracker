@@ -59,7 +59,7 @@
                 </div>
                 <small style="display: block; margin-top: 1px; color: var(--text-secondary); font-size: 9px;">{{ game.status.replace('_', ' ') }}</small>
             </td>
-            <td style="padding: 6px 8px;"><a href="{{ url_for('game_detail', game_id=game.id) }}">{{ game.name }}</a></td>
+            <td style="padding: 6px 8px;"><a href="{{ url_for('games.game_detail', game_id=game.id) }}">{{ game.name }}</a></td>
             <td style="padding: 6px 8px;">{{ game.manufacturer or 'N/A' }}</td>
             <td style="padding: 6px 8px;">{{ game.year or 'N/A' }}</td>
             <td style="padding: 6px 8px;">{{ game.genre or 'N/A' }}</td>
@@ -80,23 +80,23 @@
             <td style="padding: 8px; white-space: nowrap;">
                 <div style="display: flex; gap: 4px; align-items: center;">
                     {% if current_user.has_role('operator') %}
-                        <a href="{{ url_for('maintenance', game_id=game.id) }}" class="btn" style="background: var(--neon-orange); font-size: 10px; padding: 4px 8px; margin: 0; min-width: 50px; text-align: center;"> Fix</a>
+                        <a href="{{ url_for('maintenance.game_maintenance', game_id=game.id) }}" class="btn" style="background: var(--neon-orange); font-size: 10px; padding: 4px 8px; margin: 0; min-width: 50px; text-align: center;"> Fix</a>
                     {% elif current_user.has_role('manager') %}
                         {% if game.counter_status == 'Working' %}
-                            <a href="{{ url_for('record_plays', game_id=game.id) }}" class="btn btn-success" style="font-size: 10px; padding: 4px 8px; margin: 0; min-width: 60px; text-align: center;"> Plays</a>
+                            <a href="{{ url_for('games.record_plays', game_id=game.id) }}" class="btn btn-success" style="font-size: 10px; padding: 4px 8px; margin: 0; min-width: 60px; text-align: center;"> Plays</a>
                         {% else %}
                             <span class="btn" style="background: #666; color: #999; font-size: 10px; padding: 4px 8px; margin: 0; min-width: 60px; text-align: center; cursor: not-allowed;" title="Counter not working"> Plays</span>
                         {% endif %}
-                        <a href="{{ url_for('edit_game', game_id=game.id) }}" class="btn" style="background: var(--neon-purple); font-size: 10px; padding: 4px 8px; margin: 0; min-width: 45px; text-align: center;"> Edit</a>
-                        <a href="{{ url_for('maintenance', game_id=game.id) }}" class="btn" style="background: var(--neon-orange); font-size: 10px; padding: 4px 8px; margin: 0; min-width: 50px; text-align: center;"> Fix</a>
+                        <a href="{{ url_for('games.edit_game', game_id=game.id) }}" class="btn" style="background: var(--neon-purple); font-size: 10px; padding: 4px 8px; margin: 0; min-width: 45px; text-align: center;"> Edit</a>
+                        <a href="{{ url_for('maintenance.game_maintenance', game_id=game.id) }}" class="btn" style="background: var(--neon-orange); font-size: 10px; padding: 4px 8px; margin: 0; min-width: 50px; text-align: center;"> Fix</a>
                     {% elif current_user.has_role('admin') %}
                         {% if game.counter_status == 'Working' %}
-                            <a href="{{ url_for('record_plays', game_id=game.id) }}" class="btn btn-success" style="font-size: 10px; padding: 4px 8px; margin: 0; min-width: 60px; text-align: center;"> Plays</a>
+                            <a href="{{ url_for('games.record_plays', game_id=game.id) }}" class="btn btn-success" style="font-size: 10px; padding: 4px 8px; margin: 0; min-width: 60px; text-align: center;"> Plays</a>
                         {% else %}
                             <span class="btn" style="background: #666; color: #999; font-size: 10px; padding: 4px 8px; margin: 0; min-width: 60px; text-align: center; cursor: not-allowed;" title="Counter not working"> Plays</span>
                         {% endif %}
-                        <a href="{{ url_for('edit_game', game_id=game.id) }}" class="btn" style="background: var(--neon-purple); font-size: 10px; padding: 4px 8px; margin: 0; min-width: 45px; text-align: center;"> Edit</a>
-                        <a href="{{ url_for('maintenance', game_id=game.id) }}" class="btn" style="background: var(--neon-orange); font-size: 10px; padding: 4px 8px; margin: 0; min-width: 50px; text-align: center;"> Fix</a>
+                        <a href="{{ url_for('games.edit_game', game_id=game.id) }}" class="btn" style="background: var(--neon-purple); font-size: 10px; padding: 4px 8px; margin: 0; min-width: 45px; text-align: center;"> Edit</a>
+                        <a href="{{ url_for('maintenance.game_maintenance', game_id=game.id) }}" class="btn" style="background: var(--neon-orange); font-size: 10px; padding: 4px 8px; margin: 0; min-width: 50px; text-align: center;"> Fix</a>
                         <button onclick="confirmDelete({{ game.id }}, '{{ game.name }}')" class="btn" style="background: #ff4444; color: white; font-size: 10px; padding: 4px 8px; margin: 0; min-width: 50px; text-align: center;"> Delete</button>
                     {% endif %}
                 </div>

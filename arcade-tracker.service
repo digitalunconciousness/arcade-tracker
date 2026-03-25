@@ -7,11 +7,12 @@ Type=simple
 User=jackiegreybard
 Group=jackiegreybard
 WorkingDirectory=/home/jackiegreybard/arcade-tracker
-ExecStart=/bin/bash /home/jackiegreybard/arcade-tracker/run_app.sh
+ExecStart=/home/jackiegreybard/arcade-tracker/venv/bin/python /home/jackiegreybard/arcade-tracker/run.py
 Restart=always
 RestartSec=10
 StandardOutput=journal
 StandardError=journal
+Environment=PYTHONUNBUFFERED=1
 
 [Install]
 WantedBy=multi-user.target

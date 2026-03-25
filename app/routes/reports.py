@@ -6,7 +6,6 @@ import datetime as dt
 from collections import Counter
 from datetime import date, datetime, timedelta
 
-import pandas as pd
 from flask import (
     Blueprint,
     current_app,
@@ -16,18 +15,6 @@ from flask import (
     send_file,
 )
 from flask_login import login_required
-from reportlab.lib import colors
-from reportlab.lib.pagesizes import letter
-from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.lib.units import inch
-from reportlab.platypus import (
-    Image,
-    Paragraph,
-    SimpleDocTemplate,
-    Spacer,
-    Table,
-    TableStyle,
-)
 
 from app.extensions import db
 from app.models import (
@@ -334,6 +321,10 @@ def graphs():
 @requires_role("manager")
 def export_report_debug():
     """Simplified PDF report for debugging."""
+    from reportlab.lib.pagesizes import letter
+    from reportlab.lib.styles import getSampleStyleSheet
+    from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table
+
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=letter)
     styles = getSampleStyleSheet()
@@ -368,6 +359,11 @@ def export_report():
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     import tempfile
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import letter
+    from reportlab.lib.styles import getSampleStyleSheet
+    from reportlab.lib.units import inch
+    from reportlab.platypus import Image, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=letter)
@@ -582,6 +578,11 @@ def export_report():
 @requires_role("manager")
 def export_revenue_report():
     """Export revenue report as PDF."""
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import letter
+    from reportlab.lib.styles import getSampleStyleSheet
+    from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+
     try:
         days = request.args.get("days", 30, type=int)
         if days is None or days <= 0:
@@ -726,9 +727,16 @@ def export_csv():
             }
         )
 
-    df = pd.DataFrame(data)
+    import csv
+
     output = io.StringIO()
-    df.to_csv(output, index=False)
+    writer = csv.DictWriter(output, fieldnames=[
+        "Game Name", "Manufacturer", "Location", "Status",
+        "Total Plays", "Total Revenue", "Daily Revenue", "Days Active",
+        "Top 5 Count", "Top 10 Count",
+    ])
+    writer.writeheader()
+    writer.writerows(data)
     output.seek(0)
 
     response = make_response(output.getvalue())

@@ -49,7 +49,7 @@
             <ol style="color: var(--text-primary); margin: 0; padding-left: 20px;">
                 {% for performer in top_5_games %}
                 <li>
-                    <a href="{{ url_for('game_detail', game_id=performer.game.id) }}" style="color: var(--neon-green);">{{ performer.game.name }}</a>
+                    <a href="{{ url_for('games.game_detail', game_id=performer.game.id) }}" style="color: var(--neon-green);">{{ performer.game.name }}</a>
                     <span style="color: var(--text-secondary);"> - ${{ "%.2f"|format(performer.daily_revenue) }}/day</span>
                 </li>
                 {% endfor %}
@@ -58,7 +58,7 @@
             <ol style="color: var(--text-primary); margin: 0; padding-left: 20px;">
                 {% for performer in bottom_3_games %}
                 <li>
-                    <a href="{{ url_for('game_detail', game_id=performer.game.id) }}" style="color: #ff6666;">{{ performer.game.name }}</a>
+                    <a href="{{ url_for('games.game_detail', game_id=performer.game.id) }}" style="color: #ff6666;">{{ performer.game.name }}</a>
                     <span style="color: var(--text-secondary);"> - ${{ "%.2f"|format(performer.daily_revenue) }}/day</span>
                 </li>
                 {% endfor %}
@@ -111,7 +111,7 @@
             <ul style="color: var(--text-primary); margin: 0; padding-left: 20px; max-height: 200px; overflow-y: auto;">
                 {% for order in open_maintenance[:10] %}
                 <li>
-                    <a href="{{ url_for('maintenance_detail', record_id=order.id) }}" style="color: #ff6666;">
+                    <a href="{{ url_for('maintenance.maintenance_detail', record_id=order.id) }}" style="color: #ff6666;">
                         {% if order.game %}
                         {{ order.game.name }}
                         {% else %}
@@ -168,26 +168,26 @@
 // Revenue Report Functions
 function viewRevenueReport() {
     const days = document.getElementById('revenueTimeRange').value;
-    window.open(`{{ url_for('revenue_reports') }}?days=${days}`, '_blank');
+    window.open(`{{ url_for('reports.revenue_reports') }}?days=${days}`, '_blank');
 }
 
 function exportRevenuePDF() {
-    window.open(`{{ url_for('export_report') }}`, '_blank');
+    window.open(`{{ url_for('reports.export_report') }}`, '_blank');
 }
 
 function exportCSV() {
-    window.open(`{{ url_for('export_csv') }}`, '_blank');
+    window.open(`{{ url_for('reports.export_csv') }}`, '_blank');
 }
 
 // Maintenance Report Functions
 function viewMaintenanceReport() {
     const days = document.getElementById('timeRange').value;
-    window.open(`{{ url_for('maintenance_reports') }}?days=${days}`, '_blank');
+    window.open(`{{ url_for('maintenance.maintenance_reports') }}?days=${days}`, '_blank');
 }
 
 function exportMaintenanceReport(type) {
     const days = document.getElementById('timeRange').value;
-    window.open(`{{ url_for('export_maintenance_report') }}?type=${type}&days=${days}`, '_blank');
+    window.open(`{{ url_for('maintenance.export_maintenance_report') }}?type=${type}&days=${days}`, '_blank');
 }
 </script>
 
@@ -209,7 +209,7 @@ function exportMaintenanceReport(type) {
                 {% for performer in worst_performers %}
                 <tr class="performance-bad" style="border-left: {{ '4px solid #ff4444' if loop.index <= 3 else '2px solid #ff6666' }};">
                     <td style="color: var(--text-primary); font-weight: bold;">{{ loop.index }}</td>
-                    <td><a href="{{ url_for('game_detail', game_id=performer.game.id) }}" style="color: var(--neon-cyan); font-weight: bold;">{{ performer.game.name }}</a></td>
+                    <td><a href="{{ url_for('games.game_detail', game_id=performer.game.id) }}" style="color: var(--neon-cyan); font-weight: bold;">{{ performer.game.name }}</a></td>
                     <td class="revenue-text" style="color: #ff6666;">${{ "%.2f"|format(performer.daily_revenue) }}</td>
                     <td class="revenue-text" style="color: #ff6666;">${{ "%.2f"|format(performer.total_revenue) }}</td>
                     <td style="font-weight: bold; color: #ff4444; text-transform: uppercase;">
@@ -241,7 +241,7 @@ function exportMaintenanceReport(type) {
                 {% for performer in top_performers %}
                 <tr class="performance-good" style="border-left: {{ '4px solid var(--neon-green)' if loop.index <= 3 else '2px solid #66ff66' }};">
                     <td style="color: var(--text-primary); font-weight: bold;">{{ loop.index }}</td>
-                    <td><a href="{{ url_for('game_detail', game_id=performer.game.id) }}" style="color: var(--neon-green); font-weight: bold;">{{ performer.game.name }}</a></td>
+                    <td><a href="{{ url_for('games.game_detail', game_id=performer.game.id) }}" style="color: var(--neon-green); font-weight: bold;">{{ performer.game.name }}</a></td>
                     <td class="revenue-text" style="color: #66ff66;">${{ "%.2f"|format(performer.daily_revenue) }}</td>
                     <td class="revenue-text" style="color: #66ff66;">${{ "%.2f"|format(performer.total_revenue) }}</td>
                     <td style="color: var(--text-secondary); font-weight: 500;">

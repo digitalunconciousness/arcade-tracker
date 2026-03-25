@@ -12,7 +12,7 @@
     {% endif %}
     {% if maintenance.work_logs %}
     <p><strong>Previous Work Entries:</strong> {{ maintenance.work_logs|length }} entries logged</p>
-    <a href="{{ url_for('maintenance_detail', record_id=maintenance.id) }}" class="btn" style="background: var(--neon-purple); font-size: 12px; padding: 5px 10px; margin-top: 10px;"> View All Work History</a>
+    <a href="{{ url_for('maintenance.maintenance_detail', record_id=maintenance.id) }}" class="btn" style="background: var(--neon-purple); font-size: 12px; padding: 5px 10px; margin-top: 10px;"> View All Work History</a>
     {% endif %}
 </div>
 
@@ -120,8 +120,8 @@
     
     <div style="display: flex; gap: 10px; align-items: center; margin-top: 20px;">
         <button type="submit" class="btn btn-warning"> Log Work Entry</button>
-        <a href="{{ url_for('maintenance_orders') }}" class="btn" style="background: #6c757d; color: white; text-decoration: none;">Cancel</a>
-        <a href="{{ url_for('game_detail', game_id=maintenance.game_id) }}" class="btn" style="background: var(--neon-cyan); color: black; text-decoration: none;">View Game</a>
+        <a href="{{ url_for('maintenance.maintenance_orders') }}" class="btn" style="background: #6c757d; color: white; text-decoration: none;">Cancel</a>
+        <a href="{{ url_for('games.game_detail', game_id=maintenance.game_id) }}" class="btn" style="background: var(--neon-cyan); color: black; text-decoration: none;">View Game</a>
     </div>
 </form>
 

@@ -34,7 +34,7 @@
 
         <td>
           {% if record.game_id and record.game %}
-            <a href="{{ url_for('game_detail', game_id=record.game_id) }}">
+            <a href="{{ url_for('games.game_detail', game_id=record.game_id) }}">
               {{ record.game.name }}
             </a>
           {% else %}

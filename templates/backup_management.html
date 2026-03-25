@@ -8,7 +8,7 @@
 
         <!-- Create Backup -->
         <div class="actions">
-            <form method="POST" action="{{ url_for('create_backup') }}">
+            <form method="POST" action="{{ url_for('admin.create_backup') }}">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="btn-glow cyan">
                     <i class="fas fa-save"></i> Create Backup
@@ -34,7 +34,7 @@
                     <td>{{ backup.size }} MB</td>
                     <td>
                         <!-- Restore -->
-                        <form method="POST" action="{{ url_for('restore_backup') }}" class="inline-form" onsubmit="return showRestoreOverlay('{{ backup.filename }}')">
+                        <form method="POST" action="{{ url_for('admin.restore_backup') }}" class="inline-form" onsubmit="return showRestoreOverlay('{{ backup.filename }}')">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <input type="hidden" name="backup_file" value="{{ backup.filename }}">
                             <button type="submit" class="btn-glow magenta">
@@ -43,7 +43,7 @@
                         </form>
 
                         <!-- Delete -->
-                        <form method="POST" action="{{ url_for('delete_backup') }}" class="inline-form" onsubmit="return confirm('Delete backup {{ backup.filename }}?')">
+                        <form method="POST" action="{{ url_for('admin.delete_backup') }}" class="inline-form" onsubmit="return confirm('Delete backup {{ backup.filename }}?')">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <input type="hidden" name="backup_file" value="{{ backup.filename }}">
                             <button type="submit" class="btn-glow danger">

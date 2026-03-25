@@ -6,7 +6,7 @@
 <div class="container">
     <h1>Edit Inventory Item</h1>
     
-    <form method="POST" action="{{ url_for('edit_inventory_item', item_id=item.id) }}">
+    <form method="POST" action="{{ url_for('inventory.edit_inventory_item', item_id=item.id) }}">
         {{ form.hidden_tag() }}
         
         <div class="form-group">
@@ -106,7 +106,7 @@
         
         <div class="form-actions">
             {{ form.submit(class="btn btn-primary") }}
-            <a href="{{ url_for('inventory_detail', item_id=item.id) }}" class="btn btn-secondary">Cancel</a>
+            <a href="{{ url_for('inventory.inventory_detail', item_id=item.id) }}" class="btn btn-secondary">Cancel</a>
         </div>
     </form>
 </div>
