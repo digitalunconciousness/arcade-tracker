@@ -2,10 +2,10 @@
 
 import logging
 import os
+import ipaddress
 from datetime import datetime, timedelta
 from logging.handlers import RotatingFileHandler
 from flask import request
-import ipaddress
 
 # -------------------------------------------------------------
 # 🔐 FAILED LOGIN TRACKING
@@ -65,7 +65,11 @@ def log_security_event(event_type, user_id=None, details="", level="info"):
         current_app.logger.info(message)
 
 def get_client_ip() -> str:
-    """Get a validated client IP address, considering common proxy headers."""
+    """Get a validated client IP address, considering common proxy headers.
+
+    Returns:
+        str: A validated IP string, or ``'Unknown'`` when no valid client IP is available.
+    """
     forwarded_for = request.headers.get('X-Forwarded-For')
     real_ip = request.headers.get('X-Real-IP')
     remote_addr = request.remote_addr
@@ -205,7 +209,13 @@ def safe_path_join(base_path, user_path):
     target = os.path.abspath(os.path.join(base, user_path))
 
     # Ensure target is within base directory
-    if os.path.commonpath([base, target]) != base:
+    try:
+        is_within_base = os.path.commonpath([base, target]) == base
+    except ValueError:
+        # Can happen on Windows when paths are on different drives.
+        is_within_base = False
+
+    if not is_within_base:
         log_security_event(
             'PATH_TRAVERSAL_ATTEMPT',
             details=f"Attempted path: {user_path}"

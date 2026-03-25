@@ -14,14 +14,15 @@ class SecurityUtilsTestCase(unittest.TestCase):
 
     def test_safe_path_join_rejects_prefix_traversal(self):
         """Ensure prefix-matching bypasses are blocked."""
-        with app.test_request_context("/", environ_base={"REMOTE_ADDR": "10.0.0.7"}):
+        with app.test_request_context("/"):
             result = safe_path_join("/tmp/app", "../app_evil/secret.txt")
             self.assertIsNone(result)
 
     def test_safe_path_join_accepts_child_path(self):
         """Ensure valid child paths still work."""
-        result = safe_path_join("/tmp/app", "images/photo.jpg")
-        self.assertTrue(result.endswith("/tmp/app/images/photo.jpg"))
+        with app.test_request_context("/"):
+            result = safe_path_join("/tmp/app", "images/photo.jpg")
+            self.assertTrue(result.endswith("/tmp/app/images/photo.jpg"))
 
     def test_get_client_ip_validates_header_value(self):
         """Fallback to remote_addr when forwarded value is invalid."""
