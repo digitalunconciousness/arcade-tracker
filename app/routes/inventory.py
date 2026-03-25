@@ -288,8 +288,8 @@ def adjust_stock(item_id):
 
     if form.validate_on_submit():
         old_quantity = item.stock_quantity
-        adjustment_type = form.reason.data
-        quantity = form.quantity_change.data
+        adjustment_type = form.adjustment_type.data
+        quantity = form.quantity.data
 
         # Calculate new quantity based on adjustment type
         if adjustment_type in ["added"]:
@@ -312,7 +312,7 @@ def adjust_stock(item_id):
             quantity_change=quantity_change,
             previous_quantity=old_quantity,
             new_quantity=new_quantity,
-            reason=form.notes.data or f"Manual {adjustment_type}",
+            reason=form.reason.data or f"Manual {adjustment_type}",
             user_id=current_user.id,
         )
 

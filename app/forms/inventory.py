@@ -56,9 +56,8 @@ class InventoryItemForm(FlaskForm):
 class StockAdjustmentForm(FlaskForm):
     """Adjust inventory stock quantity."""
 
-    quantity_change = IntegerField("Quantity Change", validators=[DataRequired()])
-    reason = SelectField(
-        "Reason",
+    adjustment_type = SelectField(
+        "Type",
         choices=[
             ("added", "Stock Added"),
             ("removed", "Stock Removed"),
@@ -69,5 +68,6 @@ class StockAdjustmentForm(FlaskForm):
         ],
         validators=[DataRequired()],
     )
-    notes = TextAreaField("Notes", validators=[Optional()])
+    quantity = IntegerField("Quantity", validators=[DataRequired()])
+    reason = StringField("Reason", validators=[Optional()])
     submit = SubmitField("Update Stock")
