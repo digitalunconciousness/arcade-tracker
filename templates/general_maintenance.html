@@ -22,7 +22,7 @@
                             </p>
                         </div>
                         <div>
-                            <a href="{{ url_for('maintenance_orders') }}" class="btn btn-sm btn-outline-dark">
+                            <a href="{{ url_for('maintenance.maintenance_orders') }}" class="btn btn-sm btn-outline-dark">
                                 <i class="fas fa-list"></i> View All Orders
                             </a>
                         </div>
@@ -30,7 +30,7 @@
                 </div>
                 
                 <div class="card-body">
-                    <form method="POST" action="{{ url_for('general_maintenance') }}">
+                    <form method="POST" action="{{ url_for('maintenance.general_maintenance') }}">
                         {{ form.hidden_tag() }}
                         
                         <!-- 
@@ -262,7 +262,7 @@
                             Submit and cancel buttons with clear styling
                         -->
                         <div class="d-flex justify-content-between align-items-center pt-3 border-top">
-                            <a href="{{ url_for('maintenance_orders') }}" class="btn btn-lg btn-secondary">
+                            <a href="{{ url_for('maintenance.maintenance_orders') }}" class="btn btn-lg btn-secondary">
                                 <i class="fas fa-times"></i> Cancel
                             </a>
                             <button type="submit" class="btn btn-lg btn-success">

@@ -7,10 +7,10 @@
 <div style="background: var(--dark-card); padding: 20px; border-radius: 8px; border: 1px solid var(--neon-cyan); margin: 20px 0;">
     <h3> Time Frame Filter</h3>
     <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
-        <a href="{{ url_for('maintenance_reports', days=7) }}" class="btn {{ 'btn-success' if days_filter == 7 else '' }}" style="margin: 5px;">Last 7 Days</a>
-        <a href="{{ url_for('maintenance_reports', days=30) }}" class="btn {{ 'btn-success' if days_filter == 30 else '' }}" style="margin: 5px;">Last 30 Days</a>
-        <a href="{{ url_for('maintenance_reports', days=90) }}" class="btn {{ 'btn-success' if days_filter == 90 else '' }}" style="margin: 5px;">Last 90 Days</a>
-        <a href="{{ url_for('maintenance_reports', days=365) }}" class="btn {{ 'btn-success' if days_filter == 365 else '' }}" style="margin: 5px;">Last Year</a>
+        <a href="{{ url_for('maintenance.maintenance_reports', days=7) }}" class="btn {{ 'btn-success' if days_filter == 7 else '' }}" style="margin: 5px;">Last 7 Days</a>
+        <a href="{{ url_for('maintenance.maintenance_reports', days=30) }}" class="btn {{ 'btn-success' if days_filter == 30 else '' }}" style="margin: 5px;">Last 30 Days</a>
+        <a href="{{ url_for('maintenance.maintenance_reports', days=90) }}" class="btn {{ 'btn-success' if days_filter == 90 else '' }}" style="margin: 5px;">Last 90 Days</a>
+        <a href="{{ url_for('maintenance.maintenance_reports', days=365) }}" class="btn {{ 'btn-success' if days_filter == 365 else '' }}" style="margin: 5px;">Last Year</a>
         
         <div style="margin-left: 20px;">
             <strong>Current Period:</strong> {{ start_date.strftime('%Y-%m-%d') }} to {{ today().strftime('%Y-%m-%d') }} ({{ days_filter }} days)
@@ -46,15 +46,15 @@
 <div style="text-align: center; margin: 30px 0;">
     <h3> Export Reports</h3>
     <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
-        <a href="{{ url_for('export_maintenance_report', type='open', days=days_filter) }}" 
+        <a href="{{ url_for('maintenance.export_maintenance_report', type='open', days=days_filter) }}" 
            class="btn" style="background: #ff4444; color: white; padding: 12px 20px;">
             Export Open Orders PDF
         </a>
-        <a href="{{ url_for('export_maintenance_report', type='closed', days=days_filter) }}" 
+        <a href="{{ url_for('maintenance.export_maintenance_report', type='closed', days=days_filter) }}" 
            class="btn" style="background: var(--neon-green); color: black; padding: 12px 20px;">
             Export Closed Orders PDF
         </a>
-        <a href="{{ url_for('export_maintenance_report', type='all', days=days_filter) }}" 
+        <a href="{{ url_for('maintenance.export_maintenance_report', type='all', days=days_filter) }}" 
            class="btn" style="background: var(--neon-cyan); color: black; padding: 12px 20px;">
             Export All Orders PDF
         </a>
@@ -131,7 +131,7 @@
                         <span style="color: #388e3c; font-weight: bold;"> LOW</span>
                     {% endif %}
                 </td>
-                <td>{% if record.game_id %}<a href="{{ url_for('game_detail', game_id=record.game_id) }}">{{ record.game.name }}</a>{% else %}<em>General Facility</em>{% endif %}</td>
+                <td>{% if record.game_id %}<a href="{{ url_for('games.game_detail', game_id=record.game_id) }}">{{ record.game.name }}</a>{% else %}<em>General Facility</em>{% endif %}</td>
                 <td>{{ record.issue_description[:60] }}{% if record.issue_description|length > 60 %}...{% endif %}</td>
                 <td>{{ days_open }} days</td>
                 <td>{{ record.technician or 'Unassigned' }}</td>
@@ -167,7 +167,7 @@
             {% for record in closed_records %}
             {% set days_to_fix = (record.date_fixed.date() - record.date_reported.date()).days if record.date_fixed else 0 %}
             <tr>
-                <td>{% if record.game_id %}<a href="{{ url_for('game_detail', game_id=record.game_id) }}">{{ record.game.name }}</a>{% else %}<em>General Facility</em>{% endif %}</td>
+                <td>{% if record.game_id %}<a href="{{ url_for('games.game_detail', game_id=record.game_id) }}">{{ record.game.name }}</a>{% else %}<em>General Facility</em>{% endif %}</td>
                 <td>{{ record.issue_description[:50] }}{% if record.issue_description|length > 50 %}...{% endif %}</td>
                 <td>{{ record.date_reported.strftime('%Y-%m-%d') }}</td>
                 <td>{{ record.date_fixed.strftime('%Y-%m-%d') if record.date_fixed else 'N/A' }}</td>
@@ -184,7 +184,7 @@
                     {% endif %}
                 </td>
                 <td>
-                    <a href="{{ url_for('maintenance_detail', record_id=record.id) }}" class="btn" style="background: var(--neon-cyan); font-size: 10px; padding: 3px 8px; color: black;"> View</a>
+                    <a href="{{ url_for('maintenance.maintenance_detail', record_id=record.id) }}" class="btn" style="background: var(--neon-cyan); font-size: 10px; padding: 3px 8px; color: black;"> View</a>
                 </td>
             </tr>
             {% endfor %}
@@ -226,7 +226,7 @@
                         <span style="color: #888; font-weight: bold;">⏸ Deferred</span>
                     {% endif %}
                 </td>
-                <td>{% if record.game_id %}<a href="{{ url_for('game_detail', game_id=record.game_id) }}">{{ record.game.name }}</a>{% else %}<em>General Facility</em>{% endif %}</td>
+                <td>{% if record.game_id %}<a href="{{ url_for('games.game_detail', game_id=record.game_id) }}">{{ record.game.name }}</a>{% else %}<em>General Facility</em>{% endif %}</td>
                 <td>{{ record.issue_description[:50] }}{% if record.issue_description|length > 50 %}...{% endif %}</td>
                 <td>{{ record.date_reported.strftime('%Y-%m-%d') }}</td>
                 <td>${{ "%.2f"|format(record.cost or 0) }}</td>
@@ -241,7 +241,7 @@
                     {% endif %}
                 </td>
                 <td>
-                    <a href="{{ url_for('maintenance_detail', record_id=record.id) }}" class="btn" style="background: var(--neon-cyan); font-size: 10px; padding: 3px 8px; color: black;"> View</a>
+                    <a href="{{ url_for('maintenance.maintenance_detail', record_id=record.id) }}" class="btn" style="background: var(--neon-cyan); font-size: 10px; padding: 3px 8px; color: black;"> View</a>
                 </td>
             </tr>
             {% endfor %}

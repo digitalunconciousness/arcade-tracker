@@ -7,13 +7,13 @@
     <div class="page-header">
         <h1> Arcade Games Database</h1>
         {% if current_user.has_role('manager') %}
-        <a href="{{ url_for('add_game') }}" class="btn btn-primary"> Add New Game</a>
+        <a href="{{ url_for('games.add_game') }}" class="btn btn-primary"> Add New Game</a>
         {% endif %}
     </div>
 
     <!-- Search and Filter Form -->
     <div class="filters">
-        <form method="get" action="{{ url_for('games_list') }}">
+        <form method="get" action="{{ url_for('games.games_list') }}">
             <div class="filter-row">
                 <input type="text" name="search" placeholder=" Search games..." value="{{ search }}" class="form-control">
                 
@@ -32,7 +32,7 @@
                 </select>
                 
                 <button type="submit" class="btn btn-secondary">Filter</button>
-                <a href="{{ url_for('games_list') }}" class="btn btn-secondary">Clear</a>
+                <a href="{{ url_for('games.games_list') }}" class="btn btn-secondary">Clear</a>
             </div>
         </form>
     </div>
@@ -107,16 +107,16 @@
                     <td>{{ game.total_plays }}</td>
                     <td>${{ "%.2f"|format(game.total_revenue) }}</td>
                     <td class="actions-cell">
-                        <a href="{{ url_for('game_detail', game_id=game.id) }}" class="action-btn btn-view" title="View Details">VIEW</a>
+                        <a href="{{ url_for('games.game_detail', game_id=game.id) }}" class="action-btn btn-view" title="View Details">VIEW</a>
                         
                         {% if current_user.has_role('manager') %}
-                        <a href="{{ url_for('record_plays', game_id=game.id) }}" class="action-btn btn-plays" title="Record Plays">PLAYS</a>
-                        <a href="{{ url_for('game_maintenance', game_id=game.id) }}" class="action-btn btn-fix" title="Add Maintenance">FIX</a>
-                        <a href="{{ url_for('edit_game', game_id=game.id) }}" class="action-btn btn-edit" title="Edit Game">EDIT</a>
+                        <a href="{{ url_for('games.record_plays', game_id=game.id) }}" class="action-btn btn-plays" title="Record Plays">PLAYS</a>
+                        <a href="{{ url_for('maintenance.game_maintenance', game_id=game.id) }}" class="action-btn btn-fix" title="Add Maintenance">FIX</a>
+                        <a href="{{ url_for('games.edit_game', game_id=game.id) }}" class="action-btn btn-edit" title="Edit Game">EDIT</a>
                         {% endif %}
                         
                         {% if current_user.has_role('admin') %}
-                        <form method="post" action="{{ url_for('delete_game', game_id=game.id) }}" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete {{ game.name }}? This will delete all play records and maintenance history!');">
+                        <form method="post" action="{{ url_for('games.delete_game', game_id=game.id) }}" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete {{ game.name }}? This will delete all play records and maintenance history!');">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="action-btn btn-delete" title="Delete Game">DELETE</button>
                         </form>
@@ -651,7 +651,7 @@ function bulkAction(action) {
     // Create form and submit
     const form = document.createElement('form');
     form.method = 'POST';
-    form.action = '{{ url_for("bulk_update_games") }}';
+    form.action = '{{ url_for('games.bulk_update_games') }}';
     
     // Add CSRF token
     const csrfInput = document.createElement('input');
@@ -692,7 +692,7 @@ function exportSelected() {
     const params = new URLSearchParams();
     gameIds.forEach(id => params.append('game_ids', id));
     
-    window.location.href = '{{ url_for("export_selected_games") }}?' + params.toString();
+    window.location.href = '{{ url_for('games.export_selected_games') }}?' + params.toString();
 }
 
 function clearSelection() {

@@ -15,7 +15,7 @@
             {% endif %}
         </div>
         {% if maintenance.status in ['Open', 'In_Progress'] and current_user.has_role('manager') %}
-        <a href="{{ url_for('update_maintenance', maintenance_id=maintenance.id) }}" class="btn btn-warning">
+        <a href="{{ url_for('maintenance.update_maintenance', maintenance_id=maintenance.id) }}" class="btn btn-warning">
              Update Work Order
         </a>
         {% endif %}
@@ -31,7 +31,7 @@
             </div>
             <div class="info-item">
                 <strong>Game:</strong> 
-                <a href="{{ url_for('game_detail', game_id=maintenance.game_id) }}" class="game-link">
+                <a href="{{ url_for('games.game_detail', game_id=maintenance.game_id) }}" class="game-link">
                     {{ maintenance.game.name }}
                 </a>
             </div>
@@ -169,7 +169,7 @@
         <h3> Photos & Documentation</h3>
         <div class="photos-header">
             {% if current_user.has_role('operator') %}
-            <a href="{{ url_for('maintenance_photos', maintenance_id=maintenance.id) }}" class="btn btn-primary btn-sm">
+            <a href="{{ url_for('maintenance.maintenance_photos', maintenance_id=maintenance.id) }}" class="btn btn-primary btn-sm">
                 <i class="fas fa-camera"></i> Upload Photos
             </a>
             {% endif %}
@@ -185,7 +185,7 @@
                      onclick="openPhotoModal('{{ photo }}', '{% if config.USE_CLOUD_STORAGE %}{{ get_cloud_url(photo) }}{% else %}{{ url_for('static', filename='maintenance_photos/' + photo) }}{% endif %}');">
                 <div class="photo-filename">{{ photo }}</div>
                 {% if current_user.has_role('manager') %}
-                <form method="POST" action="{{ url_for('delete_maintenance_photo', maintenance_id=maintenance.id, filename=photo) }}" 
+                <form method="POST" action="{{ url_for('maintenance.delete_maintenance_photo', maintenance_id=maintenance.id, filename=photo) }}" 
                       class="photo-delete-form" 
                       onsubmit="return confirm('Delete this photo?')">
                     <button type="submit" class="btn-delete-photo" title="Delete photo">
@@ -212,10 +212,10 @@
 </div>
 
 <div class="work-order-actions">
-    <a href="{{ url_for('maintenance_orders') }}" class="btn btn-secondary">
+    <a href="{{ url_for('maintenance.maintenance_orders') }}" class="btn btn-secondary">
          Back to All Orders
     </a>
-    <a href="{{ url_for('game_detail', game_id=maintenance.game_id) }}" class="btn btn-primary">
+    <a href="{{ url_for('games.game_detail', game_id=maintenance.game_id) }}" class="btn btn-primary">
          View Game Details
     </a>
     {% if maintenance.status in ['Open', 'In_Progress'] and current_user.has_role('manager') %}

@@ -38,7 +38,7 @@
         </thead>
         <tbody>
             {% for record in open_records %}
-            <tr style="height: 45px; cursor: pointer;" onclick="window.location='{{ url_for('maintenance_detail', record_id=record.id) }}';">
+            <tr style="height: 45px; cursor: pointer;" onclick="window.location='{{ url_for('maintenance.maintenance_detail', record_id=record.id) }}';">
                 <td>
                     {% if record.status == 'Open' %}
                         <span style="color: #ff4444; font-weight: bold;"> Open</span>
@@ -46,18 +46,18 @@
                         <span style="color: #ffaa00; font-weight: bold;"> In Progress</span>
                     {% endif %}
                 </td>
-                <td>{% if record.game_id %}<a href="{{ url_for('game_detail', game_id=record.game_id) }}">{{ record.game.name }}</a>{% else %}<span style="color: var(--neon-purple); font-style: italic;">General Maintenance</span>{% endif %}</td>
+                <td>{% if record.game_id %}<a href="{{ url_for('games.game_detail', game_id=record.game_id) }}">{{ record.game.name }}</a>{% else %}<span style="color: var(--neon-purple); font-style: italic;">General Maintenance</span>{% endif %}</td>
                 <td>{{ record.issue_description[:50] }}{% if record.issue_description|length > 50 %}...{% endif %}</td>
                 <td>{{ record.date_reported.strftime('%Y-%m-%d') }}</td>
                 <td>{{ record.technician or 'Not Assigned' }}</td>
                 <td>${{ "%.2f"|format(record.cost or 0) }}</td>
                 <td style="padding: 8px; white-space: nowrap;" onclick="event.stopPropagation();">
                     <div style="display: flex; gap: 4px; align-items: center;">
-                        <a href="{{ url_for('maintenance_detail', record_id=record.id) }}" class="btn" style="background: var(--neon-cyan); font-size: 10px; padding: 4px 8px; margin: 0; min-width: 45px; text-align: center; color: black;">View</a>
+                        <a href="{{ url_for('maintenance.maintenance_detail', record_id=record.id) }}" class="btn" style="background: var(--neon-cyan); font-size: 10px; padding: 4px 8px; margin: 0; min-width: 45px; text-align: center; color: black;">View</a>
                         {% if current_user.has_role('operator') %}
-                            <a href="{{ url_for('maintenance_photos', maintenance_id=record.id) }}" class="btn" style="background: var(--neon-pink); font-size: 10px; padding: 4px 8px; margin: 0; min-width: 45px; text-align: center;">Photos</a>
+                            <a href="{{ url_for('maintenance.maintenance_photos', maintenance_id=record.id) }}" class="btn" style="background: var(--neon-pink); font-size: 10px; padding: 4px 8px; margin: 0; min-width: 45px; text-align: center;">Photos</a>
                         {% endif %}
-                        <a href="{{ url_for('update_maintenance', record_id=record.id) }}" class="btn" style="background: var(--neon-purple); font-size: 10px; padding: 4px 8px; margin: 0; min-width: 50px; text-align: center;">Update</a>
+                        <a href="{{ url_for('maintenance.update_maintenance', record_id=record.id) }}" class="btn" style="background: var(--neon-purple); font-size: 10px; padding: 4px 8px; margin: 0; min-width: 50px; text-align: center;">Update</a>
                         <button onclick="document.getElementById('closeForm').action='/close_maintenance/{{ record.id }}';document.getElementById('modalGameName').textContent='Record #{{ record.id }}';document.getElementById('modalIssue').textContent='Maintenance Order';document.getElementById('closeModal').style.display='block';return false;" 
                                 class="btn btn-success" 
                                 style="font-size: 10px; padding: 4px 8px; margin: 0; min-width: 45px; text-align: center;">Close</button>
@@ -92,7 +92,7 @@
         </thead>
         <tbody>
             {% for record in closed_records %}
-            <tr style="height: 45px; cursor: pointer;" onclick="window.location='{{ url_for('maintenance_detail', record_id=record.id) }}';">
+            <tr style="height: 45px; cursor: pointer;" onclick="window.location='{{ url_for('maintenance.maintenance_detail', record_id=record.id) }}';">
                 <td>
                     {% if record.status == 'Fixed' %}
                         <span style="color: var(--neon-green); font-weight: bold;"> Fixed</span>
@@ -100,7 +100,7 @@
                         <span style="color: #888; font-weight: bold;">⏸ Deferred</span>
                     {% endif %}
                 </td>
-                <td>{% if record.game_id %}<a href="{{ url_for('game_detail', game_id=record.game_id) }}">{{ record.game.name }}</a>{% else %}<span style="color: var(--neon-purple); font-style: italic;">General Maintenance</span>{% endif %}</td>
+                <td>{% if record.game_id %}<a href="{{ url_for('games.game_detail', game_id=record.game_id) }}">{{ record.game.name }}</a>{% else %}<span style="color: var(--neon-purple); font-style: italic;">General Maintenance</span>{% endif %}</td>
                 <td>{{ record.issue_description[:50] }}{% if record.issue_description|length > 50 %}...{% endif %}</td>
                 <td>{{ record.date_reported.strftime('%Y-%m-%d') }}</td>
                 <td>{{ record.date_fixed.strftime('%Y-%m-%d') if record.date_fixed else 'N/A' }}</td>
@@ -109,9 +109,9 @@
                 <td>{{ record.fix_description[:40] if record.fix_description else 'N/A' }}{% if record.fix_description and record.fix_description|length > 40 %}...{% endif %}</td>
                 <td style="padding: 8px; white-space: nowrap;" onclick="event.stopPropagation();">
                     <div style="display: flex; gap: 4px; align-items: center;">
-                        <a href="{{ url_for('maintenance_detail', record_id=record.id) }}" class="btn" style="background: var(--neon-cyan); font-size: 10px; padding: 4px 8px; margin: 0; min-width: 45px; text-align: center; color: black;">View</a>
+                        <a href="{{ url_for('maintenance.maintenance_detail', record_id=record.id) }}" class="btn" style="background: var(--neon-cyan); font-size: 10px; padding: 4px 8px; margin: 0; min-width: 45px; text-align: center; color: black;">View</a>
                         {% if current_user.has_role('operator') %}
-                            <a href="{{ url_for('maintenance_photos', maintenance_id=record.id) }}" class="btn" style="background: var(--neon-pink); font-size: 10px; padding: 4px 8px; margin: 0; min-width: 45px; text-align: center;">Photos</a>
+                            <a href="{{ url_for('maintenance.maintenance_photos', maintenance_id=record.id) }}" class="btn" style="background: var(--neon-pink); font-size: 10px; padding: 4px 8px; margin: 0; min-width: 45px; text-align: center;">Photos</a>
                         {% endif %}
                     </div>
                 </td>
@@ -142,7 +142,7 @@
         </thead>
         <tbody>
             {% for record in all_records %}
-            <tr style="height: 45px; cursor: pointer;" onclick="window.location='{{ url_for('maintenance_detail', record_id=record.id) }}';">
+            <tr style="height: 45px; cursor: pointer;" onclick="window.location='{{ url_for('maintenance.maintenance_detail', record_id=record.id) }}';">
                 <td>
                     {% if record.status == 'Open' %}
                         <span style="color: #ff4444; font-weight: bold;"> Open</span>
@@ -154,19 +154,19 @@
                         <span style="color: #888; font-weight: bold;">⏸ Deferred</span>
                     {% endif %}
                 </td>
-                <td>{% if record.game_id %}<a href="{{ url_for('game_detail', game_id=record.game_id) }}">{{ record.game.name }}</a>{% else %}<span style="color: var(--neon-purple); font-style: italic;">General Maintenance</span>{% endif %}</td>
+                <td>{% if record.game_id %}<a href="{{ url_for('games.game_detail', game_id=record.game_id) }}">{{ record.game.name }}</a>{% else %}<span style="color: var(--neon-purple); font-style: italic;">General Maintenance</span>{% endif %}</td>
                 <td>{{ record.issue_description[:50] }}{% if record.issue_description|length > 50 %}...{% endif %}</td>
                 <td>{{ record.date_reported.strftime('%Y-%m-%d') }}</td>
                 <td>{{ record.technician or 'Not Assigned' }}</td>
                 <td>${{ "%.2f"|format(record.cost or 0) }}</td>
                 <td style="padding: 8px; white-space: nowrap;" onclick="event.stopPropagation();">
                     <div style="display: flex; gap: 4px; align-items: center;">
-                        <a href="{{ url_for('maintenance_detail', record_id=record.id) }}" class="btn" style="background: var(--neon-cyan); font-size: 10px; padding: 4px 8px; margin: 0; min-width: 45px; text-align: center; color: black;">View</a>
+                        <a href="{{ url_for('maintenance.maintenance_detail', record_id=record.id) }}" class="btn" style="background: var(--neon-cyan); font-size: 10px; padding: 4px 8px; margin: 0; min-width: 45px; text-align: center; color: black;">View</a>
                         {% if current_user.has_role('operator') %}
-                            <a href="{{ url_for('maintenance_photos', maintenance_id=record.id) }}" class="btn" style="background: var(--neon-pink); font-size: 10px; padding: 4px 8px; margin: 0; min-width: 45px; text-align: center;">Photos</a>
+                            <a href="{{ url_for('maintenance.maintenance_photos', maintenance_id=record.id) }}" class="btn" style="background: var(--neon-pink); font-size: 10px; padding: 4px 8px; margin: 0; min-width: 45px; text-align: center;">Photos</a>
                         {% endif %}
                         {% if record.status in ['Open', 'In_Progress'] %}
-                            <a href="{{ url_for('update_maintenance', record_id=record.id) }}" class="btn" style="background: var(--neon-purple); font-size: 10px; padding: 4px 8px; margin: 0; min-width: 50px; text-align: center;">Update</a>
+                            <a href="{{ url_for('maintenance.update_maintenance', record_id=record.id) }}" class="btn" style="background: var(--neon-purple); font-size: 10px; padding: 4px 8px; margin: 0; min-width: 50px; text-align: center;">Update</a>
                             <button onclick="openCloseModalSimple({{ record.id }}); return false;" 
                                     class="btn btn-success" 
                                     style="font-size: 10px; padding: 4px 8px; margin: 0; min-width: 45px; text-align: center;">Close</button>

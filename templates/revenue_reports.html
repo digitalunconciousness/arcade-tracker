@@ -29,7 +29,7 @@
         </div>
         
         <button type="submit" class="btn" style="padding: 8px 15px;"> Update Report</button>
-        <a href="{{ url_for('export_revenue_report', days=days_filter, location=location_filter) }}" 
+        <a href="{{ url_for('reports.export_revenue_report', days=days_filter, location=location_filter) }}" 
            class="btn" style="padding: 8px 15px; background: var(--neon-green);"> Export PDF</a>
     </form>
 </div>
@@ -91,7 +91,7 @@
                         #{{ loop.index }}
                     {% endif %}
                 </td>
-                <td><a href="{{ url_for('game_detail', game_id=game_data.game.id) }}">{{ game_data.game.name }}</a></td>
+                <td><a href="{{ url_for('games.game_detail', game_id=game_data.game.id) }}">{{ game_data.game.name }}</a></td>
                 <td style="font-weight: bold; color: var(--neon-green);">${{ "%.2f"|format(game_data.revenue) }}</td>
                 <td>{{ game_data.plays }}</td>
                 <td>${{ "%.2f"|format(game_data.revenue / game_data.plays if game_data.plays > 0 else 0) }}</td>
@@ -203,7 +203,7 @@ new Chart(ctx, {
             {% for record in all_records[:20] %}
             <tr>
                 <td>{{ record.date_recorded.strftime('%Y-%m-%d') }}</td>
-                <td><a href="{{ url_for('game_detail', game_id=record.game.id) }}">{{ record.game.name }}</a></td>
+                <td><a href="{{ url_for('games.game_detail', game_id=record.game.id) }}">{{ record.game.name }}</a></td>
                 <td>{{ record.plays_count }}</td>
                 <td style="color: var(--neon-green); font-weight: bold;">${{ "%.2f"|format(record.revenue) }}</td>
                 <td>
@@ -228,7 +228,7 @@ new Chart(ctx, {
 <div style="text-align: center; padding: 40px;">
     <p style="font-size: 18px; color: var(--text-secondary);">No revenue records found for the selected period.</p>
     {% if location_filter %}
-        <p><a href="{{ url_for('revenue_reports', days=days_filter) }}">View all locations</a></p>
+        <p><a href="{{ url_for('reports.revenue_reports', days=days_filter) }}">View all locations</a></p>
     {% endif %}
 </div>
 {% endif %}
