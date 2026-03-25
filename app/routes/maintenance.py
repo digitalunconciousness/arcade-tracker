@@ -18,17 +18,6 @@ from flask import (
     url_for,
 )
 from flask_login import current_user, login_required
-from reportlab.lib import colors
-from reportlab.lib.pagesizes import letter
-from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.lib.units import inch
-from reportlab.platypus import (
-    Paragraph,
-    SimpleDocTemplate,
-    Spacer,
-    Table,
-    TableStyle,
-)
 from werkzeug.utils import secure_filename
 
 from app.extensions import db
@@ -573,6 +562,12 @@ def delete_maintenance(record_id):
 @login_required
 def download_maintenance_record(record_id):
     """Generate and download PDF of maintenance record"""
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import letter
+    from reportlab.lib.styles import getSampleStyleSheet
+    from reportlab.lib.units import inch
+    from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+
     record = MaintenanceRecord.query.get_or_404(record_id)
 
     buffer = io.BytesIO()
@@ -989,7 +984,11 @@ def export_maintenance_report():
     from collections import Counter
     from datetime import timedelta
 
-    from reportlab.platypus import Image as RLImage
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import letter
+    from reportlab.lib.styles import getSampleStyleSheet
+    from reportlab.lib.units import inch
+    from reportlab.platypus import Image as RLImage, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
     report_type = request.args.get("type", "all")
     try:

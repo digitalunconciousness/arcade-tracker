@@ -6,7 +6,7 @@
     <div class="glass-container">
         <h2 class="glow-title"> Create New User</h2>
 
-        <form method="POST" action="{{ url_for('create_user') }}" class="neon-form">
+        <form method="POST" action="{{ url_for('admin.create_user') }}" class="neon-form">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
             <div class="form-group">
@@ -33,7 +33,7 @@
 
             <div class="form-buttons">
                 <button type="submit" class="btn-neon-submit">Create User</button>
-                <a href="{{ url_for('manage_users') }}" class="btn-neon-cancel">Cancel</a>
+                <a href="{{ url_for('admin.manage_users') }}" class="btn-neon-cancel">Cancel</a>
             </div>
         </form>
     </div>

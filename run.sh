@@ -13,4 +13,4 @@ echo "Installing dependencies..."
 pip install -r requirements.txt
 
 echo "Starting Arcade Tracker..."
-python app.py
+python run.py

@@ -23,7 +23,7 @@ COPY . .
 RUN mkdir -p instance uploads static/maintenance_photos static/profile_pics backups logs
 
 # Set environment variables
-ENV FLASK_APP=app.py
+ENV FLASK_APP=run.py
 ENV PYTHONUNBUFFERED=1
 
 # Expose port
@@ -34,4 +34,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD python -c "import requests; requests.get('http://localhost:5000/', timeout=5)" || exit 1
 
 # Run the application
-CMD ["python", "app.py"]
+CMD ["python", "run.py"]

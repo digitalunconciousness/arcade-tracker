@@ -6,7 +6,6 @@ import uuid
 import datetime as dt
 from datetime import datetime, date
 
-import pandas as pd
 from flask import (
     Blueprint,
     current_app,
@@ -595,10 +594,15 @@ def export_selected_games():
             }
         )
 
-    df = pd.DataFrame(data)
+    import csv
 
     output = io.StringIO()
-    df.to_csv(output, index=False)
+    writer = csv.DictWriter(output, fieldnames=[
+        "Game Name", "Manufacturer", "Location", "Status",
+        "Total Plays", "Total Revenue", "Daily Revenue", "Days Active",
+    ])
+    writer.writeheader()
+    writer.writerows(data)
     output.seek(0)
 
     response = make_response(output.getvalue())

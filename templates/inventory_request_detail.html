@@ -4,7 +4,7 @@
 <div class="container mt-4">
   <!-- Back Button -->
   <div class="mb-3">
-    <a href="{{ url_for('inventory_requests_list') }}" style="color: #00ffff; text-decoration: none;">&larr; Back to Requests</a>
+    <a href="{{ url_for('inventory.inventory_requests_list') }}" style="color: #00ffff; text-decoration: none;">&larr; Back to Requests</a>
   </div>
 
   <!-- Request Header Card -->
@@ -64,7 +64,7 @@
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
       <h4 style="color: #00d9ff; margin: 0;"> Shipping & Tracking Information</h4>
       {% if request.tracking_number and current_user.role in ['admin', 'manager'] and request.status not in ['Received', 'Rejected'] %}
-        <form method="POST" action="{{ url_for('update_request_tracking', request_id=request.id) }}" style="display: inline;">
+        <form method="POST" action="{{ url_for('inventory.update_request_tracking', request_id=request.id) }}" style="display: inline;">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
           <button type="submit" style="background: var(--neon-cyan); color: #000; padding: 8px 16px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.transform='scale(1.05)';" onmouseout="this.style.transform='scale(1)';">
              Update Tracking
@@ -118,7 +118,7 @@
     <h4 style="color: #ff6400; margin-bottom: 10px;"> Linked Work Order</h4>
     <p style="color: #fff;">
       This request is linked to 
-      <a href="{{ url_for('maintenance_detail', record_id=request.maintenance_id) }}" style="color: var(--neon-cyan); text-decoration: none; font-weight: bold;">
+      <a href="{{ url_for('maintenance.maintenance_detail', record_id=request.maintenance_id) }}" style="color: var(--neon-cyan); text-decoration: none; font-weight: bold;">
         Work Order #{{ request.maintenance_id }}
       </a>
       {% if request.maintenance_record.game %}

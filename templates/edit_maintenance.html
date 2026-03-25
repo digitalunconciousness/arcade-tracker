@@ -3,7 +3,7 @@
 {% block content %}
 <h2>Edit Maintenance Record</h2>
 
-<form method="POST" action="{{ url_for('edit_maintenance', record_id=record.id) }}" style="max-width: 700px; margin: auto;">
+<form method="POST" action="{{ url_for('maintenance.update_maintenance', record_id=record.id) }}" style="max-width: 700px; margin: auto;">
   <div class="form-group mb-3">
     <label for="issue_description" class="form-label">Issue Description</label>
     <textarea id="issue_description" name="issue_description" class="form-control" rows="3" required>{{ record.issue_description or '' }}</textarea>
@@ -40,7 +40,7 @@
 
   <div class="d-flex justify-content-between mt-4">
     <button type="submit" class="btn btn-primary"> Save Changes</button>
-    <a href="{{ url_for('maintenance_orders') }}" class="btn btn-secondary">Cancel</a>
+    <a href="{{ url_for('maintenance.maintenance_orders') }}" class="btn btn-secondary">Cancel</a>
   </div>
 </form>
 {% endblock %}

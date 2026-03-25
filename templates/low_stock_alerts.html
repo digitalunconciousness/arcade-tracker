@@ -6,7 +6,7 @@
 <div class="header-section">
     <h1> Low Stock Alerts</h1>
     <div class="header-actions">
-        <a href="{{ url_for('inventory_list') }}" class="btn btn-secondary">← Back to Inventory</a>
+        <a href="{{ url_for('inventory.inventory_list') }}" class="btn btn-secondary">← Back to Inventory</a>
     </div>
 </div>
 
@@ -19,7 +19,7 @@
             <div class="alert-card active">
                 <div class="alert-header">
                     <h3>
-                        <a href="{{ url_for('inventory_detail', item_id=alert.item.id) }}">
+                        <a href="{{ url_for('inventory.inventory_detail', item_id=alert.item.id) }}">
                             {{ alert.item.name }}
                         </a>
                     </h3>
@@ -65,13 +65,13 @@
                 </div>
                 
                 <div class="alert-actions">
-                    <a href="{{ url_for('adjust_stock', item_id=alert.item.id) }}" class="btn btn-sm btn-primary">
+                    <a href="{{ url_for('inventory.adjust_stock', item_id=alert.item.id) }}" class="btn btn-sm btn-primary">
                         Add Stock
                     </a>
-                    <a href="{{ url_for('inventory_detail', item_id=alert.item.id) }}" class="btn btn-sm btn-info">
+                    <a href="{{ url_for('inventory.inventory_detail', item_id=alert.item.id) }}" class="btn btn-sm btn-info">
                         View Item
                     </a>
-                    <form method="POST" action="{{ url_for('resolve_low_stock_alert', alert_id=alert.id) }}" class="inline-form">
+                    <form method="POST" action="{{ url_for('inventory.resolve_low_stock_alert', alert_id=alert.id) }}" class="inline-form">
                         <button type="submit" class="btn btn-sm btn-success" 
                                 onclick="return confirm('Mark this alert as resolved?')">
                             Mark Resolved
@@ -87,7 +87,7 @@
         <div class="no-alerts-icon"></div>
         <h2>No Active Low Stock Alerts</h2>
         <p>All inventory items are adequately stocked!</p>
-        <a href="{{ url_for('inventory_list') }}" class="btn btn-primary">View Inventory</a>
+        <a href="{{ url_for('inventory.inventory_list') }}" class="btn btn-primary">View Inventory</a>
     </div>
     {% endif %}
     
@@ -109,7 +109,7 @@
                     {% for alert in recent_resolved %}
                     <tr>
                         <td>
-                            <a href="{{ url_for('inventory_detail', item_id=alert.item.id) }}">
+                            <a href="{{ url_for('inventory.inventory_detail', item_id=alert.item.id) }}">
                                 {{ alert.item.name }}
                             </a>
                         </td>
@@ -121,7 +121,7 @@
                             </span>
                         </td>
                         <td>
-                            <a href="{{ url_for('inventory_detail', item_id=alert.item.id) }}" class="btn btn-sm btn-info">
+                            <a href="{{ url_for('inventory.inventory_detail', item_id=alert.item.id) }}" class="btn btn-sm btn-info">
                                 View Item
                             </a>
                         </td>
