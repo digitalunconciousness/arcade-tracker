@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-import datetime as dt
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.extensions import db
 
@@ -42,7 +41,7 @@ class InventoryItem(db.Model):
     supplier: str | None = db.Column(db.String(200), nullable=True)
     part_number: str | None = db.Column(db.String(100), nullable=True)
     date_added: datetime = db.Column(
-        db.DateTime, default=lambda: datetime.now(dt.UTC)
+        db.DateTime, default=lambda: datetime.now(timezone.utc)
     )
     last_restocked: datetime | None = db.Column(db.DateTime, nullable=True)
     notes: str | None = db.Column(db.Text, nullable=True)
@@ -82,7 +81,7 @@ class StockHistory(db.Model):
     new_quantity: int = db.Column(db.Integer, nullable=False)
     reason: str | None = db.Column(db.String(200), nullable=True)
     timestamp: datetime = db.Column(
-        db.DateTime, default=lambda: datetime.now(dt.UTC)
+        db.DateTime, default=lambda: datetime.now(timezone.utc)
     )
     user_id: int = db.Column(
         db.Integer, db.ForeignKey("user.id"), nullable=False
@@ -107,7 +106,7 @@ class LowStockAlert(db.Model):
         db.Integer, db.ForeignKey("inventory_item.id"), nullable=False
     )
     alert_triggered: datetime = db.Column(
-        db.DateTime, default=lambda: datetime.now(dt.UTC)
+        db.DateTime, default=lambda: datetime.now(timezone.utc)
     )
     email_sent: bool = db.Column(db.Boolean, default=False)
     resolved: bool = db.Column(db.Boolean, default=False)
@@ -135,7 +134,7 @@ class MaintenanceInventoryUsage(db.Model):
     unit_price_at_time: float = db.Column(db.Float, nullable=False)
     total_cost: float = db.Column(db.Float, nullable=False)
     timestamp: datetime = db.Column(
-        db.DateTime, default=lambda: datetime.now(dt.UTC)
+        db.DateTime, default=lambda: datetime.now(timezone.utc)
     )
 
     maintenance_record = db.relationship(
@@ -171,7 +170,7 @@ class InventoryRequest(db.Model):
         db.Integer, db.ForeignKey("user.id"), nullable=False
     )
     date_requested: datetime = db.Column(
-        db.DateTime, default=lambda: datetime.now(dt.UTC)
+        db.DateTime, default=lambda: datetime.now(timezone.utc)
     )
     date_fulfilled: datetime | None = db.Column(db.DateTime, nullable=True)
     notes: str | None = db.Column(db.Text, nullable=True)
@@ -221,7 +220,7 @@ class InventoryRequestHistory(db.Model):
     new_value: str | None = db.Column(db.String(500), nullable=True)
     notes: str | None = db.Column(db.Text, nullable=True)
     timestamp: datetime = db.Column(
-        db.DateTime, default=lambda: datetime.now(dt.UTC)
+        db.DateTime, default=lambda: datetime.now(timezone.utc)
     )
 
     user = db.relationship("User", backref="request_history_actions")
