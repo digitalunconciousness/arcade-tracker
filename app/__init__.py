@@ -150,21 +150,20 @@ def _register_blueprints(app: Flask) -> None:
 def _register_context_processors(app: Flask) -> None:
     """Register Jinja2 context processors for global template helpers."""
     from datetime import date as _date
+    from flask import url_for as _url_for
 
     @app.context_processor
     def utility_processor() -> dict:
         def get_cloud_url(filename: str) -> str:
             """Return a cloud or local URL for a maintenance photo."""
-            use_cloud = os.environ.get("USE_CLOUD_STORAGE", "false").lower() == "true"
-            bucket = os.environ.get("AWS_BUCKET_NAME", "")
-            region = os.environ.get("AWS_REGION", "us-east-1")
+            use_cloud = app.config.get("USE_CLOUD_STORAGE", False)
+            bucket = app.config.get("AWS_BUCKET_NAME", "")
+            region = app.config.get("AWS_REGION", "us-east-1")
             if use_cloud and bucket:
                 return (
                     f"https://{bucket}.s3.{region}.amazonaws.com/"
                     f"maintenance_photos/{filename}"
                 )
-            from flask import url_for as _url_for
-
             return _url_for("static", filename=f"maintenance_photos/{filename}")
 
         return {"today": _date.today, "get_cloud_url": get_cloud_url}
