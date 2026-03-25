@@ -122,34 +122,26 @@ def _init_extensions(app: Flask) -> None:
 
 
 def _register_blueprints(app: Flask) -> None:
-    """Import and register all application blueprints.
-
-    Blueprint modules are imported lazily so that this factory can be
-    loaded even when optional dependencies are missing.
-    """
-    blueprint_modules: list[tuple[str, str | None]] = [
-        # (import_path, url_prefix)  – None means no prefix
-        ("app.blueprints.auth", None),
-        ("app.blueprints.dashboard", None),
-        ("app.blueprints.games", None),
-        ("app.blueprints.maintenance", None),
-        ("app.blueprints.inventory", None),
-        ("app.blueprints.reports", None),
-        ("app.blueprints.admin", None),
-        ("app.blueprints.skeeball", None),
+    """Import and register all application blueprints."""
+    blueprint_imports: list[tuple[str, str]] = [
+        ("app.routes.auth", "auth_bp"),
+        ("app.routes.dashboard", "dashboard_bp"),
+        ("app.routes.games", "games_bp"),
+        ("app.routes.maintenance", "maintenance_bp"),
+        ("app.routes.inventory", "inventory_bp"),
+        ("app.routes.reports", "reports_bp"),
+        ("app.routes.admin", "admin_bp"),
+        ("app.routes.skeeball", "skeeball_bp"),
     ]
 
     import importlib
 
-    for module_path, prefix in blueprint_modules:
+    for module_path, bp_name in blueprint_imports:
         try:
             mod = importlib.import_module(module_path)
-            bp = getattr(mod, "bp", None)
+            bp = getattr(mod, bp_name, None)
             if bp is not None:
-                kwargs: dict = {}
-                if prefix is not None:
-                    kwargs["url_prefix"] = prefix
-                app.register_blueprint(bp, **kwargs)
+                app.register_blueprint(bp)
         except ImportError as exc:
             print(f"⚠️  Blueprint {module_path} not available: {exc}")
 
