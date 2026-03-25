@@ -39,6 +39,7 @@ def create_app() -> Flask:
     _create_directories(app)
     _init_extensions(app)
     _register_blueprints(app)
+    _register_context_processors(app)
     _register_after_request(app)
 
     return app
@@ -144,6 +145,29 @@ def _register_blueprints(app: Flask) -> None:
                 app.register_blueprint(bp)
         except ImportError as exc:
             print(f"⚠️  Blueprint {module_path} not available: {exc}")
+
+
+def _register_context_processors(app: Flask) -> None:
+    """Register Jinja2 context processors for global template helpers."""
+    from datetime import date as _date
+
+    @app.context_processor
+    def utility_processor() -> dict:
+        def get_cloud_url(filename: str) -> str:
+            """Return a cloud or local URL for a maintenance photo."""
+            use_cloud = os.environ.get("USE_CLOUD_STORAGE", "false").lower() == "true"
+            bucket = os.environ.get("AWS_BUCKET_NAME", "")
+            region = os.environ.get("AWS_REGION", "us-east-1")
+            if use_cloud and bucket:
+                return (
+                    f"https://{bucket}.s3.{region}.amazonaws.com/"
+                    f"maintenance_photos/{filename}"
+                )
+            from flask import url_for as _url_for
+
+            return _url_for("static", filename=f"maintenance_photos/{filename}")
+
+        return {"today": _date.today, "get_cloud_url": get_cloud_url}
 
 
 def _register_after_request(app: Flask) -> None:

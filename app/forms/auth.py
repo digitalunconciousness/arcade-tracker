@@ -50,8 +50,8 @@ class ChangePasswordForm(FlaskForm):
 
 
 class ProfileForm(FlaskForm):
-    profile_image = FileField(
-        "Profile Image",
+    profile_picture = FileField(
+        "Profile Picture",
         validators=[FileAllowed(["jpg", "jpeg", "png", "gif"])],
     )
     submit = SubmitField("Update Profile")

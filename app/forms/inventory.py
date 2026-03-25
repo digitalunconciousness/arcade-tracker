@@ -18,7 +18,7 @@ class InventoryItemForm(FlaskForm):
     """Create or edit an inventory item."""
 
     name = StringField("Item Name", validators=[DataRequired()])
-    sku = StringField("SKU / Part Number", validators=[Optional()])
+    part_number = StringField("SKU / Part Number", validators=[Optional()])
     category = SelectField(
         "Category",
         choices=[
@@ -40,8 +40,8 @@ class InventoryItemForm(FlaskForm):
         "Minimum Stock Level",
         validators=[DataRequired(), NumberRange(min=0)],
     )
-    cost_per_unit = FloatField(
-        "Cost Per Unit ($)", validators=[Optional(), NumberRange(min=0)]
+    unit_price = FloatField(
+        "Unit Price ($)", validators=[Optional(), NumberRange(min=0)]
     )
     supplier = StringField("Supplier", validators=[Optional()])
     location = StringField("Storage Location", validators=[Optional()])

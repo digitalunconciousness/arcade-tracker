@@ -17,7 +17,10 @@ from wtforms.validators import DataRequired, NumberRange, Optional
 class InventoryUsageForm(FlaskForm):
     """Inline sub-form for tracking inventory items used during maintenance."""
 
-    inventory_item_id = SelectField("Item", coerce=int, validators=[Optional()])
+    class Meta:
+        csrf = False
+
+    item_id = SelectField("Item", coerce=int, validators=[Optional()])
     quantity_used = IntegerField(
         "Quantity", validators=[Optional(), NumberRange(min=1)]
     )

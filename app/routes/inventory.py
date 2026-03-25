@@ -147,10 +147,10 @@ def add_inventory_item():
             name=form.name.data,
             description=form.description.data,
             stock_quantity=form.stock_quantity.data,
-            unit_price=form.cost_per_unit.data,
+            unit_price=form.unit_price.data,
             minimum_stock=form.minimum_stock.data,
             supplier=form.supplier.data,
-            part_number=form.sku.data,
+            part_number=form.part_number.data,
             notes=form.notes.data,
             last_restocked=(
                 datetime.now(dt.UTC) if form.stock_quantity.data > 0 else None
@@ -229,8 +229,8 @@ def edit_inventory_item(item_id):
 
     if request.method == "GET":
         # Manually populate fields whose names differ from the model
-        form.cost_per_unit.data = item.unit_price
-        form.sku.data = item.part_number
+        form.unit_price.data = item.unit_price
+        form.part_number.data = item.part_number
         form.compatible_games.data = [g.id for g in item.compatible_games]
 
     if form.validate_on_submit():
@@ -239,10 +239,10 @@ def edit_inventory_item(item_id):
         item.name = form.name.data
         item.description = form.description.data
         item.stock_quantity = form.stock_quantity.data
-        item.unit_price = form.cost_per_unit.data
+        item.unit_price = form.unit_price.data
         item.minimum_stock = form.minimum_stock.data
         item.supplier = form.supplier.data
-        item.part_number = form.sku.data
+        item.part_number = form.part_number.data
         item.notes = form.notes.data
 
         item.compatible_games.clear()
