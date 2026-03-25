@@ -1,4 +1,5 @@
-# security_utils.py
+"""Security utilities for logging, request validation, and file/path safety."""
+
 import logging
 import os
 from datetime import datetime, timedelta
@@ -63,15 +64,30 @@ def log_security_event(event_type, user_id=None, details="", level="info"):
     else:
         current_app.logger.info(message)
 
-def get_client_ip():
-    """Get the real client IP address, considering proxies."""
-    if request.headers.get('X-Forwarded-For'):
-        # Handle proxy headers
-        return request.headers.get('X-Forwarded-For').split(',')[0].strip()
-    elif request.headers.get('X-Real-IP'):
-        return request.headers.get('X-Real-IP')
-    else:
-        return request.remote_addr or 'Unknown'
+def get_client_ip() -> str:
+    """Get a validated client IP address, considering common proxy headers."""
+    forwarded_for = request.headers.get('X-Forwarded-For')
+    real_ip = request.headers.get('X-Real-IP')
+    remote_addr = request.remote_addr
+
+    candidates = []
+    if forwarded_for:
+        candidates.append(forwarded_for.split(',')[0].strip())
+    if real_ip:
+        candidates.append(real_ip.strip())
+    if remote_addr:
+        candidates.append(remote_addr.strip())
+
+    for candidate in candidates:
+        if not candidate:
+            continue
+        try:
+            ipaddress.ip_address(candidate)
+            return candidate
+        except ValueError:
+            continue
+
+    return 'Unknown'
 
 def record_failed_login(username, ip=None):
     """
@@ -187,9 +203,9 @@ def safe_path_join(base_path, user_path):
     # Resolve to absolute paths
     base = os.path.abspath(base_path)
     target = os.path.abspath(os.path.join(base, user_path))
-    
+
     # Ensure target is within base directory
-    if not target.startswith(base):
+    if os.path.commonpath([base, target]) != base:
         log_security_event(
             'PATH_TRAVERSAL_ATTEMPT',
             details=f"Attempted path: {user_path}"
@@ -257,8 +273,8 @@ def is_safe_redirect_url(target):
     if not target:
         return False
     
-    # Only allow relative URLs
-    if target.startswith('/'):
+    # Only allow local relative URLs and block protocol-relative URLs.
+    if target.startswith('/') and not target.startswith('//'):
         return True
     
     return False
