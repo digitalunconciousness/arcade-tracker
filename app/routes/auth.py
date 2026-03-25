@@ -169,8 +169,8 @@ def profile():
     form = ProfileForm()
     if form.validate_on_submit():
         # Handle profile picture upload
-        if form.profile_image.data:
-            file = form.profile_image.data
+        if form.profile_picture.data:
+            file = form.profile_picture.data
             if file and allowed_file(file.filename):
                 filename = secure_filename(file.filename)
                 name_part, ext = os.path.splitext(filename)

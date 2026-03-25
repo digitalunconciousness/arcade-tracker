@@ -126,7 +126,7 @@ def game_maintenance(game_id):
     ]
 
     for inventory_form in form.inventory_items:
-        inventory_form.inventory_item_id.choices = item_choices
+        inventory_form.item_id.choices = item_choices
 
     if form.validate_on_submit():
         priority = request.form.get("priority", "Medium")
@@ -150,7 +150,7 @@ def game_maintenance(game_id):
         # Process inventory usage
         total_inventory_cost = 0
         for inventory_form in form.inventory_items:
-            item_id = inventory_form.inventory_item_id.data
+            item_id = inventory_form.item_id.data
             quantity = inventory_form.quantity_used.data
 
             if item_id and item_id != -1 and quantity and quantity > 0:
@@ -218,7 +218,7 @@ def general_maintenance():
     ]
 
     for inventory_form in form.inventory_items:
-        inventory_form.inventory_item_id.choices = item_choices
+        inventory_form.item_id.choices = item_choices
 
     if form.validate_on_submit():
         work_order_type = request.form.get("work_order_type", "general")
@@ -246,7 +246,7 @@ def general_maintenance():
         # Process inventory usage
         total_inventory_cost = 0
         for inventory_form in form.inventory_items:
-            item_id = inventory_form.inventory_item_id.data
+            item_id = inventory_form.item_id.data
             quantity = inventory_form.quantity_used.data
 
             if item_id and item_id != -1 and quantity and quantity > 0:
