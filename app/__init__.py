@@ -112,7 +112,7 @@ def _init_extensions(app: Flask) -> None:
     limiter.init_app(app)
 
     # Import models so that SQLAlchemy is aware of them
-    from app import models as _models  # noqa: F811, F401
+    from app import models as _models  # noqa: F401
 
     @login_manager.user_loader
     def load_user(user_id: str):  # noqa: ANN202

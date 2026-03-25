@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-import datetime as dt
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 
 from app.extensions import db
 
@@ -28,7 +27,7 @@ class Game(db.Model):
     counter_status: str = db.Column(db.String(20), default="Working")
     counter_notes: str | None = db.Column(db.Text, nullable=True)
     date_added: datetime = db.Column(
-        db.DateTime, default=lambda: datetime.now(dt.UTC)
+        db.DateTime, default=lambda: datetime.now(timezone.utc)
     )
     notes: str | None = db.Column(db.Text, nullable=True)
     image_filename: str | None = db.Column(db.String(255), nullable=True)

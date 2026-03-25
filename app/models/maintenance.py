@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-import datetime as dt
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.extensions import db
 
@@ -26,7 +25,7 @@ class MaintenanceRecord(db.Model):
     parts_used: str | None = db.Column(db.Text, nullable=True)
     cost: float | None = db.Column(db.Float, nullable=True)
     date_reported: datetime = db.Column(
-        db.DateTime, default=lambda: datetime.now(dt.UTC)
+        db.DateTime, default=lambda: datetime.now(timezone.utc)
     )
     date_fixed: datetime | None = db.Column(db.DateTime, nullable=True)
     status: str = db.Column(db.String(20), default="Open")
@@ -90,7 +89,7 @@ class WorkLog(db.Model):
     time_spent: float | None = db.Column(db.Float, nullable=True)
     cost_incurred: float | None = db.Column(db.Float, nullable=True)
     timestamp: datetime = db.Column(
-        db.DateTime, default=lambda: datetime.now(dt.UTC)
+        db.DateTime, default=lambda: datetime.now(timezone.utc)
     )
 
     user = db.relationship("User", backref="work_logs")

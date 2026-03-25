@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-import datetime as dt
-from datetime import datetime
+from datetime import datetime, timezone
 
 from flask_login import UserMixin
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -25,7 +24,7 @@ class User(UserMixin, db.Model):
     role: str = db.Column(db.String(20), nullable=False, default="readonly")
     is_active: bool = db.Column(db.Boolean, default=True)
     created_at: datetime = db.Column(
-        db.DateTime, default=lambda: datetime.now(dt.UTC)
+        db.DateTime, default=lambda: datetime.now(timezone.utc)
     )
     must_change_password: bool = db.Column(db.Boolean, default=True)
     profile_picture: str | None = db.Column(db.String(255), nullable=True)
