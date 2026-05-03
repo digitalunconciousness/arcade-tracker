@@ -20,7 +20,7 @@ class User(UserMixin, db.Model):
 
     id: int = db.Column(db.Integer, primary_key=True)
     username: str = db.Column(db.String(80), unique=True, nullable=False)
-    password_hash: str = db.Column(db.String(120), nullable=False)
+    password_hash: str = db.Column(db.String(256), nullable=False)
     role: str = db.Column(db.String(20), nullable=False, default="readonly")
     is_active: bool = db.Column(db.Boolean, default=True)
     created_at: datetime = db.Column(
