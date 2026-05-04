@@ -1,0 +1,55 @@
+name: "Copilot Setup Steps"
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
+  pull_request:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
+
+jobs:
+  copilot-setup-steps:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Playwright MCP and browsers
+        run: |
+          npx -y @playwright/mcp@latest --version
+          npx -y playwright install --with-deps chromium
+
+      - name: Install MCP servers
+        run: |
+          npm install -g \
+            @modelcontextprotocol/server-filesystem \
+            @modelcontextprotocol/server-brave-search \
+            exa-mcp-server
+
+      - name: Install uv (for uvx-based MCP servers)
+        run: pip install uv
+
+      - name: Pre-warm uvx MCP servers
+        run: |
+          uvx mcp-server-sqlite --help 2>/dev/null || true
+          uvx mcp-server-fetch --help 2>/dev/null || true

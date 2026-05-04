@@ -2,7 +2,7 @@
 
 from functools import wraps
 
-from flask import flash, redirect, url_for
+from flask import flash, redirect, request, url_for
 from flask_login import current_user
 
 
@@ -19,7 +19,8 @@ def requires_role(role: str):
 
     The wrapped view will redirect unauthenticated users to the login
     page and flash an error for authenticated users who lack the
-    required role.
+    required role. Unauthorized access attempts are logged as security
+    events.
     """
 
     def decorator(f):
@@ -28,6 +29,17 @@ def requires_role(role: str):
             if not current_user.is_authenticated:
                 return redirect(url_for("auth.login"))
             if not current_user.has_role(role):
+                from app.security.utils import log_security_event
+                log_security_event(
+                    "UNAUTHORIZED_ACCESS",
+                    user_id=current_user.id,
+                    details=(
+                        f"Required role: {role}, "
+                        f"User role: {current_user.role}, "
+                        f"Path: {request.path}"
+                    ),
+                    level="warning",
+                )
                 flash(
                     "You do not have permission to access this page.",
                     "danger",
@@ -48,6 +60,17 @@ def admin_required(f):
         if not current_user.is_authenticated:
             return redirect(url_for("auth.login"))
         if not current_user.has_role("admin"):
+            from app.security.utils import log_security_event
+            log_security_event(
+                "UNAUTHORIZED_ACCESS",
+                user_id=current_user.id,
+                details=(
+                    f"Required role: admin, "
+                    f"User role: {current_user.role}, "
+                    f"Path: {request.path}"
+                ),
+                level="warning",
+            )
             flash(
                 "You do not have permission to access this page.",
                 "danger",
@@ -66,6 +89,17 @@ def manager_required(f):
         if not current_user.is_authenticated:
             return redirect(url_for("auth.login"))
         if not current_user.has_role("manager"):
+            from app.security.utils import log_security_event
+            log_security_event(
+                "UNAUTHORIZED_ACCESS",
+                user_id=current_user.id,
+                details=(
+                    f"Required role: manager, "
+                    f"User role: {current_user.role}, "
+                    f"Path: {request.path}"
+                ),
+                level="warning",
+            )
             flash(
                 "You do not have permission to access this page.",
                 "danger",

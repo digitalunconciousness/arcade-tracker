@@ -28,6 +28,7 @@ from app.models import (
     StockHistory,
 )
 from app.forms.inventory import InventoryItemForm, StockAdjustmentForm
+from app.security.utils import log_security_event
 from app.utils.decorators import requires_role
 from app.utils.helpers import allowed_file, compress_and_save_image, get_directory_size
 
@@ -873,23 +874,15 @@ def update_request_tracking(request_id):
         )
     except Exception as e:  # noqa: BLE001
         flash(f"Error fetching tracking info: {str(e)}", "error")
-        try:
-            from app.security.utils import log_security_event
-        except ImportError:
-            try:
-                from security_utils import log_security_event
-            except ImportError:
-                log_security_event = None
-        if log_security_event is not None:
-            log_security_event(
-                "TRACKING_UPDATE_FAILED",
-                user_id=current_user.id,
-                details=(
-                    f"Request #{request_id}, "
-                    f"Tracking: {inv_request.tracking_number}, "
-                    f"Error: {str(e)}"
-                ),
-            )
+        log_security_event(
+            "TRACKING_UPDATE_FAILED",
+            user_id=current_user.id,
+            details=(
+                f"Request #{request_id}, "
+                f"Tracking: {inv_request.tracking_number}, "
+                f"Error: {str(e)}"
+            ),
+        )
 
     return redirect(
         url_for("inventory.inventory_request_detail", request_id=request_id)
