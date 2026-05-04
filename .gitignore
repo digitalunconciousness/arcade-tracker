@@ -44,3 +44,6 @@ testgen.py
 dupe.py
 fixdb.py
 fixindent.py
+
+# Graphify output
+graphify-out/

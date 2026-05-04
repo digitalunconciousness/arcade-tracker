@@ -44,16 +44,26 @@ def manage_users():
         if action == "toggle_active":
             user.is_active = not user.is_active
             db.session.commit()
-            flash(
-                f'User {user.username} has been {"activated" if user.is_active else "deactivated"}.',
-                "info",
+            new_state = "activated" if user.is_active else "deactivated"
+            log_security_event(
+                "USER_ACCOUNT_TOGGLED",
+                user_id=current_user.id,
+                details=f"Target user: {user.username} (id={user.id}), state: {new_state}",
+                level="warning",
             )
+            flash(f"User {user.username} has been {new_state}.", "info")
 
         elif action == "reset_password":
             new_password = "Arcade123!"
             user.set_password(new_password)
             user.must_change_password = True
             db.session.commit()
+            log_security_event(
+                "USER_PASSWORD_RESET",
+                user_id=current_user.id,
+                details=f"Target user: {user.username} (id={user.id})",
+                level="warning",
+            )
             flash(
                 f'Password for {user.username} reset to "{new_password}" (user must change on next login).',
                 "warning",
@@ -62,8 +72,15 @@ def manage_users():
         elif action == "change_role":
             new_role = request.form.get("new_role")
             if new_role in ["readonly", "operator", "manager", "admin"]:
+                old_role = user.role
                 user.role = new_role
                 db.session.commit()
+                log_security_event(
+                    "USER_ROLE_CHANGED",
+                    user_id=current_user.id,
+                    details=f"Target user: {user.username} (id={user.id}), {old_role} → {new_role}",
+                    level="warning",
+                )
                 flash(f"{user.username} role changed to {new_role}.", "success")
             else:
                 flash("Invalid role selected.", "error")
@@ -72,6 +89,12 @@ def manage_users():
             if user.id == current_user.id:
                 flash("You cannot delete your own account.", "error")
             else:
+                log_security_event(
+                    "USER_DELETED",
+                    user_id=current_user.id,
+                    details=f"Target user: {user.username} (id={user.id})",
+                    level="warning",
+                )
                 db.session.delete(user)
                 db.session.commit()
                 flash(f"User {user.username} deleted.", "warning")
