@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import re
 import time
 from pathlib import Path
 
@@ -102,6 +103,142 @@ def cleanup_old_photos(max_age_days: int = 365) -> int:
             removed += 1
 
     return removed
+
+
+def slugify(text: str) -> str:
+    """Return a lowercase, hyphenated slug of *text* (a-z, 0-9 and hyphens only)."""
+    text = (text or "").lower().strip()
+    text = re.sub(r"[^a-z0-9]+", "-", text)
+    return text.strip("-")
+
+
+def generate_unique_barcode(name: str, taken: set[str]) -> str:
+    """Build a stable, unique barcode slug from *name*.
+
+    Deterministic from the game name (so a rebuilt DB regenerates the same
+    labels), with a numeric suffix only when the base slug is already used by a
+    different game (e.g. the video *Batman* vs the pinball *Batman*). The
+    chosen slug is added to *taken* so callers can keep it unique across a batch.
+    """
+    base = (slugify(name) or "game")[:60]
+    candidate = base
+    n = 2
+    while candidate in taken:
+        candidate = f"{base}-{n}"
+        n += 1
+    taken.add(candidate)
+    return candidate
+
+
+def _dedupe(items: list) -> list:
+    """Return *items* with duplicates removed, preserving first-seen order."""
+    seen: set = set()
+    out: list = []
+    for item in items:
+        if item not in seen:
+            seen.add(item)
+            out.append(item)
+    return out
+
+
+def _compose_service_notes(entry: dict, platforms: dict) -> str | None:
+    """Build a human-readable service block from a roster entry + its platform.
+
+    Merges the platform's shared ``desc``/``faults``/``parts``/``pm`` with the
+    entry's own ``risk``/``faults``/``parts``/``notes`` so the recovered record
+    carries the maintenance intel, not just the name.
+    """
+    lines: list[str] = []
+    plat = platforms.get(entry.get("platform")) if entry.get("platform") else None
+
+    if plat and plat.get("desc"):
+        lines.append(f"Platform: {plat['desc']}")
+
+    risk = entry.get("risk") or []
+    if risk:
+        lines.append("Risk flags: " + ", ".join(risk))
+
+    faults = _dedupe(
+        list(plat.get("faults", []) if plat else []) + list(entry.get("faults") or [])
+    )
+    if faults:
+        lines.append("Known faults: " + "; ".join(faults))
+
+    parts = _dedupe(
+        list(plat.get("parts", []) if plat else []) + list(entry.get("parts") or [])
+    )
+    if parts:
+        lines.append("Parts: " + "; ".join(parts))
+
+    if plat and plat.get("pm"):
+        lines.append("PM: " + plat["pm"])
+
+    if entry.get("notes"):
+        lines.append("Notes: " + entry["notes"])
+
+    return "\n".join(lines) if lines else None
+
+
+def import_games_from_roster(data: dict) -> dict:
+    """Import games from a barcade-roster JSON structure into the database.
+
+    Consumes the ``catbox-barcade-roster.json`` schema: ``video_games`` /
+    ``pinball`` / ``retired`` arrays plus a shared ``meta.platforms`` service
+    dictionary. Idempotent — matches existing games by name (case-insensitive)
+    and skips them, so re-running never creates duplicates. The caller is
+    responsible for ``db.session.commit()``.
+
+    Returns:
+        ``{"added": int, "skipped": int, "errors": list[str]}``.
+    """
+    from app.extensions import db
+    from app.models import Game
+
+    platforms = (data.get("meta") or {}).get("platforms") or {}
+    result: dict = {"added": 0, "skipped": 0, "errors": []}
+
+    # Names already in the DB *before* this import. We only skip against these,
+    # not against rows added during this run — the roster legitimately contains
+    # distinct machines that share a name (e.g. a Batman video game AND a Batman
+    # pinball), and both must import. Re-running stays idempotent because the
+    # second run sees both already in the DB.
+    existing = Game.query.all()
+    names_lower = {g.name.strip().lower() for g in existing if g.name}
+    taken_barcodes = {g.barcode for g in existing if g.barcode}
+
+    # (array key, default location, default status, is_pinball)
+    sections = [
+        ("video_games", "Floor", "Working", False),
+        ("pinball", "Floor", "Working", True),
+        ("retired", "Warehouse", "Retired", False),
+    ]
+
+    for key, default_location, default_status, is_pinball in sections:
+        for entry in data.get(key) or []:
+            try:
+                name = (entry.get("name") or "").strip()
+                if not name:
+                    result["errors"].append(f"{key}: entry with no name skipped")
+                    continue
+                if name.lower() in names_lower:
+                    result["skipped"] += 1
+                    continue
+
+                game = Game(
+                    name=name,
+                    barcode=generate_unique_barcode(name, taken_barcodes),
+                    manufacturer=(entry.get("mfr") or None),
+                    location=default_location,
+                    status=default_status,
+                    genre="Pinball" if is_pinball else None,
+                    notes=_compose_service_notes(entry, platforms),
+                )
+                db.session.add(game)
+                result["added"] += 1
+            except Exception as exc:  # noqa: BLE001 - report per-entry, keep going
+                result["errors"].append(f"{entry.get('name', '?')}: {exc}")
+
+    return result
 
 
 def encrypt_file(data: bytes) -> bytes:

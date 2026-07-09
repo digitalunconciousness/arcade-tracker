@@ -73,6 +73,10 @@ def _configure_app(app: Flask) -> None:
     app.config["UPLOAD_FOLDER"] = os.path.join(base_dir, "uploads")
     app.config["MAX_CONTENT_LENGTH"] = 50 * 1024 * 1024  # 50 MB
 
+    # Public base URL baked into printed QR labels (e.g. http://pi-host:5000).
+    # Falls back to the request host when unset, so scanning still works locally.
+    app.config["BASE_URL"] = os.environ.get("BASE_URL", "")
+
     # CSRF ---------------------------------------------------------
     app.config["WTF_CSRF_CHECK_DEFAULT"] = False
 

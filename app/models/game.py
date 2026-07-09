@@ -14,6 +14,7 @@ class Game(db.Model):
 
     id: int = db.Column(db.Integer, primary_key=True)
     name: str = db.Column(db.String(100), nullable=False)
+    barcode: str | None = db.Column(db.String(64), unique=True, nullable=True)
     manufacturer: str | None = db.Column(db.String(50), nullable=True)
     year: int | None = db.Column(db.Integer, nullable=True)
     genre: str | None = db.Column(db.String(50), nullable=True)
