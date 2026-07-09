@@ -203,8 +203,10 @@
                     <a href="{{ url_for('games.games_list') }}" class="nav-dropdown-toggle">Games</a>
                     <div class="nav-dropdown-menu">
                         <a href="{{ url_for('games.games_list') }}">All Games</a>
+                        <a href="{{ url_for('games.scan') }}"> Scan Machine</a>
                         {% if current_user.has_role('manager') %}
                         <a href="{{ url_for('games.add_game') }}">Add Game</a>
+                        <a href="{{ url_for('games.import_games') }}">Import JSON</a>
                         {% endif %}
                         <a href="{{ url_for('skeeball.skeeball_home') }}"> Skeeball</a>
                     </div>

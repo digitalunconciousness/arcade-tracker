@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}Scan Machine{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <h1>Scan a Machine</h1>
+        <a href="{{ url_for('games.games_list') }}" class="btn btn-secondary">Back to Games</a>
+    </div>
+
+    <div class="filters" style="max-width: 640px;">
+        <p style="margin-bottom: 16px;">
+            Put the cursor in the box below and scan a machine's QR/barcode label with
+            the USB scanner. You'll jump straight to that machine's maintenance page.
+        </p>
+
+        <form id="scanForm" onsubmit="return goToCode();">
+            <div class="filter-row">
+                <input type="text" id="scanbox" name="code" autocomplete="off"
+                       autofocus placeholder="Scan or type a code..." class="form-control"
+                       style="font-size: 1.2em; letter-spacing: 1px;">
+                <button type="submit" class="btn btn-primary">Go</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // A USB HID scanner "types" the label payload then presses Enter.
+    // The payload may be a bare code (e.g. "centipede") or a full URL
+    // (e.g. "https://host/g/centipede") if the QR encodes a link — handle both.
+    function goToCode() {
+        var raw = document.getElementById('scanbox').value.trim();
+        if (!raw) return false;
+        var code = raw;
+        if (raw.indexOf('/') !== -1) {
+            var parts = raw.replace(/\/+$/, '').split('/');
+            code = parts[parts.length - 1];
+        }
+        window.location = '/g/' + encodeURIComponent(code);
+        return false;
+    }
+
+    // Keep the box focused so every scan lands here.
+    var box = document.getElementById('scanbox');
+    box.focus();
+    document.addEventListener('click', function () { box.focus(); });
+</script>
+{% endblock %}
