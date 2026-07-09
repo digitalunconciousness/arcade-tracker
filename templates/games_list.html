@@ -6,9 +6,13 @@
 <div class="container">
     <div class="page-header">
         <h1> Arcade Games Database</h1>
-        {% if current_user.has_role('manager') %}
-        <a href="{{ url_for('games.add_game') }}" class="btn btn-primary"> Add New Game</a>
-        {% endif %}
+        <div>
+            <a href="{{ url_for('games.scan') }}" class="btn btn-secondary"> Scan</a>
+            {% if current_user.has_role('manager') %}
+            <a href="{{ url_for('games.import_games') }}" class="btn btn-secondary"> Import JSON</a>
+            <a href="{{ url_for('games.add_game') }}" class="btn btn-primary"> Add New Game</a>
+            {% endif %}
+        </div>
     </div>
 
     <!-- Search and Filter Form -->
