@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block title %}Import Games{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <h1>Import Games from JSON</h1>
+        <a href="{{ url_for('games.games_list') }}" class="btn btn-secondary">Back to Games</a>
+    </div>
+
+    <div class="filters" style="max-width: 640px;">
+        <p style="margin-bottom: 16px;">
+            Upload a barcade-roster JSON file (with <code>video_games</code>,
+            <code>pinball</code>, and/or <code>retired</code> arrays). Games are matched
+            by name, so re-uploading the same file will <strong>not</strong> create
+            duplicates &mdash; only new machines are added.
+        </p>
+
+        <form method="POST" action="{{ url_for('games.import_games') }}" enctype="multipart/form-data">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <div class="filter-row">
+                <input type="file" name="file" accept=".json,application/json" required class="form-control">
+                <button type="submit" class="btn btn-primary">Import</button>
+            </div>
+        </form>
+
+        <p style="margin-top: 16px; opacity: 0.8; font-size: 0.9em;">
+            Imported machines default to <strong>Floor</strong> (retired entries go to
+            Warehouse), and each gets a stable QR/label code generated from its name.
+        </p>
+    </div>
+</div>
+{% endblock %}

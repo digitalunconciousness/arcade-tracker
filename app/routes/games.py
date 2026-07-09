@@ -2,12 +2,14 @@
 
 import io
 import os
+import json
 import uuid
 import datetime as dt
 from datetime import datetime, date
 
 from flask import (
     Blueprint,
+    abort,
     current_app,
     flash,
     make_response,
@@ -22,7 +24,11 @@ from werkzeug.utils import secure_filename
 from app.extensions import db
 from app.models import Game, PlayRecord, MaintenanceRecord
 from app.utils.decorators import requires_role
-from app.utils.helpers import allowed_file
+from app.utils.helpers import (
+    allowed_file,
+    generate_unique_barcode,
+    import_games_from_roster,
+)
 
 games_bp = Blueprint("games", __name__)
 
@@ -126,8 +132,13 @@ def add_game():
                 file.save(filepath)
                 image_filename = filename
 
+        # Assign a stable barcode/QR slug from the name
+        taken_barcodes = {b for (b,) in db.session.query(Game.barcode).all() if b}
+        barcode = generate_unique_barcode(name, taken_barcodes)
+
         game = Game(
             name=name,
+            barcode=barcode,
             manufacturer=manufacturer,
             year=year,
             genre=genre,
@@ -612,3 +623,105 @@ def export_selected_games():
     response.headers["Content-type"] = "text/csv"
 
     return response
+
+
+@games_bp.route("/import_games", methods=["GET", "POST"])
+@login_required
+@requires_role("manager")
+def import_games():
+    """Bulk-import games from an uploaded barcade-roster JSON file.
+
+    Accepts the ``catbox-barcade-roster.json`` structure (``video_games`` /
+    ``pinball`` / ``retired`` arrays + ``meta.platforms``). Idempotent: existing
+    games (matched by name) are skipped, so re-uploading never duplicates.
+    """
+    if request.method == "POST":
+        file = request.files.get("file")
+        if not file or file.filename == "":
+            flash("No file selected.", "error")
+            return redirect(url_for("games.import_games"))
+
+        try:
+            data = json.load(file.stream)
+        except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+            flash(f"Not valid JSON: {exc}", "error")
+            return redirect(url_for("games.import_games"))
+
+        if not isinstance(data, dict) or not any(
+            k in data for k in ("video_games", "pinball", "retired")
+        ):
+            flash(
+                "JSON is missing the expected 'video_games' / 'pinball' / "
+                "'retired' arrays.",
+                "error",
+            )
+            return redirect(url_for("games.import_games"))
+
+        try:
+            result = import_games_from_roster(data)
+            db.session.commit()
+        except Exception as exc:  # noqa: BLE001
+            db.session.rollback()
+            flash(f"Import failed: {exc}", "error")
+            return redirect(url_for("games.import_games"))
+
+        msg = (
+            f"Import complete: {result['added']} added, "
+            f"{result['skipped']} skipped (already present)."
+        )
+        flash(msg, "success" if not result["errors"] else "warning")
+        for err in result["errors"][:10]:
+            flash(err, "error")
+        return redirect(url_for("games.games_list"))
+
+    return render_template("import_games.html")
+
+
+@games_bp.route("/scan")
+@login_required
+def scan():
+    """Kiosk page: a focused input a USB HID barcode scanner types into."""
+    return render_template("scan.html")
+
+
+@games_bp.route("/g/<code>")
+@login_required
+def resolve_barcode(code):
+    """Resolve a scanned barcode/QR payload to a game's maintenance page.
+
+    Matches on the ``barcode`` slug first, then falls back to a numeric id so
+    labels that encode the raw database id still resolve.
+    """
+    game = Game.query.filter_by(barcode=code).first()
+    if game is None and code.isdigit():
+        game = Game.query.get(int(code))
+    if game is None:
+        flash(f"No machine found for scanned code '{code}'.", "error")
+        return redirect(url_for("games.scan"))
+    return redirect(url_for("maintenance.game_maintenance", game_id=game.id))
+
+
+@games_bp.route("/game/<int:game_id>/label")
+@login_required
+def game_label(game_id):
+    """Printable QR label for a game, encoding a link to its maintenance page."""
+    import segno
+
+    game = Game.query.get_or_404(game_id)
+
+    # Backfill a barcode on the fly for any legacy row that lacks one.
+    if not game.barcode:
+        taken = {b for (b,) in db.session.query(Game.barcode).all() if b}
+        game.barcode = generate_unique_barcode(game.name, taken)
+        db.session.commit()
+
+    base_url = (current_app.config.get("BASE_URL") or request.host_url).rstrip("/")
+    label_url = f"{base_url}/g/{game.barcode}"
+    qr_data_uri = segno.make(label_url, error="m").svg_data_uri(scale=6, border=2)
+
+    return render_template(
+        "game_label.html",
+        game=game,
+        label_url=label_url,
+        qr_data_uri=qr_data_uri,
+    )

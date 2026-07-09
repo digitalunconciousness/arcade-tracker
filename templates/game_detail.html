@@ -59,6 +59,7 @@
         {% if current_user.has_role('manager') %}
             <a href="{{ url_for('games.edit_game', game_id=game.id) }}" class="btn" style="background: var(--neon-purple); width: 100%; margin-bottom: 10px;"> Edit Game</a>
         {% endif %}
+        <a href="{{ url_for('games.game_label', game_id=game.id) }}" class="btn" style="background: var(--neon-blue, #00d9ff); color:#000; width: 100%; margin-bottom: 10px;"> Print QR Label</a>
         <a href="https://www.arcade-museum.com/Videogame/{{ game.name.lower().replace(' ', '-').replace('.','-').replace('!','').replace('&','and').replace('(','').replace(')','').replace(':','').replace("'","") }}#manuals" target="_blank" rel="noopener noreferrer" class="btn" style="background: var(--neon-green); width: 100%; margin-bottom: 10px;"> View Manual</a>
         <a href="{{ url_for('games.games_list') }}" class="btn" style="width: 100%;">Back to All Games</a>
     </div>

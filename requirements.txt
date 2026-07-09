@@ -13,6 +13,7 @@ python-dotenv==1.2.2
 Flask-Limiter==4.1.1
 requests==2.32.5
 Pillow==12.1.1
+segno==1.6.6  # QR code generation for machine labels
 
 # Raspberry Pi hardware integration (skeeball lanes, GPIO, serial)
 gpiozero==2.0.1

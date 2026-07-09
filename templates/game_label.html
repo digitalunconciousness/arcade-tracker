@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}Label — {{ game.name }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="page-header no-print">
+        <h1>Machine Label</h1>
+        <div>
+            <button onclick="window.print()" class="btn btn-primary">Print Label</button>
+            <a href="{{ url_for('games.game_detail', game_id=game.id) }}" class="btn btn-secondary">Back</a>
+        </div>
+    </div>
+
+    <div class="label-card">
+        <img src="{{ qr_data_uri }}" alt="QR code" class="label-qr">
+        <div class="label-name">{{ game.name }}</div>
+        {% if game.manufacturer %}<div class="label-mfr">{{ game.manufacturer }}</div>{% endif %}
+        <div class="label-code">{{ game.barcode }}</div>
+    </div>
+
+    <p class="no-print" style="margin-top: 16px; opacity: 0.8; font-size: 0.9em;">
+        Scanning this label with the USB scanner (on the
+        <a href="{{ url_for('games.scan') }}">Scan</a> page) or a phone camera opens
+        this machine's maintenance page. Encoded link: <code>{{ label_url }}</code>
+    </p>
+</div>
+
+<style>
+    .label-card {
+        display: inline-block;
+        text-align: center;
+        padding: 16px 20px;
+        border: 2px solid #000;
+        border-radius: 8px;
+        background: #fff;
+        color: #000;
+    }
+    .label-qr { width: 220px; height: 220px; display: block; margin: 0 auto 8px; }
+    .label-name { font-size: 1.3em; font-weight: bold; }
+    .label-mfr { font-size: 0.95em; }
+    .label-code { font-family: monospace; font-size: 0.8em; margin-top: 4px; opacity: 0.7; }
+
+    @media print {
+        .no-print, .nav, .theme-toggle { display: none !important; }
+        body, .container { background: #fff !important; }
+        .label-card { border: 1px solid #000; }
+    }
+</style>
+{% endblock %}
