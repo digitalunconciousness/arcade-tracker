@@ -1,0 +1,15 @@
+[Unit]
+Description=Sync Arcade Tracker DB to homelab Postgres
+After=network.target
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=jackiegreybard
+Group=jackiegreybard
+WorkingDirectory=/home/jackiegreybard/arcade-tracker
+EnvironmentFile=/home/jackiegreybard/arcade-tracker/.env
+ExecStart=/home/jackiegreybard/arcade-tracker/venv/bin/python /home/jackiegreybard/arcade-tracker/scripts/sync_to_postgres.py
+StandardOutput=journal
+StandardError=journal
