@@ -26,3 +26,6 @@ matplotlib==3.10.8
 
 # Optional: shipping/tracking integration (lazy-imported)
 easypost==10.6.0
+
+# Optional: Postgres driver for scripts/sync_to_postgres.py (homelab DB mirror)
+psycopg2-binary==2.9.10
