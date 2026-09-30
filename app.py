@@ -510,6 +510,7 @@ class User(UserMixin, db.Model):
 class Game(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
+    barcode = db.Column(db.String(64), unique=True, nullable=True)  # Stable QR/label slug
     manufacturer = db.Column(db.String(50), nullable=True)
     year = db.Column(db.Integer, nullable=True)
     genre = db.Column(db.String(50), nullable=True)

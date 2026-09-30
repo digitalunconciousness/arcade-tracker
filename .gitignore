@@ -47,3 +47,9 @@ fixindent.py
 
 # Graphify output
 graphify-out/
+
+# Nextcloud sync artifacts
+.nextcloudsync.log
+.sync_*.db-shm
+.sync_*.db-wal
+.sync_*.db
