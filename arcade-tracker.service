@@ -1,18 +1,55 @@
 [Unit]
-Description=Arcade Tracker Flask Application
-After=network.target
+# Installed at /etc/systemd/system/arcade-tracker.service.
+# The copy that used to be in this repo named a user and a home directory that
+# the deployment never had; this one matches what actually runs.
+Description=Arcade Tracker
+Documentation=https://github.com/digitalunconciousness/arcade-tracker
+After=network-online.target
+Wants=network-online.target
 
 [Service]
 Type=simple
-User=jackiegreybard
-Group=jackiegreybard
-WorkingDirectory=/home/jackiegreybard/arcade-tracker
-ExecStart=/home/jackiegreybard/arcade-tracker/venv/bin/python /home/jackiegreybard/arcade-tracker/run.py
+# A dedicated account, not root: the service faces the internet through the
+# Cloudflare tunnel, so a web-server bug should not land as root.
+User=arcade-tracker
+Group=arcade-tracker
+
+WorkingDirectory=/opt/arcade-tracker
+
+# The virtualenv lives OUTSIDE the checkout. It used to be ./venv, which git
+# tracked, so untracking it would have deleted the running interpreter on the
+# next pull. deploy/deploy.sh installs into this one.
+Environment=PYTHONUNBUFFERED=1
+# Loopback only unless the site file below says otherwise. The Cloudflare tunnel
+# reaches the app on localhost, so this default is enough to serve the public
+# site; a LAN address is added per-site, never committed here.
+Environment=WAITRESS_LISTEN=--listen=127.0.0.1:5000
+EnvironmentFile=-/etc/arcade-tracker/listen.conf
+
+# waitress, not `flask run`: Werkzeug's development server is not for production
+# and said so. $WAITRESS_LISTEN is deliberately unquoted so systemd splits it
+# into separate --listen arguments.
+ExecStart=/opt/arcade-tracker-venv/bin/waitress-serve $WAITRESS_LISTEN --call app:create_app
+
 Restart=always
 RestartSec=10
 StandardOutput=journal
 StandardError=journal
-Environment=PYTHONUNBUFFERED=1
+
+# Sandboxing. The app needs to write uploads and the instance directory; it has
+# no business anywhere else.
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictSUIDSGID=yes
+LockPersonality=yes
+ReadWritePaths=/opt/arcade-tracker/instance /opt/arcade-tracker/uploads /opt/arcade-tracker/static/maintenance_photos /opt/arcade-tracker/static/profile_pics /opt/arcade-tracker/logs
 
 [Install]
 WantedBy=multi-user.target

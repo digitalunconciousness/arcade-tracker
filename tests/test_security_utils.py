@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
-"""Focused regression tests for security utility helpers."""
+"""Focused regression tests for security utility helpers (app/security/utils.py)."""
 
 import unittest
 
 from flask import Flask
-from security_utils import get_client_ip, is_safe_redirect_url, safe_path_join
+# app/security/utils.py is the live copy; the root security_utils.py was a dead
+# duplicate (imported only by the legacy app.py) and now lives in docs/history/.
+from app.security.utils import get_client_ip, is_safe_redirect_url, safe_path_join
 
 app = Flask(__name__)
 

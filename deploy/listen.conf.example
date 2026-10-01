@@ -1,0 +1,10 @@
+# Copy to /etc/arcade-tracker/listen.conf on the server. Site-specific: the LAN
+# address belongs to the network, not to the application, so it is not committed.
+#
+# Loopback is what the Cloudflare tunnel connects to. Add the server's own LAN
+# address so GATBOX can reach the hub directly when it is on the same network and
+# skip the round trip out to Cloudflare and back (and keep working when the
+# internet is down). Do NOT use 0.0.0.0.
+#
+# WAITRESS_LISTEN=--listen=127.0.0.1:5000 --listen=<this-server's-lan-ip>:5000
+WAITRESS_LISTEN=--listen=127.0.0.1:5000

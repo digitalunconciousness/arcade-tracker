@@ -1,3 +1,8 @@
+# Server / application dependencies. Install with:
+#   pip install -r requirements.txt
+# Raspberry Pi hardware packages are in requirements-pi.txt and are NOT needed
+# by app/ -- nothing under app/ imports gpiozero, RPi.GPIO or pyserial.
+
 # Core framework
 Flask==3.1.3
 Flask-SQLAlchemy==3.1.1
@@ -7,18 +12,36 @@ Flask-Migrate==4.1.0
 WTForms==3.2.1
 Werkzeug==3.1.7
 
+# Database.
+# SQLAlchemy is pinned deliberately. It is only a transitive dependency of
+# Flask-SQLAlchemy, and leaving it unpinned resolves to 2.1.x, which changed the
+# default driver for "postgresql://" URLs from psycopg2 to psycopg 3 -- so an
+# unpinned install cannot reach the live database at all:
+#   ModuleNotFoundError: No module named 'psycopg'
+# 2.0.49 + psycopg2-binary is what the deployment runs today. Moving to
+# SQLAlchemy 2.1 + psycopg 3 is a separate change, not a deployment detail.
+SQLAlchemy==2.0.49
+psycopg2-binary==2.9.12
+
+# WSGI server (the Flask development server is not for production use)
+waitress==3.0.2
+
 # Security & utilities
 cryptography==46.0.5
 python-dotenv==1.2.2
 Flask-Limiter==4.1.1
 requests==2.32.5
 Pillow==12.1.1
-segno==1.6.6  # QR code generation for machine labels
+segno==1.6.6  # QR code generation for machine labels (app/routes/games.py)
 
-# Raspberry Pi hardware integration (skeeball lanes, GPIO, serial)
+# gpiozero is a SERVER dependency, not a Pi-only one, however much it looks like
+# one. app/routes/skeeball.py imports gpio_init, which does `from gpiozero import
+# Device` at module level and takes MockFactory from gpiozero for mock mode -- so
+# the skeeball routes need it even on hardware-free x86. A static grep for
+# "import gpiozero" under app/ finds nothing and is misleading; the import is
+# transitive. RPi.GPIO is genuinely Pi-only and gpio_init already guards it.
 gpiozero==2.0.1
 pyserial==3.5
-RPi.GPIO==0.7.1
 
 # Optional: PDF/chart generation (lazy-imported, not required at startup)
 reportlab==4.4.10
