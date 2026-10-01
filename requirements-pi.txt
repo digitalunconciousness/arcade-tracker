@@ -1,0 +1,9 @@
+# Raspberry Pi hardware dependencies for the skeeball lanes.
+# Needed only on a Pi running skeeball/ or rpi_skeeball/ -- never on the
+# arcade-tracker server, where these packages have no importer under app/.
+# Install alongside the server requirements:
+#   pip install -r requirements.txt -r requirements-pi.txt
+
+gpiozero==2.0.1
+RPi.GPIO==0.7.1
+pyserial==3.5
