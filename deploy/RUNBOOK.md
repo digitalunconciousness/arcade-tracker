@@ -173,10 +173,19 @@ systemctl restart arcade-tracker
 
 ## Notes
 
-- **PostgreSQL has no `alembic_version` row** until it is stamped: its schema was
-  built by `db.create_all()`, so every column the migrations add already exists
-  and `flask db upgrade` would fail on duplicates. Stamp it once (see the restore
-  runbook) before the first `deploy.sh`.
+- **Never `flask db stamp head` on a database you have not checked.** Stamping
+  marks migrations as applied *without running them*. A database built by
+  `db.create_all()` at some point in the past is stamped at nothing, but its
+  schema is only as new as the models were that day — so `stamp head` can claim a
+  column exists that does not, `db upgrade` becomes a no-op, and the first page to
+  touch that column raises `UndefinedColumn`. That is exactly what happened on
+  2026-10-01: the tables were all present, `game.barcode` was not.
+
+      python scripts/check_schema.py     # compares live schema to the models
+
+  It names every missing table and column, says which revision introduced each,
+  and prints the `stamp` + `upgrade` pair that repairs it. `deploy.sh` runs it
+  after migrating and refuses to restart the service if anything is still missing.
 - `deploy.sh`'s liveness gate is `/`, the thinnest path that proves the app is
   serving. It probes `/skeeball/api/health` afterwards and only warns: that route
   reaches the lane manager and so gpiozero, and a dependency problem there should

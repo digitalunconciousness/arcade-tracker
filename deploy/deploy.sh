@@ -137,6 +137,15 @@ step "Applying migrations"
 ( cd "$REPO" && "$VENV/bin/flask" --app run:app db upgrade ) || die "flask db upgrade failed; the database may be half-migrated -- restore from $dump"
 
 # --- 5. restart ---------------------------------------------------------------
+# --- 4b. the schema must actually match the models now ----------------------
+# `flask db upgrade` succeeding is not proof: if the database was ever stamped
+# ahead of its real schema, upgrade is a no-op and the missing columns stay
+# missing until a page touches one and 500s. This is the post-condition.
+step "Checking the schema against the models"
+if ! ( cd "$REPO" && "$VENV/bin/python" scripts/check_schema.py ); then
+    die "the schema does not match the models (see above); the service was NOT restarted"
+fi
+
 step "Restarting $SERVICE"
 systemctl restart "$SERVICE" || die "systemctl restart failed; see journalctl -u $SERVICE"
 
