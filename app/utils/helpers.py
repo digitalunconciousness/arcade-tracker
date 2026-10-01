@@ -179,14 +179,36 @@ def _compose_service_notes(entry: dict, platforms: dict) -> str | None:
     return "\n".join(lines) if lines else None
 
 
+def looks_like_pinball(genre: str | None, name: str | None) -> bool:
+    """Whether an existing row is a pinball machine.
+
+    The roster keeps pinball in its own array; the database only has free-text
+    ``genre``, which the importer sets to ``"Pinball"``. Both halves of the roster
+    work -- this importer and ``scripts/make_roster_map.py`` -- ask the question
+    here, so a name that means one machine to one of them cannot mean two to the
+    other.
+    """
+    blob = f"{genre or ''} {name or ''}".lower()
+    return "pinball" in blob or "pin-" in blob
+
+
 def import_games_from_roster(data: dict) -> dict:
     """Import games from a barcade-roster JSON structure into the database.
 
-    Consumes the ``catbox-barcade-roster.json`` schema: ``video_games`` /
-    ``pinball`` / ``retired`` arrays plus a shared ``meta.platforms`` service
-    dictionary. Idempotent — matches existing games by name (case-insensitive)
-    and skips them, so re-running never creates duplicates. The caller is
-    responsible for ``db.session.commit()``.
+    Consumes the barcade-roster schema: ``video_games`` / ``pinball`` /
+    ``retired`` arrays plus a shared ``meta.platforms`` service dictionary.
+
+    **The roster's own ``slug`` becomes ``Game.barcode``.** This used to generate
+    a slug from the name instead, which produced a different identifier from the
+    one the roster — and therefore GATBOX, and therefore every QR label — uses:
+    ``devil-s-hollow`` against a roster slug of ``devils-hollow``. The two systems
+    could not refer to the same machine. An entry with no slug is now an error
+    rather than something to invent an answer for.
+
+    Matching is by slug first and name second. Slug is the stable identity: a
+    machine entered under a joke name still matches its roster entry once its
+    barcode is right, which name matching could never do. Idempotent either way,
+    so re-running never duplicates. The caller commits.
 
     Returns:
         ``{"added": int, "skipped": int, "errors": list[str]}``.
@@ -197,14 +219,19 @@ def import_games_from_roster(data: dict) -> dict:
     platforms = (data.get("meta") or {}).get("platforms") or {}
     result: dict = {"added": 0, "skipped": 0, "errors": []}
 
-    # Names already in the DB *before* this import. We only skip against these,
-    # not against rows added during this run — the roster legitimately contains
-    # distinct machines that share a name (e.g. a Batman video game AND a Batman
-    # pinball), and both must import. Re-running stays idempotent because the
-    # second run sees both already in the DB.
+    # A name already in the database blocks an import only when it is the *same
+    # kind* of machine. The roster really does contain a Batman video game and a
+    # Batman pinball, and both have to exist; what the guard is for is the other
+    # case -- one machine sitting under a differently-generated barcode, which the
+    # mapping script owns and which this importer must not duplicate.
     existing = Game.query.all()
-    names_lower = {g.name.strip().lower() for g in existing if g.name}
-    taken_barcodes = {g.barcode for g in existing if g.barcode}
+    by_slug = {g.barcode: g for g in existing if g.barcode}
+    kinds_by_name: dict[str, set[bool]] = {}
+    for g in existing:
+        if g.name:
+            kinds_by_name.setdefault(g.name.strip().lower(), set()).add(
+                looks_like_pinball(g.genre, g.name)
+            )
 
     # (array key, default location, default status, is_pinball)
     sections = [
@@ -220,13 +247,30 @@ def import_games_from_roster(data: dict) -> dict:
                 if not name:
                     result["errors"].append(f"{key}: entry with no name skipped")
                     continue
-                if name.lower() in names_lower:
+
+                slug = (entry.get("slug") or "").strip()
+                if not slug:
+                    # Never invent one: a made-up slug is a machine GATBOX cannot
+                    # find and a label that scans to nothing.
+                    result["errors"].append(f"{name}: no slug in the roster entry, skipped")
+                    continue
+
+                if slug in by_slug:
                     result["skipped"] += 1
+                    continue
+                if is_pinball in kinds_by_name.get(name.lower(), set()):
+                    # Same name, same kind: one machine carrying a different
+                    # barcode. Report it -- the mapping script owns that change,
+                    # and silently rewriting identities here would be worse.
+                    result["errors"].append(
+                        f"{name}: already in the database under a different barcode; "
+                        f"roster slug is {slug!r} — map it rather than importing again"
+                    )
                     continue
 
                 game = Game(
                     name=name,
-                    barcode=generate_unique_barcode(name, taken_barcodes),
+                    barcode=slug,
                     manufacturer=(entry.get("mfr") or None),
                     location=default_location,
                     status=default_status,
@@ -234,6 +278,8 @@ def import_games_from_roster(data: dict) -> dict:
                     notes=_compose_service_notes(entry, platforms),
                 )
                 db.session.add(game)
+                by_slug[slug] = game
+                kinds_by_name.setdefault(name.lower(), set()).add(is_pinball)
                 result["added"] += 1
             except Exception as exc:  # noqa: BLE001 - report per-entry, keep going
                 result["errors"].append(f"{entry.get('name', '?')}: {exc}")

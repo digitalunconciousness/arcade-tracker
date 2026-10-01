@@ -709,11 +709,22 @@ def game_label(game_id):
 
     game = Game.query.get_or_404(game_id)
 
-    # Backfill a barcode on the fly for any legacy row that lacks one.
+    # Backfill a barcode for any row that somehow lacks one. Adding a machine
+    # always assigns one and the roster mapping gave every existing machine its
+    # roster slug, so this should never fire -- but printing is the one moment a
+    # wrong identifier becomes physical and permanent, so say so out loud rather
+    # than minting one silently behind a label.
     if not game.barcode:
         taken = {b for (b,) in db.session.query(Game.barcode).all() if b}
         game.barcode = generate_unique_barcode(game.name, taken)
         db.session.commit()
+        flash(
+            f"This machine had no ID, so one was generated from its name: "
+            f"{game.barcode!r}. That is what the printed label will encode and it "
+            f"is permanent. If this machine is on the roster, set its ID to the "
+            f"roster slug before printing.",
+            "warning",
+        )
 
     base_url = (current_app.config.get("BASE_URL") or request.host_url).rstrip("/")
     label_url = f"{base_url}/g/{game.barcode}"

@@ -8,6 +8,11 @@ Written after `flask db stamp head` was run against a database whose schema was
 `UndefinedColumn`. Checking that all the expected tables existed was not enough:
 the tables were all there, and a column was not.
 
+It also checks the identity sequences on PostgreSQL. A sequence left behind its
+table's maximum id -- which is what happens when rows are restored with explicit
+ids and the reset is missed -- lets every read work and makes the next insert fail
+with a duplicate-key error. Same shape of bug as the stamp: all present, not usable.
+
     python scripts/check_schema.py            # report
     python scripts/check_schema.py --quiet    # exit 1 if anything is missing
 
@@ -59,6 +64,51 @@ ORDER = ["5a026e6869ec", "ebead5244def", "3e5463d29981", "e7582856b8aa",
          "f1c2d3e4a5b6"]
 
 
+def check_sequences(db, live_tables) -> list[tuple[str, str, str, int, int]]:
+    """Integer primary keys whose sequence is at or below the largest id in use.
+
+    PostgreSQL only. Returns (table, sequence, column, next_id, max_id) for each one
+    that would hand out a key already in use.
+    """
+    if db.engine.dialect.name != "postgresql":
+        return []
+    stale = []
+    for name, table in sorted(db.metadata.tables.items()):
+        if name not in live_tables:
+            continue
+        pks = [c for c in table.primary_key.columns]
+        if len(pks) != 1 or not isinstance(pks[0].type, sa.Integer):
+            continue
+        column = pks[0].name
+        seq = db.session.execute(
+            sa.text("SELECT pg_get_serial_sequence(:t, :c)"), {"t": name, "c": column}
+        ).scalar()
+        if not seq:
+            continue                                  # no sequence: ids come from elsewhere
+        biggest = db.session.execute(
+            sa.text(f'SELECT max({column}) FROM "{name}"')).scalar()
+        if biggest is None:
+            continue                                  # empty table, nothing to outrun
+        last, called = db.session.execute(
+            sa.text("SELECT last_value, is_called FROM " + seq)).one()
+        # is_called=false means last_value has not been handed out yet.
+        next_id = last + 1 if called else last
+        if next_id <= biggest:
+            stale.append((name, seq, column, next_id, biggest))
+    return stale
+
+
+def report_sequences(stale: list[tuple[str, str, str, int, int]]) -> None:
+    print("\nIDENTITY SEQUENCES ARE BEHIND THEIR TABLES")
+    print("Reads work; the next insert fails with a duplicate key.")
+    for name, _seq, column, next_id, biggest in stale:
+        print(f"  {name}.{column}: next value would be {next_id}, "
+              f"but {biggest} is already in use")
+    print("\nTo repair, move each sequence past the rows that exist:")
+    for name, seq, column, _next_id, _biggest in stale:
+        print(f'  SELECT setval(\'{seq}\', (SELECT max({column}) FROM "{name}"));')
+
+
 def main() -> int:
     p = argparse.ArgumentParser()
     p.add_argument("--quiet", action="store_true", help="only report problems")
@@ -84,6 +134,8 @@ def main() -> int:
                 if column.name not in live:
                     missing_columns.append((name, column.name))
 
+        stale_sequences = check_sequences(db, live_tables)
+
         stamped = None
         if "alembic_version" in live_tables:
             stamped = db.session.execute(
@@ -91,7 +143,7 @@ def main() -> int:
             ).scalar()
         print("alembic  :", stamped or "NOT STAMPED (no alembic_version row)")
 
-        if not missing_tables and not missing_columns:
+        if not missing_tables and not missing_columns and not stale_sequences:
             if not args.quiet:
                 print("schema   : matches the models")
                 if stamped != ORDER[-1]:
@@ -99,6 +151,10 @@ def main() -> int:
                           f" not head ({ORDER[-1]}).")
                     print("`db upgrade` may try to re-apply changes that already exist.")
             return 0
+
+        if stale_sequences and not missing_tables and not missing_columns:
+            report_sequences(stale_sequences)
+            return 1
 
         print("\nSCHEMA IS BEHIND THE MODELS")
         for name in missing_tables:
@@ -117,6 +173,8 @@ def main() -> int:
             print("  flask --app run:app db upgrade")
         else:
             print("\nMissing tables only; `flask --app run:app db upgrade` may be enough.")
+        if stale_sequences:
+            report_sequences(stale_sequences)
         return 1
 
 
