@@ -160,6 +160,54 @@ able to rewrite its own code:
 git config --global --add safe.directory /opt/arcade-tracker
 ```
 
+## One-time: give every machine its roster slug (Phase 1)
+
+Runs once, after the Phase 1 branch is deployed. It makes `Game.barcode` equal the
+roster slug, so a code scanned at the cabinet and a code scanned on the bench mean
+the same machine. The reviewed map file is the floor list: it lives outside the
+checkout and is never committed.
+
+```bash
+# 0. The map, copied to the server (it is not in the repo and must not be).
+#    From your workstation:  pct push <ctid> roster-map.json /root/roster-map.json
+#    Keep it at mode 600 and delete it when you are done.
+chmod 600 /root/roster-map.json
+
+# 1. Dry run. Changes nothing. Read the list it prints: every machine whose
+#    identifier moves, and every entry it is leaving alone with the reason.
+cd /opt/arcade-tracker
+set -a; . .env; set +a
+/opt/arcade-tracker-venv/bin/python scripts/apply_roster_map.py --map /root/roster-map.json
+
+# 2. A dump, because this rewrites identities. deploy.sh takes one; if you are
+#    running this outside a deploy, take one by hand first.
+pg_dump --clean --if-exists --no-owner --no-privileges "$DATABASE_URL" \
+  | gzip -9 > /var/backups/arcade-tracker/pre-roster-map-$(date -u +%Y%m%dT%H%M%SZ).sql.gz
+
+# 3. Apply. It asks for confirmation; --yes skips the prompt.
+/opt/arcade-tracker-venv/bin/python scripts/apply_roster_map.py \
+  --map /root/roster-map.json --apply \
+  --reprint-out /root/labels-to-reprint.json \
+  --base-url "${BASE_URL:-}"
+```
+
+It refuses rather than guesses. A machine renamed since the map was made, a barcode
+edited by hand, a row deleted, two machines claiming one slug: any of these stops
+the whole run with nothing written, and the fix is to regenerate the map against the
+current database and review it again.
+
+Then, **in this order**:
+
+1. **Import the machines the roster has and the database does not** — Games →
+   Import, upload the same roster JSON. Order matters: mapping first means the
+   importer recognises those machines by slug and skips them. Importing first makes
+   it report them all as name collisions instead.
+2. **Reprint the labels in `/root/labels-to-reprint.json`.** Each entry carries its
+   `label_page`; open it and print. Until a label is reprinted it encodes the old
+   identifier and resolves to nothing.
+3. Delete `/root/roster-map.json` and `/root/labels-to-reprint.json` from the
+   server once the labels are printed. Both are the floor list.
+
 ## Rollback
 
 ```bash
