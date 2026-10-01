@@ -58,6 +58,32 @@ printf '    database host : %s\n' "${DATABASE_URL##*@}"
 printf '    repo          : %s (%s, %s)\n' "$REPO" "$current" "$(git rev-parse --short HEAD)"
 printf '    venv          : %s (%s)\n' "$VENV" "$("$VENV/bin/python" -V)"
 pg_dump --version | sed 's/^/    pg_dump       : /'
+
+# pg_dump refuses to dump from a server newer than itself ("aborting because of
+# server version mismatch"), and Debian's postgresql-client tracks the distro, not
+# the server. Catch that here rather than at the dump, where the message is less
+# obvious and the deploy has already started.
+server_major=$(psql "$DATABASE_URL" -tAc "SELECT current_setting('server_version_num')::int / 10000" 2>/dev/null | tr -d '[:space:]')
+dump_major=$(pg_dump --version | sed -nE 's/^pg_dump \(PostgreSQL\) ([0-9]+).*/\1/p')
+if [ -z "$server_major" ]; then
+    die "could not reach the database to read its version; check DATABASE_URL and that the server is up"
+fi
+printf '    server major  : %s\n' "$server_major"
+if [ "$dump_major" -lt "$server_major" ]; then
+    printf '\n' >&2
+    printf 'pg_dump is %s but the server is %s. pg_dump cannot dump from a newer\n' "$dump_major" "$server_major" >&2
+    printf 'server, so the backup -- and therefore this deploy -- would fail.\n\n' >&2
+    printf 'Install a matching client from the PostgreSQL APT repository:\n' >&2
+    printf '  apt-get install -y curl ca-certificates\n' >&2
+    printf '  install -d /usr/share/postgresql-common/pgdg\n' >&2
+    printf '  curl -fsS https://www.postgresql.org/media/keys/ACCC4CF8.asc \\\n' >&2
+    printf '    -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc\n' >&2
+    printf '  echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc]" \\\n' >&2
+    printf '       "https://apt.postgresql.org/pub/repos/apt $(. /etc/os-release && echo "$VERSION_CODENAME")-pgdg main" \\\n' >&2
+    printf '    > /etc/apt/sources.list.d/pgdg.list\n' >&2
+    printf '  apt-get update && apt-get install -y postgresql-client-%s\n' "$server_major" >&2
+    die "pg_dump $dump_major is too old for server $server_major"
+fi
 printf '    health        : %s\n' "$HEALTH"
 
 if [ "$check_only" = 1 ]; then

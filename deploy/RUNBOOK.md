@@ -175,6 +175,9 @@ systemctl restart arcade-tracker
   not fail a deploy that is otherwise fine.
 - `/skeeball/api/health` is the one route with no login. Do not add a session
   requirement to it.
+- **The client must be >= the server.** `deploy.sh --check` verifies it and prints
+  the PGDG install commands if not. The server is PostgreSQL 17; Debian bookworm
+  ships client 15, which `pg_dump` refuses to use against it.
 - The migrations cannot build a schema from nothing — none of them creates the
   base tables. A brand-new database is made with `create_all` and then
   `flask db stamp head`, not `flask db upgrade`.
