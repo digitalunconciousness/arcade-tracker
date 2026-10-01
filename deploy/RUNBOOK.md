@@ -100,7 +100,13 @@ systemctl restart arcade-tracker
 
 # 8. Verify BEFORE pulling.
 systemctl --no-pager status arcade-tracker
-curl -fsS http://127.0.0.1:5000/ >/dev/null && echo "  serving OK"
+# Wait for it to bind. `systemctl restart` returns as soon as the process is
+# forked, and waitress needs a moment to import the application, so curling
+# immediately reports "Couldn't connect" on a service that is perfectly fine.
+for i in $(seq 20); do
+  curl -fsS --max-time 2 http://127.0.0.1:5000/ >/dev/null 2>&1 && { echo "  serving OK"; break; }
+  sleep 1
+done
 ss -tlnp | grep ':5000'      # expect 127.0.0.1 and the LAN address, NOT 0.0.0.0
 # And load the site in a browser, through the tunnel, before going further.
 
@@ -113,7 +119,13 @@ git -C /opt/arcade-tracker status --porcelain     # expect only the two untracke
 # 10. Now pull.
 git -C /opt/arcade-tracker pull --ff-only origin master
 systemctl restart arcade-tracker
-curl -fsS http://127.0.0.1:5000/ >/dev/null && echo "  serving OK"
+# Wait for it to bind. `systemctl restart` returns as soon as the process is
+# forked, and waitress needs a moment to import the application, so curling
+# immediately reports "Couldn't connect" on a service that is perfectly fine.
+for i in $(seq 20); do
+  curl -fsS --max-time 2 http://127.0.0.1:5000/ >/dev/null 2>&1 && { echo "  serving OK"; break; }
+  sleep 1
+done
 
 # 11. From here on, deploys are one command.
 /opt/arcade-tracker/deploy/deploy.sh --check
@@ -171,6 +183,10 @@ systemctl restart arcade-tracker
   not fail a deploy that is otherwise fine.
 - `/skeeball/api/health` is the one route with no login. Do not add a session
   requirement to it.
+- **Never curl straight after `systemctl restart`.** Type=simple means the restart
+  returns as soon as the process is forked; waitress binds a moment later. Wait for
+  readiness in a loop, as above. `deploy.sh` already does this (ten attempts, two
+  seconds apart).
 - **The client must be >= the server.** `deploy.sh --check` verifies it and prints
   the PGDG install commands if not. The server is PostgreSQL 17; Debian bookworm
   ships client 15, which `pg_dump` refuses to use against it.
