@@ -237,6 +237,86 @@ Then, **in this order**:
 3. Delete `/root/roster-map.json` and `/root/labels-to-reprint.json` from the
    server once the labels are printed. Both are the floor list.
 
+## If the database is SQL_ASCII
+
+Symptom: a save fails with `'ascii' codec can't encode character '\u2014'`. The roster
+import hits it on the twelve entries whose notes contain an em dash, and so would any
+maintenance note a person types with one.
+
+Cause: the database was created with encoding `SQL_ASCII`, which happens when it is
+created under a `C` locale with no explicit encoding. psycopg2 then maps the connection
+to Python's `ascii` codec and refuses every character above 127. `check_schema.py`
+reports it, and refuses the deploy when both ends are SQL_ASCII.
+
+```bash
+cd /opt/arcade-tracker && set -a; . .env; set +a
+psql "$DATABASE_URL" -tAc "SHOW server_encoding"        # SQL_ASCII = this is you
+```
+
+### Unblock now (one line, no downtime)
+
+Append to `DATABASE_URL` in `.env` — `?client_encoding=utf8`, or `&client_encoding=utf8`
+if the URL already has a `?`:
+
+```bash
+$EDITOR /opt/arcade-tracker/.env
+systemctl restart arcade-tracker
+```
+
+The server stores the bytes verbatim, so writes and reads round-trip exactly. It leaves
+a database that does no encoding validation and sorts by byte value, so it is a stopgap,
+not the fix.
+
+### The fix: convert to UTF8
+
+The dataset is small and the downtime is a minute. Do it before the database grows, and
+before GATBOX starts posting maintenance text into it — a technician's em dash would
+otherwise fail an ingest.
+
+```bash
+cd /opt/arcade-tracker && set -a; . .env; set +a
+systemctl stop arcade-tracker                       # nothing may write during this
+
+# 1. Dump. --no-owner/--no-privileges so it restores into a fresh database cleanly.
+pg_dump --no-owner --no-privileges "$DATABASE_URL" > /root/pre-utf8.sql
+wc -c /root/pre-utf8.sql                            # sanity: not a few hundred bytes
+
+# 2. Keep the old database rather than dropping it. Needs no connections, so the
+#    service must be stopped (step 0) -- psql itself connects to postgres, not to it.
+psql "${DATABASE_URL%/*}/postgres" -c \
+  "ALTER DATABASE arcade_tracker RENAME TO arcade_tracker_sqlascii"
+
+# 3. UTF8 with the C collation: correct, and it needs no locales installed on the
+#    database server. TEMPLATE template0 is required to choose an encoding.
+psql "${DATABASE_URL%/*}/postgres" -c \
+  "CREATE DATABASE arcade_tracker ENCODING 'UTF8' LC_COLLATE 'C' LC_CTYPE 'C' \
+   TEMPLATE template0 OWNER arcade_tracker"
+
+# 4. Restore. If this errors on invalid byte sequences, the old database held text in
+#    some other encoding -- stop and work out what, do not force it.
+psql "$DATABASE_URL" -q -f /root/pre-utf8.sql
+
+# 5. Prove it before starting the service.
+psql "$DATABASE_URL" -tAc "SHOW server_encoding"                      # UTF8
+psql "$DATABASE_URL" -tAc "SELECT count(*) FROM game"                 # the same count as before
+/opt/arcade-tracker-venv/bin/python scripts/check_schema.py           # silent on encoding now
+
+systemctl start arcade-tracker
+```
+
+Then remove `?client_encoding=utf8` from `DATABASE_URL` if you added it — a UTF8
+database gives a UTF8 connection by default.
+
+Drop `arcade_tracker_sqlascii` once you are satisfied, not before:
+
+```bash
+psql "${DATABASE_URL%/*}/postgres" -c "DROP DATABASE arcade_tracker_sqlascii"
+```
+
+Rehearsed on a throwaway cluster: an em dash already stored in the SQL_ASCII database
+survives the dump and restore byte-for-byte, and new non-ASCII inserts work afterwards
+with no client override.
+
 ## Rollback
 
 ```bash
@@ -276,6 +356,10 @@ systemctl restart arcade-tracker
 - **The client must be >= the server.** `deploy.sh --check` verifies it and prints
   the PGDG install commands if not. The server is PostgreSQL 17; Debian bookworm
   ships client 15, which `pg_dump` refuses to use against it.
+- `check_schema.py` also checks the **database encoding**. A SQL_ASCII database stores
+  no character above 127 — psycopg2 uses Python's `ascii` codec — so one em dash in a
+  machine note fails the save. It refuses the deploy when both ends are SQL_ASCII and
+  warns when only the client is overridden. See "If the database is SQL_ASCII".
 - `check_schema.py` also checks the **identity sequences** on PostgreSQL. One left
   behind its table's largest id serves every page and fails every insert with a
   duplicate key, which is the same shape of fault as the bad stamp: everything
