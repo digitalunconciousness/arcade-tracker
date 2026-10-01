@@ -8,13 +8,10 @@ refactor in skeeball/revenue_scheduler.py, inside a thread that swallowed the
 error and retried every 60 seconds -- so the automatic daily revenue sync never
 ran and nothing surfaced except a log line.
 
-Scope is deliberately the code that runs when the application runs. The one-off
-maintenance scripts at the repository root (init_db.py, list_users.py,
-create_manager.py, reset_ranking_counters.py, register_skeeball_lanes.py,
-create_*_table.py, migrate_*.py, scripts/migrate_database.py,
-scripts/import_csv_backup.py, templates/dbmigrate.py) carry the same stale
-imports and fail loudly the moment they are run; they are tracked separately
-rather than asserted here, so this test stays about live behaviour.
+Scope is app/, skeeball/, scripts/ and the repository's own entry points. The
+fourteen one-off maintenance scripts that carried the same stale imports were
+retired to docs/history/ on 2026-10-01, which is excluded here because it is
+reference code that is not meant to run.
 """
 from __future__ import annotations
 
@@ -24,7 +21,9 @@ import re
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # Directories and files that are imported while serving a request.
-LIVE_PATHS = ["app", "skeeball", "run.py", "scripts/create_admin.py"]
+# Widened 2026-10-01: the one-off scripts that carried stale imports are retired to
+# docs/history/, so scripts/ and the repository root are now clean and stay checked.
+LIVE_PATHS = ["app", "skeeball", "scripts", "run.py", "config.py"]
 
 IMPORT_RE = re.compile(r"^\s*from app import\s+(.+?)\s*(?:#.*)?$", re.MULTILINE)
 EXPORTED = {"create_app", "models"}       # `models` is imported for its side effect

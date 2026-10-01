@@ -20,6 +20,33 @@ The live application is the factory in `app/`, started by `run.py` through
 | `create_request_history_table.py` | migration `f1c2d3e4a5b6` | Created `inventory_request_history` by hand because no migration did. There is one now. |
 | `arcade-tracker-ngrok.service`, `scripts/get_ngrok_url.sh`, `scripts/setup_ngrok_autostart.sh` | Cloudflare Tunnel | ngrok is not installed on the server and never was in this deployment; the unit misled anyone reading the repo into thinking port 5000 was published by ngrok. |
 
-Still at the repository root on purpose: `run.py` and `run.sh` (current), `config.py`,
-and the one-off `check_*.py` / `migrate_*.py` / `create_*_table.py` maintenance
-scripts, which are occasionally still useful against a live database.
+## The one-off maintenance scripts (retired 2026-10-01)
+
+Every one of these was broken against the current application, in one of two ways.
+
+**Stale imports.** `from app import app, db` (sometimes `, Game` or `, User`) worked
+against the monolithic `app.py`, which re-exported those names at module level. The
+factory package exports only `create_app`, so each of these raises `ImportError` the
+moment it is run:
+
+`create_inventory_requests_table.py` · `create_manager.py` ·
+`create_work_log_table.py` · `init_db.py` · `list_users.py` ·
+`register_skeeball_lanes.py` · `reset_ranking_counters.py` ·
+`scripts/import_csv_backup.py` · `scripts/migrate_database.py` ·
+`templates/dbmigrate.py` (a Python file inside the template directory)
+
+**Wrong database.** These open `sqlite3` directly, but the deployment has run on
+PostgreSQL for months. Rather than failing, they would have quietly inspected or
+modified `instance/arcade.db` — a stale, empty leftover — and reported confident
+nonsense about a database nobody uses:
+
+`migrate_db.py` · `migrate_all_missing.py` · `check_all_schemas.py` ·
+`check_db_schema.py` · `init_db.py` (both faults)
+
+What replaced them: schema changes go through Flask-Migrate
+(`flask --app run:app db migrate` / `db upgrade`), `scripts/check_schema.py`
+compares the live schema against the models, `scripts/create_admin.py` handles
+accounts (`--list`, `--reset-password`), and `deploy/deploy.sh` runs the whole
+deployment including the `pg_dump` backup.
+
+Still at the repository root on purpose: `run.py`, `run.sh` and `config.py`.
