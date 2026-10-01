@@ -167,11 +167,25 @@ roster slug, so a code scanned at the cabinet and a code scanned on the bench me
 the same machine. The reviewed map file is the floor list: it lives outside the
 checkout and is never committed.
 
+First get the map into the container. This is two hops, not one: the container has no
+sshd, so nothing can `scp` into it, and `pct` exists only on the Proxmox host. Run
+this from your workstation, substituting the Proxmox host's address:
+
 ```bash
-# 0. The map, copied to the server (it is not in the repo and must not be).
-#    From your workstation:  pct push <ctid> roster-map.json /root/roster-map.json
-#    Keep it at mode 600 and delete it when you are done.
-chmod 600 /root/roster-map.json
+ssh root@<pve-host> 'cat > /root/roster-map.staging.json \
+  && pct push 131 /root/roster-map.staging.json /root/roster-map.json --perms 600 \
+  && pct exec 131 -- sha256sum /root/roster-map.json \
+  && rm -f /root/roster-map.staging.json' < roster-map.json
+```
+
+Check the sha256 it prints against the local file (`sha256sum roster-map.json`). The
+map rewrites machine identities, so a truncated copy is worth catching here rather
+than in the dry run. The staging copy on the Proxmox host is deleted by the same
+command; the container's copy is deleted at the end of this section.
+
+Then, on the server:
+
+```bash
 
 # 1. Dry run. Changes nothing. Read the list it prints: every machine whose
 #    identifier moves, and every entry it is leaving alone with the reason.
