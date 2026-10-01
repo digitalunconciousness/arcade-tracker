@@ -8,6 +8,14 @@ what "ambiguity is reported, never guessed" means in practice.
 
     python scripts/make_roster_map.py ROSTER.json -o roster-map.json
     python scripts/make_roster_map.py ROSTER.json --db sqlite:///snapshot.db
+    python scripts/make_roster_map.py ROSTER.json --hints hints.json
+
+``--hints`` is for the matches a machine cannot find: a roster that abbreviates
+where the database spells out (UMK3, DDR, TMNT), or a machine listed under another
+title entirely. It maps a database name to a roster slug, or to ``null`` to say
+"deliberately not mapped" -- a junk row, or a game that shares a cabinet with
+another. Hinted entries are still ``"confirmed": false``: a hint is somebody's
+proposal, not a verification.
 
 The roster and the map both contain the real floor list, so **neither belongs in
 this repository** (GATBOX CLAUDE.md rule 13). Keep them outside it. This script is
@@ -19,6 +27,8 @@ Tiers
   kind_resolved  several roster entries share the name; video/pinball settled it
   proposed       fuzzy match -- REVIEW: the reason says why it is believable
   unresolved     no candidate, or several equally good ones -- REVIEW
+  hinted         resolved from --hints -- REVIEW, but the slug is already filled in
+  excluded       hinted to null: intentionally not mapped, with the reason
   import         roster machines with no row in the database
 """
 from __future__ import annotations
@@ -106,6 +116,7 @@ def main() -> int:
     p.add_argument("-o", "--out", default="roster-map.json")
     p.add_argument("--db", default=os.environ.get("DATABASE_URL"),
                    help="SQLAlchemy URL; defaults to DATABASE_URL")
+    p.add_argument("--hints", help='JSON: {"database name": "roster-slug" | null, ...}')
     args = p.parse_args()
     if not args.db:
         print("no --db and no DATABASE_URL", file=sys.stderr)
@@ -117,6 +128,28 @@ def main() -> int:
     if not entries:
         print(f"{args.roster} has no {' / '.join(KINDS)} entries", file=sys.stderr)
         return 2
+
+    hints, hint_notes, no_import = {}, {}, {}
+    if args.hints:
+        raw_hints = json.loads(open(args.hints, encoding="utf-8").read())
+        # "_no_import" names roster slugs that deliberately get no row of their own --
+        # two games sharing one cabinet, say, where the cabinet is the maintenance unit.
+        for slug, reason in (raw_hints.get("_no_import") or {}).items():
+            no_import[slug] = reason
+        for key, value in raw_hints.items():
+            if key.startswith("_"):            # "_note" / "_no_import" document the file
+                continue
+            if isinstance(value, dict):
+                hints[norm(key)] = value.get("slug")
+                hint_notes[norm(key)] = value.get("reason", "")
+            else:
+                hints[norm(key)] = value
+        by_slug_all = {e["slug"] for _, e in entries}
+        unknown = [s for s in list(hints.values()) + list(no_import)
+                   if s and s not in by_slug_all]
+        if unknown:
+            print(f"hints name slugs that are not in the roster: {unknown}", file=sys.stderr)
+            return 2
 
     games = load_games(args.db)
     by_name: dict[str, list[tuple[str, dict]]] = {}
@@ -135,7 +168,23 @@ def main() -> int:
         (mapped if confirmed else review).append(row)
         claimed.add(entry["slug"])
 
+    by_slug = {e["slug"]: (k, e) for k, e in entries}
+
     for game in games:
+        key = norm(game["name"])
+        if key in hints:
+            target = hints[key]
+            note = hint_notes.get(key, "")
+            if target is None:
+                review.append({"game_id": game["id"], "name": game["name"],
+                               "current_barcode": game["barcode"], "roster_slug": None,
+                               "kind": None, "tier": "excluded", "confirmed": False,
+                               "reason": note or "hinted as deliberately not mapped"})
+            else:
+                kind, entry = by_slug[target]
+                record(game, kind, entry, "hinted", False,
+                       note or "resolved from the hints file; no matcher could find this")
+            continue
         hits = by_name.get(norm(game["name"]), [])
         if len(hits) == 1:
             kind, entry = hits[0]
@@ -190,7 +239,12 @@ def main() -> int:
     to_import = [{"roster_slug": e["slug"], "roster_name": e["name"], "kind": k,
                   "confirmed": False,
                   "reason": "in the roster, no row in the database -- import as a new machine"}
-                 for k, e in entries if e["slug"] not in claimed]
+                 for k, e in entries
+                 if e["slug"] not in claimed and e["slug"] not in no_import]
+    not_imported = [{"roster_slug": slug, "roster_name": by_slug[slug][1]["name"],
+                     "kind": by_slug[slug][0],
+                     "reason": no_import[slug] or "listed in _no_import"}
+                    for slug in sorted(no_import) if slug in by_slug]
 
     doc = {
         "generated": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"),
@@ -209,10 +263,12 @@ def main() -> int:
             "auto_confirmed": len(mapped),
             "needs_review": len(review),
             "to_import": len(to_import),
+            "not_imported_on_purpose": len(not_imported),
         },
         "confirmed": sorted(mapped, key=lambda r: (r["tier"], r["name"].lower())),
         "needs_review": sorted(review, key=lambda r: (r["tier"], r["name"].lower())),
         "to_import": sorted(to_import, key=lambda r: (r["kind"], r["roster_name"].lower())),
+        "not_imported_on_purpose": not_imported,
     }
     with open(args.out, "w", encoding="utf-8") as fh:
         json.dump(doc, fh, indent=2, ensure_ascii=False)
@@ -223,11 +279,13 @@ def main() -> int:
         n = sum(1 for r in mapped if r["tier"] == tier)
         if n:
             print(f"  {tier:14} {n:3}  (confirmed automatically)")
-    for tier in ("proposed", "unresolved"):
+    for tier in ("hinted", "excluded", "proposed", "unresolved"):
         n = sum(1 for r in review if r["tier"] == tier)
         if n:
             print(f"  {tier:14} {n:3}  NEEDS REVIEW")
     print(f"  {'to_import':14} {len(to_import):3}  NEEDS REVIEW")
+    if not_imported:
+        print(f"  {'not imported':14} {len(not_imported):3}  (on purpose, from _no_import)")
     return 0
 
 
