@@ -36,8 +36,12 @@ RestartSec=10
 StandardOutput=journal
 StandardError=journal
 
-# Sandboxing. The app needs to write uploads and the instance directory; it has
-# no business anywhere else.
+# Sandboxing. ProtectSystem=strict makes the whole filesystem read-only except
+# ReadWritePaths, so that list has to cover every directory the application
+# writes. app/__init__.py:_create_directories creates six at startup -- instance,
+# uploads, backups, logs, static/maintenance_photos, static/profile_pics -- and
+# os.makedirs raises "Read-only file system" for any that is missing and not
+# listed here, which kills the service before it binds.
 NoNewPrivileges=yes
 PrivateTmp=yes
 PrivateDevices=yes
@@ -49,7 +53,17 @@ ProtectControlGroups=yes
 RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
 RestrictSUIDSGID=yes
 LockPersonality=yes
-ReadWritePaths=/opt/arcade-tracker/instance /opt/arcade-tracker/uploads /opt/arcade-tracker/static/maintenance_photos /opt/arcade-tracker/static/profile_pics /opt/arcade-tracker/logs
+ReadWritePaths=/opt/arcade-tracker/instance
+ReadWritePaths=/opt/arcade-tracker/uploads
+ReadWritePaths=/opt/arcade-tracker/backups
+ReadWritePaths=/opt/arcade-tracker/logs
+ReadWritePaths=/opt/arcade-tracker/static/maintenance_photos
+ReadWritePaths=/opt/arcade-tracker/static/profile_pics
+
+# matplotlib wants a writable config/font-cache directory and falls back to $HOME,
+# which ProtectHome=yes makes unavailable. Point it somewhere it can always write.
+Environment=MPLCONFIGDIR=/tmp/matplotlib
+CacheDirectory=arcade-tracker
 
 [Install]
 WantedBy=multi-user.target

@@ -51,18 +51,13 @@ git show origin/master:deploy/listen.conf.example > /tmp/listen.conf
 #    ReadWritePaths.
 adduser --system --group --no-create-home --home /opt/arcade-tracker arcade-tracker
 
-install -d -o arcade-tracker -g arcade-tracker -m 755 \
-  /opt/arcade-tracker/instance \
-  /opt/arcade-tracker/uploads \
-  /opt/arcade-tracker/logs \
-  /opt/arcade-tracker/static/maintenance_photos \
-  /opt/arcade-tracker/static/profile_pics
-chown -R arcade-tracker:arcade-tracker \
-  /opt/arcade-tracker/instance \
-  /opt/arcade-tracker/uploads \
-  /opt/arcade-tracker/logs \
-  /opt/arcade-tracker/static/maintenance_photos \
-  /opt/arcade-tracker/static/profile_pics
+# All six that app/__init__.py:_create_directories creates at startup. They must
+# exist, be writable by the service user, AND be listed in the unit's
+# ReadWritePaths -- ProtectSystem=strict makes everything else read-only.
+for d in instance uploads backups logs static/maintenance_photos static/profile_pics; do
+  install -d -o arcade-tracker -g arcade-tracker -m 755 "/opt/arcade-tracker/$d"
+  chown -R arcade-tracker:arcade-tracker "/opt/arcade-tracker/$d"
+done
 
 # .env holds DATABASE_URL and SECRET_KEY: root owns it, the service only reads it.
 chown root:arcade-tracker /opt/arcade-tracker/.env
@@ -136,9 +131,10 @@ though the QR label route imports it). Compare them, then delete them.
 # Put the code back under root and leave only the writable paths with the service.
 chown -R root:root /opt/arcade-tracker
 chown root:arcade-tracker /opt/arcade-tracker/.env && sudo chmod 640 /opt/arcade-tracker/.env
-chown -R arcade-tracker:arcade-tracker \
-  /opt/arcade-tracker/instance /opt/arcade-tracker/uploads /opt/arcade-tracker/logs \
-  /opt/arcade-tracker/static/maintenance_photos /opt/arcade-tracker/static/profile_pics
+for d in instance uploads backups logs static/maintenance_photos static/profile_pics; do
+  install -d -o arcade-tracker -g arcade-tracker -m 755 "/opt/arcade-tracker/$d"
+  chown -R arcade-tracker:arcade-tracker "/opt/arcade-tracker/$d"
+done
 
 # Confirm git is happy again as root.
 git -C /opt/arcade-tracker status --porcelain
