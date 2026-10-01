@@ -71,7 +71,7 @@ sudo systemctl restart arcade-tracker
 
 # 8. Verify BEFORE pulling.
 systemctl --no-pager status arcade-tracker
-curl -fsS http://127.0.0.1:5000/skeeball/api/health && echo "  health OK"
+curl -fsS http://127.0.0.1:5000/ >/dev/null && echo "  serving OK"
 ss -tlnp | grep ':5000'      # expect 127.0.0.1 and the LAN address, NOT 0.0.0.0
 # And load the site in a browser, through the tunnel, before going further.
 
@@ -84,7 +84,7 @@ sudo git -C /opt/arcade-tracker status --porcelain     # expect only the two unt
 # 10. Now pull.
 sudo git -C /opt/arcade-tracker pull --ff-only origin master
 sudo systemctl restart arcade-tracker
-curl -fsS http://127.0.0.1:5000/skeeball/api/health && echo "  health OK"
+curl -fsS http://127.0.0.1:5000/ >/dev/null && echo "  serving OK"
 
 # 11. From here on, deploys are one command.
 sudo /opt/arcade-tracker/deploy/deploy.sh --check
@@ -113,8 +113,12 @@ sudo systemctl restart arcade-tracker
   built by `db.create_all()`, so every column the migrations add already exists
   and `flask db upgrade` would fail on duplicates. Stamp it once (see the restore
   runbook) before the first `deploy.sh`.
-- `/api/health` is the one route with no login. `deploy.sh` polls it; do not add a
-  session requirement to it.
+- `deploy.sh`'s liveness gate is `/`, the thinnest path that proves the app is
+  serving. It probes `/skeeball/api/health` afterwards and only warns: that route
+  reaches the lane manager and so gpiozero, and a dependency problem there should
+  not fail a deploy that is otherwise fine.
+- `/skeeball/api/health` is the one route with no login. Do not add a session
+  requirement to it.
 - The migrations cannot build a schema from nothing — none of them creates the
   base tables. A brand-new database is made with `create_all` and then
   `flask db stamp head`, not `flask db upgrade`.

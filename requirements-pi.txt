@@ -4,6 +4,8 @@
 # Install alongside the server requirements:
 #   pip install -r requirements.txt -r requirements-pi.txt
 
-gpiozero==2.0.1
+# RPi.GPIO is the only one that is genuinely Pi-only: gpio_init.py wraps its
+# import in try/except because it is unavailable off a Pi. gpiozero and pyserial
+# moved back to requirements.txt -- the skeeball routes import them transitively,
+# mock mode included, so the server needs them.
 RPi.GPIO==0.7.1
-pyserial==3.5

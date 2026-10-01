@@ -13,7 +13,7 @@ from __future__ import annotations
 
 # Routes that are allowed to answer without a session, with the reason.
 PUBLIC = {
-    "/skeeball/api/health": "deploy/deploy.sh polls it as a health check",
+    "/skeeball/api/health": "a subsystem health probe; deploy/deploy.sh reports it",
     "/login": "you cannot require a session to reach the login page",
     "/logout": "handled by flask_login",
     "/static/<path:filename>": "static assets",
@@ -47,7 +47,10 @@ def test_no_api_route_answers_without_a_session(app, client):
 
 
 def test_the_health_probe_stays_open(client):
-    # If this starts redirecting, deploy/deploy.sh will report every deploy as failed.
+    # deploy/deploy.sh probes this after its liveness gate and reports the result,
+    # so it has to answer without a session. It also exercises the skeeball lane
+    # manager, which is how a missing gpiozero shows up as a test failure here
+    # rather than as a 500 in production.
     response = client.get("/skeeball/api/health", follow_redirects=False)
     assert response.status_code == 200, (
         f"the health probe must answer anonymously, got {response.status_code}"
