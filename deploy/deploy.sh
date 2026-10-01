@@ -41,11 +41,18 @@ command -v curl >/dev/null || die "curl not found: apt-get install curl"
 systemctl list-unit-files "$SERVICE.service" >/dev/null 2>&1 || die "no $SERVICE.service installed"
 
 cd "$REPO"
-# A dirty tree means --ff-only will refuse, or will quietly keep someone's edit.
-# Better to stop here and let a human decide.
-if [ -n "$(git status --porcelain)" ]; then
-    git status --short | sed 's/^/    /'
-    die "the working tree has local changes; commit, stash or discard them first"
+# Only MODIFIED TRACKED files block `git pull --ff-only`; untracked ones are
+# harmless. Checking both refused a deploy over two leftover files that had
+# already been folded into the repository, so the check is narrowed and untracked
+# files are reported instead.
+if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
+    git status --short --untracked-files=no | sed 's/^/    /'
+    die "tracked files have local changes; commit, stash or discard them first"
+fi
+untracked=$(git ls-files --others --exclude-standard)
+if [ -n "$untracked" ]; then
+    printf '    note: untracked files present (they do not block the pull):\n'
+    printf '%s\n' "$untracked" | sed 's/^/      /'
 fi
 current=$(git rev-parse --abbrev-ref HEAD)
 [ "$current" = "$BRANCH" ] || die "on branch '$current', expected '$BRANCH' (set ARCADE_BRANCH to override)"
