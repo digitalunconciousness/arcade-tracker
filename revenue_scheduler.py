@@ -83,7 +83,12 @@ class RevenueScheduler:
     def _sync_all_lanes(self):
         """Sync revenue for all registered lanes."""
         with self.app.app_context():
-            from app import db, Game, PlayRecord
+            # app/ is a factory package and exports only create_app; the old
+            # monolithic app.py re-exported these names, so this import has been
+            # raising ImportError once a minute since the refactor and the daily
+            # revenue sync never ran.
+            from app.extensions import db
+            from app.models import Game, PlayRecord
             from datetime import date
             
             lanes = self.lane_manager.get_all_lanes()

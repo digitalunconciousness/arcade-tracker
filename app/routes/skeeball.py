@@ -212,6 +212,7 @@ def skeeball_logs():
 
 
 @skeeball_bp.route("/api/lanes", methods=["GET"])
+@login_required
 def api_get_lanes():
     """Get all lanes and their status."""
     pi_data = fetch_from_raspberry_pi("/api/lanes")
@@ -224,6 +225,7 @@ def api_get_lanes():
 
 
 @skeeball_bp.route("/api/lanes/<lane_id>/status", methods=["GET"])
+@login_required
 def api_get_lane_status(lane_id):
     """Get status of a specific lane."""
     pi_data = fetch_from_raspberry_pi(f"/api/lanes/{lane_id}/status")
@@ -269,6 +271,7 @@ def api_reset_lane(lane_id):
 
 
 @skeeball_bp.route("/api/lanes/<lane_id>/stats", methods=["GET"])
+@login_required
 def api_get_lane_stats(lane_id):
     """Get statistics for a specific lane."""
     pi_data = fetch_from_raspberry_pi(f"/api/lanes/{lane_id}/stats")

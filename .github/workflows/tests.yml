@@ -1,0 +1,57 @@
+name: tests
+
+on:
+  push:
+    branches: [master, 'integration/**']
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # 3.11 is what the deployment runs (/opt/arcade-tracker/venv is Debian
+      # bookworm's python3.11). Testing on anything else tests a different stack.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          # requirements.txt only: the Raspberry Pi packages in requirements-pi.txt
+          # have no importer under app/ and do not build on an x86 runner.
+          pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: Show the versions under test
+        run: |
+          python -VV
+          python -c "import sqlalchemy, psycopg2; print('SQLAlchemy', sqlalchemy.__version__, '| psycopg2', psycopg2.__version__.split()[0])"
+
+      # The suite uses a throwaway SQLite database (tests/conftest.py overrides
+      # DATABASE_URL for the whole session), so CI needs no PostgreSQL service.
+      - name: pytest
+        run: pytest
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Byte-compile everything that is meant to run
+        # Catches syntax errors in code no test imports. docs/history/ is retired
+        # code kept for reference and is deliberately excluded.
+        run: |
+          python -m compileall -q app skeeball run.py config.py scripts tests
+      - name: Shell scripts parse
+        run: |
+          for f in deploy/*.sh run.sh; do
+            [ -e "$f" ] || continue
+            bash -n "$f" && echo "ok $f"
+          done
