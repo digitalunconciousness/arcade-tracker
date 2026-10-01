@@ -202,9 +202,24 @@ Then, **in this order**:
    Import, upload the same roster JSON. Order matters: mapping first means the
    importer recognises those machines by slug and skips them. Importing first makes
    it report them all as name collisions instead.
-2. **Reprint the labels in `/root/labels-to-reprint.json`.** Each entry carries its
-   `label_page`; open it and print. Until a label is reprinted it encodes the old
-   identifier and resolves to nothing.
+2. **Set `BASE_URL` in `.env` first, then reprint the labels in
+   `/root/labels-to-reprint.json`.** Each entry carries its `label_page`; open it and
+   print. Until a label is reprinted it encodes the old identifier and resolves to
+   nothing.
+
+   `BASE_URL` is unset by default, and then the label encodes the host of whatever
+   browser printed it. Print from the LAN and the QR is a LAN address that resolves
+   to nothing from a phone on cellular -- which is the scan you actually need at a
+   cabinet. Set it to the public hostname and restart before printing:
+
+   ```bash
+   printf 'BASE_URL=https://<public-hostname>\n' >> /opt/arcade-tracker/.env
+   systemctl restart arcade-tracker
+   ```
+
+   Check one label page before printing 26: the URL under the QR code must be the
+   public one. GATBOX is indifferent -- it reads only the slug and never checks the
+   host -- so this is purely about the phone scan.
 3. Delete `/root/roster-map.json` and `/root/labels-to-reprint.json` from the
    server once the labels are printed. Both are the floor list.
 
