@@ -141,9 +141,11 @@ step "Applying migrations"
 # `flask db upgrade` succeeding is not proof: if the database was ever stamped
 # ahead of its real schema, upgrade is a no-op and the missing columns stay
 # missing until a page touches one and 500s. This is the post-condition.
+# It also checks the identity sequences: one left behind its table serves every
+# page and fails every insert, so the service must not come back on it either.
 step "Checking the schema against the models"
 if ! ( cd "$REPO" && "$VENV/bin/python" scripts/check_schema.py ); then
-    die "the schema does not match the models (see above); the service was NOT restarted"
+    die "the database is not fit to serve (see above); the service was NOT restarted"
 fi
 
 step "Restarting $SERVICE"

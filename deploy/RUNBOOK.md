@@ -199,6 +199,13 @@ systemctl restart arcade-tracker
 - **The client must be >= the server.** `deploy.sh --check` verifies it and prints
   the PGDG install commands if not. The server is PostgreSQL 17; Debian bookworm
   ships client 15, which `pg_dump` refuses to use against it.
+- `check_schema.py` also checks the **identity sequences** on PostgreSQL. One left
+  behind its table's largest id serves every page and fails every insert with a
+  duplicate key, which is the same shape of fault as the bad stamp: everything
+  present, nothing usable. It happens when rows are restored with explicit ids and
+  the reset is missed, so it is a restore's characteristic parting gift. The script
+  prints the `setval` that repairs each one, and `deploy.sh` will not restart the
+  service while any sequence is behind.
 - The migrations cannot build a schema from nothing — none of them creates the
   base tables. A brand-new database is made with `create_all` and then
   `flask db stamp head`, not `flask db upgrade`.
