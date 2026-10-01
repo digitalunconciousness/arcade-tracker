@@ -93,8 +93,12 @@ def check_encoding(db) -> dict | None:
             "  server_encoding and client_encoding are both SQL_ASCII, so psycopg2\n"
             "  encodes with the 'ascii' codec. One em dash in a note raises\n"
             "  UnicodeEncodeError and the save fails.\n"
-            "\nTo unblock immediately, append to DATABASE_URL in .env:\n"
-            "  ?client_encoding=utf8      (or &client_encoding=utf8 if it already has a ?)\n"
+            "\nTo unblock immediately, as the postgres superuser on the database host:\n"
+            "  ALTER ROLE <app role> SET client_encoding TO 'UTF8';\n"
+            "  then restart the service. Every new connection by that role gets UTF8.\n"
+            "  Reversible with RESET client_encoding, and it does not touch the file\n"
+            "  holding the credential -- editing that by hand is how a password gets\n"
+            "  truncated and the site starts answering 500.\n"
             "\nThe real fix is to convert the database to UTF8 -- see deploy/RUNBOOK.md,\n"
             "'If the database is SQL_ASCII'.")}
     return {"fatal": False, "message": (

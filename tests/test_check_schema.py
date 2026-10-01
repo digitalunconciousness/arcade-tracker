@@ -96,7 +96,18 @@ def test_sql_ascii_both_ends_is_fatal_and_names_the_unblock(check_schema):
     problem = check_schema.check_encoding(_FakeDB("postgresql", "SQL_ASCII", "SQL_ASCII"))
     assert problem is not None and problem["fatal"] is True
     assert "CANNOT STORE NON-ASCII" in problem["message"]
-    assert "client_encoding=utf8" in problem["message"]
+    assert "ALTER ROLE" in problem["message"]
+
+
+def test_the_unblock_does_not_send_anyone_to_edit_the_credential(check_schema):
+    """The first version of this advice said to append client_encoding to
+    DATABASE_URL. Doing that means hand-editing the line holding the database
+    password; on 2026-10-01 that truncated it and took the site down with
+    "password authentication failed", with the old value unrecoverable. The role
+    default has the same effect and never touches the file."""
+    problem = check_schema.check_encoding(_FakeDB("postgresql", "SQL_ASCII", "SQL_ASCII"))
+    assert "DATABASE_URL" not in problem["message"]
+    assert ".env" not in problem["message"]
 
 
 def test_an_overridden_client_warns_but_does_not_block(check_schema):

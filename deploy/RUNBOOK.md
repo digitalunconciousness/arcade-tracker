@@ -253,19 +253,32 @@ cd /opt/arcade-tracker && set -a; . .env; set +a
 psql "$DATABASE_URL" -tAc "SHOW server_encoding"        # SQL_ASCII = this is you
 ```
 
-### Unblock now (one line, no downtime)
+### Unblock now (one statement, no downtime, no file edits)
 
-Append to `DATABASE_URL` in `.env` — `?client_encoding=utf8`, or `&client_encoding=utf8`
-if the URL already has a `?`:
+Set the default on the role instead of in the connection string. On the database host,
+as the `postgres` superuser:
 
 ```bash
-$EDITOR /opt/arcade-tracker/.env
-systemctl restart arcade-tracker
+psql -c "ALTER ROLE arcade_tracker SET client_encoding TO 'UTF8'"
 ```
 
-The server stores the bytes verbatim, so writes and reads round-trip exactly. It leaves
-a database that does no encoding validation and sorts by byte value, so it is a stopgap,
-not the fix.
+```bash
+systemctl restart arcade-tracker          # on the application host
+```
+
+Every new connection by that role gets UTF8, and the server stores the bytes verbatim,
+so writes and reads round-trip exactly — verified on em dash, degree sign and accented
+characters. Undo with `ALTER ROLE arcade_tracker RESET client_encoding`.
+
+**Do not do this by editing `DATABASE_URL` in `.env`.** It works —
+`?client_encoding=utf8` on the URL has the same effect — but it means hand-editing the
+one line that holds the database password, and a hand-edit that truncates it takes the
+site down with `FATAL: password authentication failed` and no way to recover the old
+value. That happened on 2026-10-01. The role default achieves the same thing without
+going near the credential.
+
+Either way this is a stopgap: it leaves a database that does no encoding validation and
+sorts by byte value.
 
 ### The fix: convert to UTF8
 
