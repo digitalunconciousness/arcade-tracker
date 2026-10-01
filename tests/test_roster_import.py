@@ -105,9 +105,37 @@ def test_two_machines_sharing_a_name_both_import_under_their_own_slugs(app):
         pinball=[{"slug": "pin-batman", "name": "Batman", "mfr": "Data East"}],
     )
     result = _import(app, data)
-    assert result["added"] == 1, "the second shares the name, so it is reported"
-    assert any("different barcode" in e or "already in the database" in e
-               for e in result["errors"])
+    assert result["added"] == 2, "different kinds, so both are real machines"
+    assert result["errors"] == []
+    assert _games(app)["Batman"] in ("batman", "pin-batman")
+
+
+def test_a_pinball_imports_alongside_a_video_game_already_in_the_database(app):
+    """The case that matters on the floor: the video game is already a row.
+
+    Seeding the name guard from the whole table used to block the pinball, which
+    would have left the roster's pinball side unimportable.
+    """
+    _import(app, _roster(video_games=[{"slug": "batman", "name": "Batman", "mfr": "Atari"}],
+                         pinball=[]))
+    result = _import(app, _roster(video_games=[],
+                                  pinball=[{"slug": "pin-batman", "name": "Batman",
+                                            "mfr": "Data East"}]))
+    assert result["added"] == 1, result["errors"]
+    assert result["errors"] == []
+    from app.models import Game
+    with app.app_context():
+        assert Game.query.filter_by(barcode="pin-batman").one().genre == "Pinball"
+        assert Game.query.filter_by(barcode="batman").one().genre != "Pinball"
+
+
+def test_the_same_pinball_twice_is_still_reported_not_duplicated(app):
+    """Kind-awareness must not turn the guard off for the case it exists for."""
+    _import(app, _roster(video_games=[], pinball=[{"slug": "pin-batman", "name": "Batman"}]))
+    result = _import(app, _roster(video_games=[],
+                                  pinball=[{"slug": "pin-batman-new", "name": "Batman"}]))
+    assert result["added"] == 0
+    assert any("different barcode" in e for e in result["errors"])
 
 
 def test_retired_machines_land_in_the_warehouse(app):

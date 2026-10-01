@@ -45,6 +45,8 @@ import unicodedata
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from app.utils.helpers import looks_like_pinball as is_pinball  # one definition, shared with the importer
+
 KINDS = ("video_games", "pinball", "retired")
 STRONG, WEAK = 0.85, 0.62      # similarity bands for a proposal
 CLOSE = 0.04                   # two candidates within this of each other are a tie
@@ -72,11 +74,6 @@ def why(tracker_name: str, roster_name: str, score: float) -> str:
     if score >= STRONG:
         return "names are close"
     return "names are only loosely similar -- check this one properly"
-
-
-def is_pinball(genre: str | None, name: str) -> bool:
-    blob = f"{genre or ''} {name}".lower()
-    return "pinball" in blob or "pin-" in blob
 
 
 def load_games(db_url: str) -> list[dict]:
