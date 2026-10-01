@@ -3,8 +3,8 @@
 # installs, migrates, restarts and checks that the site answers. Stops at the
 # first failure and never carries on past a bad step.
 #
-#   sudo deploy/deploy.sh            # deploy
-#   sudo deploy/deploy.sh --check    # preflight only: change nothing
+#   deploy/deploy.sh            # deploy          (run as root)
+#   deploy/deploy.sh --check    # preflight only: change nothing
 #
 # The database is PostgreSQL on another host, so the backup is a pg_dump, not a
 # file copy. DATABASE_URL comes from .env and is never printed.
@@ -32,7 +32,7 @@ die()  { printf '\nFAILED: %s\n' "$*" >&2; exit 1; }
 
 # --- preflight ---------------------------------------------------------------
 step "Preflight"
-[ "$(id -u)" = 0 ] || die "run with sudo: the checkout and the service user are root-owned"
+[ "$(id -u)" = 0 ] || die "run as root (the container has no sudo; pct enter lands you as root)"
 [ -d "$REPO/.git" ] || die "$REPO is not a git checkout"
 [ -f "$REPO/.env" ] || die "$REPO/.env is missing (DATABASE_URL, SECRET_KEY)"
 [ -x "$VENV/bin/python" ] || die "no virtualenv at $VENV -- build it first (see the cut-over runbook)"
