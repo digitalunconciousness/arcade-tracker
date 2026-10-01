@@ -37,10 +37,32 @@ sudo git show origin/master:requirements.txt > /tmp/requirements.txt
 sudo git show origin/master:arcade-tracker.service > /tmp/arcade-tracker.service
 sudo git show origin/master:deploy/listen.conf.example > /tmp/listen.conf
 
-# 3. The service account, and the paths it must own.
+# 3. The service account, and only the paths it must write.
+#
+#    Do NOT chown the whole checkout. Two reasons: git refuses to work in a
+#    repository owned by another user ("detected dubious ownership"), which breaks
+#    the pull below and every git call in deploy.sh; and a web service should not
+#    be able to rewrite the code it is executing. The code stays root-owned and
+#    the service user owns only what it writes -- the same paths the unit lists in
+#    ReadWritePaths.
 sudo adduser --system --group --no-create-home --home /opt/arcade-tracker arcade-tracker
-sudo chown -R arcade-tracker:arcade-tracker /opt/arcade-tracker
-sudo chmod 600 /opt/arcade-tracker/.env        # it holds DATABASE_URL and SECRET_KEY
+
+sudo install -d -o arcade-tracker -g arcade-tracker -m 755 \
+  /opt/arcade-tracker/instance \
+  /opt/arcade-tracker/uploads \
+  /opt/arcade-tracker/logs \
+  /opt/arcade-tracker/static/maintenance_photos \
+  /opt/arcade-tracker/static/profile_pics
+sudo chown -R arcade-tracker:arcade-tracker \
+  /opt/arcade-tracker/instance \
+  /opt/arcade-tracker/uploads \
+  /opt/arcade-tracker/logs \
+  /opt/arcade-tracker/static/maintenance_photos \
+  /opt/arcade-tracker/static/profile_pics
+
+# .env holds DATABASE_URL and SECRET_KEY: root owns it, the service only reads it.
+sudo chown root:arcade-tracker /opt/arcade-tracker/.env
+sudo chmod 640 /opt/arcade-tracker/.env
 
 # 4. The external virtualenv, from the new pinned requirements.
 sudo apt-get update && sudo apt-get install -y python3-venv postgresql-client
@@ -95,6 +117,28 @@ Two untracked files on the server, `create_admin_fix.py` and
 (`scripts/create_admin.py`, and the `requirements.txt` / `requirements-pi.txt`
 split — which keeps `segno`, that `requirements_server.txt` had dropped even
 though the QR label route imports it). Compare them, then delete them.
+
+## If you already chowned the whole checkout
+
+```bash
+# Put the code back under root and leave only the writable paths with the service.
+sudo chown -R root:root /opt/arcade-tracker
+sudo chown root:arcade-tracker /opt/arcade-tracker/.env && sudo chmod 640 /opt/arcade-tracker/.env
+sudo chown -R arcade-tracker:arcade-tracker \
+  /opt/arcade-tracker/instance /opt/arcade-tracker/uploads /opt/arcade-tracker/logs \
+  /opt/arcade-tracker/static/maintenance_photos /opt/arcade-tracker/static/profile_pics
+
+# Confirm git is happy again as root.
+sudo git -C /opt/arcade-tracker status --porcelain
+```
+
+Only if you would rather keep the checkout owned by the service user, tell git so
+explicitly instead — but prefer the above, which also stops the web service being
+able to rewrite its own code:
+
+```bash
+sudo git config --global --add safe.directory /opt/arcade-tracker
+```
 
 ## Rollback
 
