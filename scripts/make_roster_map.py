@@ -21,6 +21,16 @@ The roster and the map both contain the real floor list, so **neither belongs in
 this repository** (GATBOX CLAUDE.md rule 13). Keep them outside it. This script is
 generic and carries no data, so it is committed; its tests use synthetic rosters.
 
+A review does not survive a roster change, and must not
+    Adding an entry can make the matcher *less* certain about a machine it was
+    previously confident about: once the roster held both "California Speed" and
+    "California Speed 2", neither was a clear match for a tracker row called
+    "California Speed 1 of 2", so a confident proposal correctly became a tie and a
+    refusal. That is the matcher working. It does mean a map is only valid for the
+    roster it was generated from: regenerate after any roster change, and carry a
+    previous sign-off forward only where the machine *and* the target slug are
+    identical. Anything else is a fresh decision and goes back to the owner.
+
 Tiers
   exact          name matches and the existing barcode already equals the slug
   slug_differs   name matches, barcode must change
