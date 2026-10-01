@@ -53,3 +53,7 @@ graphify-out/
 .sync_*.db-shm
 .sync_*.db-wal
 .sync_*.db
+
+# Orphan gitlinks: submodules that never had a .gitmodules entry.
+arcade-tracker/
+arcade-tracker.wiki/
