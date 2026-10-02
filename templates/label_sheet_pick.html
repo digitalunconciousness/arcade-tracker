@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}Print labels{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <h1>Print labels</h1>
+    </div>
+
+    {% if without_barcode %}
+    <p style="border: 2px solid #c00; padding: 12px;">
+        <strong>{{ without_barcode|length }} machine{{ '' if without_barcode|length == 1 else 's' }} ha{{ 's' if without_barcode|length == 1 else 've' }} no ID</strong>
+        and cannot be printed. Nothing here invents one: a printed label makes an identifier
+        permanent, and GATBOX has to recognise it. Set each one's roster slug first.
+    </p>
+    {% endif %}
+
+    <form method="get" action="{{ url_for('games.label_sheet') }}">
+        <p>
+            <button type="submit" class="btn btn-primary">Print sheet</button>
+            <button type="button" class="btn btn-secondary" onclick="document.querySelectorAll('.pick').forEach(c => c.checked = true)">Select all</button>
+            <button type="button" class="btn btn-secondary" onclick="document.querySelectorAll('.pick').forEach(c => c.checked = false)">Select none</button>
+            <a href="{{ url_for('games.games_list') }}" class="btn btn-secondary">Back</a>
+        </p>
+
+        <table class="table">
+            <thead><tr><th></th><th>Machine</th><th>ID</th><th>Location</th></tr></thead>
+            <tbody>
+            {% for game in games %}
+            <tr>
+                <td>
+                    {% if game.barcode %}
+                    <input type="checkbox" class="pick" name="ids" value="{{ game.id }}" checked>
+                    {% endif %}
+                </td>
+                <td>{{ game.name }}</td>
+                <td>
+                    {% if game.barcode %}<code>{{ game.barcode }}</code>
+                    {% else %}<a href="{{ url_for('games.edit_game', game_id=game.id) }}">no ID — set one</a>{% endif %}
+                </td>
+                <td>{{ game.location }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </form>
+</div>
+{% endblock %}
