@@ -167,11 +167,25 @@ roster slug, so a code scanned at the cabinet and a code scanned on the bench me
 the same machine. The reviewed map file is the floor list: it lives outside the
 checkout and is never committed.
 
+First get the map into the container. This is two hops, not one: the container has no
+sshd, so nothing can `scp` into it, and `pct` exists only on the Proxmox host. Run
+this from your workstation, substituting the Proxmox host's address:
+
 ```bash
-# 0. The map, copied to the server (it is not in the repo and must not be).
-#    From your workstation:  pct push <ctid> roster-map.json /root/roster-map.json
-#    Keep it at mode 600 and delete it when you are done.
-chmod 600 /root/roster-map.json
+ssh root@<pve-host> 'cat > /root/roster-map.staging.json \
+  && pct push 131 /root/roster-map.staging.json /root/roster-map.json --perms 600 \
+  && pct exec 131 -- sha256sum /root/roster-map.json \
+  && rm -f /root/roster-map.staging.json' < roster-map.json
+```
+
+Check the sha256 it prints against the local file (`sha256sum roster-map.json`). The
+map rewrites machine identities, so a truncated copy is worth catching here rather
+than in the dry run. The staging copy on the Proxmox host is deleted by the same
+command; the container's copy is deleted at the end of this section.
+
+Then, on the server:
+
+```bash
 
 # 1. Dry run. Changes nothing. Read the list it prints: every machine whose
 #    identifier moves, and every entry it is leaving alone with the reason.
@@ -223,6 +237,126 @@ Then, **in this order**:
 3. Delete `/root/roster-map.json` and `/root/labels-to-reprint.json` from the
    server once the labels are printed. Both are the floor list.
 
+## If the database is SQL_ASCII
+
+Symptom: a save fails with `'ascii' codec can't encode character '\u2014'`. The roster
+import hits it on the twelve entries whose notes contain an em dash, and so would any
+maintenance note a person types with one.
+
+Cause: the database was created with encoding `SQL_ASCII`, which happens when it is
+created under a `C` locale with no explicit encoding. psycopg2 then maps the connection
+to Python's `ascii` codec and refuses every character above 127. `check_schema.py`
+reports it, and refuses the deploy when both ends are SQL_ASCII.
+
+```bash
+cd /opt/arcade-tracker && set -a; . .env; set +a
+psql "$DATABASE_URL" -tAc "SHOW server_encoding"        # SQL_ASCII = this is you
+```
+
+### Unblock now (one statement, no downtime, no file edits)
+
+Set the default on the role instead of in the connection string. On the database host,
+as the `postgres` superuser:
+
+```bash
+psql -c "ALTER ROLE arcade_tracker SET client_encoding TO 'UTF8'"
+```
+
+```bash
+systemctl restart arcade-tracker          # on the application host
+```
+
+Every new connection by that role gets UTF8, and the server stores the bytes verbatim,
+so writes and reads round-trip exactly — verified on em dash, degree sign and accented
+characters. Undo with `ALTER ROLE arcade_tracker RESET client_encoding`.
+
+**Do not do this by editing `DATABASE_URL` in `.env`.** It works —
+`?client_encoding=utf8` on the URL has the same effect — but it means hand-editing the
+one line that holds the database password, and a hand-edit that truncates it takes the
+site down with `FATAL: password authentication failed` and no way to recover the old
+value. That happened on 2026-10-01. The role default achieves the same thing without
+going near the credential.
+
+Either way this is a stopgap: it leaves a database that does no encoding validation and
+sorts by byte value.
+
+### The fix: convert to UTF8
+
+The dataset is small and the downtime is a minute. Do it before the database grows, and
+before GATBOX starts posting maintenance text into it — a technician's em dash would
+otherwise fail an ingest.
+
+**This spans two containers.** Renaming and creating a database needs a superuser, and
+the application role is not one, so steps 2 and 3 run on the PostgreSQL host as the
+`postgres` user. Everything else runs on the application host.
+
+**On the application host** — stop the service and dump:
+
+```bash
+cd /opt/arcade-tracker && set -a; . .env; set +a
+systemctl stop arcade-tracker
+pg_dump --no-owner --no-privileges "$DATABASE_URL" > /root/pre-utf8.sql
+wc -c /root/pre-utf8.sql
+```
+
+`--no-owner --no-privileges` so it restores cleanly into a fresh database. Check the byte
+count: a few hundred bytes means the dump caught nothing and you must stop here.
+
+**On the PostgreSQL host**, as the `postgres` user — rename the old one, create the new:
+
+```bash
+psql -c "ALTER DATABASE arcade_tracker RENAME TO arcade_tracker_sqlascii"
+```
+
+```bash
+psql -c "CREATE DATABASE arcade_tracker ENCODING 'UTF8' LC_COLLATE 'C' LC_CTYPE 'C' TEMPLATE template0 OWNER arcade_tracker"
+```
+
+The rename needs no open connections, which is why the service is stopped first. `C`
+collation with `UTF8` encoding is correct and needs no locales installed on the database
+host — it sorts by byte value. `TEMPLATE template0` is required in order to choose an
+encoding at all. `OWNER arcade_tracker` matters: since PostgreSQL 15 the `public` schema
+belongs to the database owner, so the application role can restore into it without being
+a superuser. Verified against 18.6 with a non-superuser owner.
+
+**Back on the application host** — restore and prove it before starting:
+
+```bash
+psql "$DATABASE_URL" -q -f /root/pre-utf8.sql
+```
+
+If that errors on an invalid byte sequence, the old database held text in some other
+encoding. Stop and work out what it was; do not force it.
+
+```bash
+psql "$DATABASE_URL" -tAc "SHOW server_encoding"
+psql "$DATABASE_URL" -tAc "SELECT count(*) FROM game"
+/opt/arcade-tracker-venv/bin/python scripts/check_schema.py
+systemctl start arcade-tracker
+```
+
+Expect `UTF8`, the same machine count as before, and no encoding complaint.
+
+Afterwards, undo whichever stopgap was in place — on the PostgreSQL host as `postgres`:
+
+```bash
+psql -c "ALTER ROLE arcade_tracker RESET client_encoding"
+```
+
+A UTF8 database gives a UTF8 connection by default, so the override is no longer doing
+anything and leaving it only hides the next problem.
+
+Drop the old database once you are satisfied, not before — on the PostgreSQL host:
+
+```bash
+psql -c "DROP DATABASE arcade_tracker_sqlascii"
+```
+
+Rehearsed on a throwaway cluster: an em dash already stored in the SQL_ASCII database
+survives the dump and restore byte-for-byte, new non-ASCII inserts work afterwards with
+no client override, and a non-superuser database owner can create tables and write
+non-ASCII in a database it owns.
+
 ## Rollback
 
 ```bash
@@ -262,6 +396,10 @@ systemctl restart arcade-tracker
 - **The client must be >= the server.** `deploy.sh --check` verifies it and prints
   the PGDG install commands if not. The server is PostgreSQL 17; Debian bookworm
   ships client 15, which `pg_dump` refuses to use against it.
+- `check_schema.py` also checks the **database encoding**. A SQL_ASCII database stores
+  no character above 127 — psycopg2 uses Python's `ascii` codec — so one em dash in a
+  machine note fails the save. It refuses the deploy when both ends are SQL_ASCII and
+  warns when only the client is overridden. See "If the database is SQL_ASCII".
 - `check_schema.py` also checks the **identity sequences** on PostgreSQL. One left
   behind its table's largest id serves every page and fails every insert with a
   duplicate key, which is the same shape of fault as the bad stamp: everything

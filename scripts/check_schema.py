@@ -8,6 +8,11 @@ Written after `flask db stamp head` was run against a database whose schema was
 `UndefinedColumn`. Checking that all the expected tables existed was not enough:
 the tables were all there, and a column was not.
 
+It also checks the database's encoding. A SQL_ASCII database accepts no character
+outside ASCII at all: psycopg2 maps the connection to Python's "ascii" codec and an
+em dash in a machine note raises UnicodeEncodeError, which the app reports as a
+failed save. Same shape of fault again -- everything present, not usable.
+
 It also checks the identity sequences on PostgreSQL. A sequence left behind its
 table's maximum id -- which is what happens when rows are restored with explicit
 ids and the reset is missed -- lets every read work and makes the next insert fail
@@ -62,6 +67,45 @@ PREDECESSOR = {
 ORDER = ["5a026e6869ec", "ebead5244def", "3e5463d29981", "e7582856b8aa",
          "8dcea35845db", "b547f37c117c", "7a61de1d1679", "c1a2b3d4e5f6",
          "f1c2d3e4a5b6"]
+
+
+def check_encoding(db) -> dict | None:
+    """Whether this database can store text the app will be given.
+
+    SQL_ASCII means "no encoding conversion and no validation". With the connection
+    also at SQL_ASCII, psycopg2 encodes parameters with Python's "ascii" codec, so a
+    single em dash in a machine note raises UnicodeEncodeError and the save fails.
+    Forcing client_encoding=utf8 makes writes work -- the server stores the bytes
+    verbatim -- but leaves a database with no validation and byte-order collation,
+    so it is reported rather than accepted silently.
+
+    Returns None when all is well, else {"fatal": bool, "message": str}.
+    """
+    if db.engine.dialect.name != "postgresql":
+        return None
+    server = db.session.execute(sa.text("SHOW server_encoding")).scalar()
+    client = db.session.execute(sa.text("SHOW client_encoding")).scalar()
+    if (server or "").upper() != "SQL_ASCII":
+        return None
+    if (client or "").upper() == "SQL_ASCII":
+        return {"fatal": True, "message": (
+            "\nTHIS DATABASE CANNOT STORE NON-ASCII TEXT\n"
+            "  server_encoding and client_encoding are both SQL_ASCII, so psycopg2\n"
+            "  encodes with the 'ascii' codec. One em dash in a note raises\n"
+            "  UnicodeEncodeError and the save fails.\n"
+            "\nTo unblock immediately, as the postgres superuser on the database host:\n"
+            "  ALTER ROLE <app role> SET client_encoding TO 'UTF8';\n"
+            "  then restart the service. Every new connection by that role gets UTF8.\n"
+            "  Reversible with RESET client_encoding, and it does not touch the file\n"
+            "  holding the credential -- editing that by hand is how a password gets\n"
+            "  truncated and the site starts answering 500.\n"
+            "\nThe real fix is to convert the database to UTF8 -- see deploy/RUNBOOK.md,\n"
+            "'If the database is SQL_ASCII'.")}
+    return {"fatal": False, "message": (
+        f"\nwarning: server_encoding is SQL_ASCII (client_encoding is {client}).\n"
+        f"  Writes work because the client is overridden, but the database does no\n"
+        f"  validation and sorts by byte value. Convert it to UTF8 when convenient --\n"
+        f"  see deploy/RUNBOOK.md, 'If the database is SQL_ASCII'.")}
 
 
 def check_sequences(db, live_tables) -> list[tuple[str, str, str, int, int]]:
@@ -134,6 +178,7 @@ def main() -> int:
                 if column.name not in live:
                     missing_columns.append((name, column.name))
 
+        encoding_problem = check_encoding(db)
         stale_sequences = check_sequences(db, live_tables)
 
         stamped = None
@@ -143,7 +188,11 @@ def main() -> int:
             ).scalar()
         print("alembic  :", stamped or "NOT STAMPED (no alembic_version row)")
 
-        if not missing_tables and not missing_columns and not stale_sequences:
+        if encoding_problem:
+            print(encoding_problem["message"])
+
+        if (not missing_tables and not missing_columns and not stale_sequences
+                and not (encoding_problem or {}).get("fatal")):
             if not args.quiet:
                 print("schema   : matches the models")
                 if stamped != ORDER[-1]:
@@ -152,8 +201,9 @@ def main() -> int:
                     print("`db upgrade` may try to re-apply changes that already exist.")
             return 0
 
-        if stale_sequences and not missing_tables and not missing_columns:
-            report_sequences(stale_sequences)
+        if not missing_tables and not missing_columns:
+            if stale_sequences:
+                report_sequences(stale_sequences)
             return 1
 
         print("\nSCHEMA IS BEHIND THE MODELS")
