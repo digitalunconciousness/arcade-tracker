@@ -1,0 +1,17 @@
+{
+  "contract": "v1",
+  "machines": [
+    {
+      "slug": "widget-wars",
+      "name": "Widget Wars",
+      "status": "Working",
+      "location": "Floor"
+    },
+    {
+      "slug": "pin-sprocket",
+      "name": "Sprocket",
+      "status": "Needs Repair",
+      "location": "Floor"
+    }
+  ]
+}

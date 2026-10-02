@@ -33,6 +33,18 @@ class MaintenanceRecord(db.Model):
     technician: str | None = db.Column(db.String(50), nullable=True)
     photos: str | None = db.Column(db.Text, nullable=True)
 
+    # Where this order came from, and how not to create it twice.
+    #
+    # external_id is the id the originating system gave it -- for GATBOX, the uid from
+    # contract/v1. Unique, so the same order pushed twice is recognised rather than
+    # duplicated, and nullable because an order raised here in the app has no external id.
+    external_id: str | None = db.Column(db.String(64), unique=True, nullable=True)
+    source: str = db.Column(db.String(20), default="web")
+    # The metered session that prompted it, when there was one.
+    rail_session_id: int | None = db.Column(
+        db.Integer, db.ForeignKey("rail_session.id"), nullable=True
+    )
+
     # Relationships
     work_logs = db.relationship(
         "WorkLog",
