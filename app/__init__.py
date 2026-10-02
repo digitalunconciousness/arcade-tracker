@@ -173,6 +173,31 @@ def _register_context_processors(app: Flask) -> None:
         return {"today": _date.today, "get_cloud_url": get_cloud_url}
 
 
+# Everything this application loads is served from this application. There is one
+# Content-Security-Policy in this codebase and it is the one below, sent from the
+# after_request that actually runs.
+#
+# 'unsafe-inline' is in script-src and style-src because the templates are full of
+# inline <script> blocks and onclick= handlers -- 32 and 30 files respectively. That
+# weakens the policy against injected script considerably, and pretending otherwise
+# would be worse than saying it: what this policy does buy is that no page can load
+# code, styles, fonts or images from anywhere but here, which is the rule that keeps
+# being broken by accident. Removing 'unsafe-inline' means moving every inline handler
+# into a served .js file, which is a real piece of work and a separate one.
+CSP = (
+    "default-src 'self'; "
+    "script-src 'self' 'unsafe-inline'; "
+    "style-src 'self' 'unsafe-inline'; "
+    "img-src 'self' data:; "          # data: for the QR labels, which are inline SVG
+    "font-src 'self'; "
+    "connect-src 'self'; "
+    "object-src 'none'; "
+    "base-uri 'self'; "
+    "form-action 'self'; "
+    "frame-ancestors 'self'"
+)
+
+
 def _register_after_request(app: Flask) -> None:
     """Add security headers to every response."""
 
@@ -181,4 +206,5 @@ def _register_after_request(app: Flask) -> None:
         response.headers["X-Frame-Options"] = "SAMEORIGIN"
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Content-Security-Policy"] = CSP
         return response

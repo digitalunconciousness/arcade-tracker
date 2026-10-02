@@ -1,4 +1,28 @@
-"""Security middleware: rate limiting, headers, and logging setup."""
+"""Security middleware: rate limiting and logging setup.
+
+**Nothing calls init_security().** It is kept because the security logging and the
+per-endpoint rate limiting in it are wanted eventually, but do not simply wire it up:
+``app.config.from_object(SecurityConfig)`` would also apply three settings that
+contradict what ``app/__init__.py`` deliberately sets, and one of them takes the site
+down for anyone on the LAN.
+
+  SESSION_COOKIE_SECURE = True        the site is reachable over plain HTTP on the LAN
+                                      (192.168.x:5000). A secure-only session cookie is
+                                      never sent over HTTP, so nobody can log in there.
+  MAX_CONTENT_LENGTH = 16 MB          the application allows 50 MB; maintenance photos
+  PERMANENT_SESSION_LIFETIME = 30 min the application uses 30 days
+
+It would also register a second Flask-Limiter against the same app, alongside the one
+in app/extensions.
+
+Adopting this module means reconciling those settings first, deciding whether loopback
+and LAN should differ, and testing a login over HTTP on the LAN afterwards. It is a
+piece of work, not a one-line call.
+
+The Content-Security-Policy that used to live here has been removed: it was dead (this
+after_request was never registered) and it allowed cdn.jsdelivr.net. There is now one
+policy, in app/__init__.py, and it allows no external origin at all.
+"""
 
 from flask import Flask, request
 from flask_limiter import Limiter
@@ -42,21 +66,6 @@ def init_security(app: Flask) -> Limiter:
             "/skeeball/api/"
         ),
     )
-
-    # Security headers
-    @app.after_request
-    def add_security_headers(response):
-        response.headers["X-Frame-Options"] = "SAMEORIGIN"
-        response.headers["X-Content-Type-Options"] = "nosniff"
-        response.headers["X-XSS-Protection"] = "1; mode=block"
-        response.headers["Content-Security-Policy"] = (
-            "default-src 'self'; "
-            "script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; "
-            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
-            "img-src 'self' data: https:; "
-            "font-src 'self' https://cdn.jsdelivr.net;"
-        )
-        return response
 
     app.logger.info(
         "✅ Security middleware and rate limiting initialized."

@@ -4,8 +4,50 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GPIO Testing - Skeeball</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
+    /* This page used to pull Bootstrap 5.1.3 from cdn.jsdelivr.net, which breaks the
+     * house rule against CDN assets -- and for a bench diagnostic page that is the worst
+     * place to depend on the internet, because you reach for it when something is already
+     * wrong. It used 27 classes, half of which this file already defined, so the rest are
+     * below. Colours are Bootstrap 5's own values, so the page looks as it did.
+     *
+     * If this page ever grows into something that wants real Bootstrap, vendor it into
+     * static/ rather than putting the CDN back. */
+    *, *::before, *::after { box-sizing: border-box; }
+    .container { width: 100%; margin-right: auto; margin-left: auto; padding: 0 12px; }
+    .row { display: flex; flex-wrap: wrap; margin: 0 -12px; }
+    .col { flex: 1 0 0%; padding: 0 12px; }
+    .d-flex { display: flex !important; }
+    .justify-content-between { justify-content: space-between !important; }
+    .align-items-center { align-items: center !important; }
+    .text-center { text-align: center !important; }
+    .text-muted { color: #9aa0a6 !important; }          /* lightened: this page is dark */
+    .mb-0 { margin-bottom: 0 !important; }
+    .mt-2 { margin-top: 0.5rem !important; }
+    .mt-3 { margin-top: 1rem !important; }
+    .mt-4 { margin-top: 1.5rem !important; }
+    .btn {
+        display: inline-block; font-weight: 400; line-height: 1.5; text-align: center;
+        vertical-align: middle; cursor: pointer; user-select: none;
+        border: 1px solid transparent; padding: 0.375rem 0.75rem; font-size: 1rem;
+        border-radius: 0.25rem; color: #fff; background-color: transparent;
+        transition: color .15s ease-in-out, background-color .15s ease-in-out;
+    }
+    .btn:disabled { opacity: 0.65; cursor: not-allowed; }
+    .btn-sm { padding: 0.25rem 0.5rem; font-size: 0.875rem; border-radius: 0.2rem; }
+    .btn-primary   { background-color: #0d6efd; border-color: #0d6efd; }
+    .btn-secondary { background-color: #6c757d; border-color: #6c757d; }
+    .btn-success   { background-color: #198754; border-color: #198754; }
+    .btn-danger    { background-color: #dc3545; border-color: #dc3545; }
+    .btn-warning   { background-color: #ffc107; border-color: #ffc107; color: #000; }
+    .btn-info      { background-color: #0dcaf0; border-color: #0dcaf0; color: #000; }
+    .btn-outline-light { border-color: #f8f9fa; color: #f8f9fa; }
+    .btn-outline-light:hover { background-color: #f8f9fa; color: #000; }
+    .badge {
+        display: inline-block; padding: 0.35em 0.65em; font-size: 0.75em;
+        font-weight: 700; line-height: 1; text-align: center; white-space: nowrap;
+        vertical-align: baseline; border-radius: 0.25rem;
+    }
         body { background-color: #1a1a2e; color: #eee; padding: 20px; }
         .container { max-width: 900px; }
         .status-card { background: #16213e; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
