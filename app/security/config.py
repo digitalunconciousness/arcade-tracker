@@ -30,20 +30,14 @@ class SecurityConfig:
     # File Upload Security
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16 MB
 
-    # Security Headers
-    SECURITY_HEADERS = {
-        "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
-        "X-Content-Type-Options": "nosniff",
-        "X-Frame-Options": "SAMEORIGIN",
-        "X-XSS-Protection": "1; mode=block",
-        "Content-Security-Policy": (
-            "default-src 'self'; "
-            "script-src 'self' https://cdnjs.cloudflare.com; "
-            "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; "
-            "img-src 'self' data: https:; "
-            "font-src 'self' https://cdnjs.cloudflare.com; "
-        ),
-    }
+    # Security headers are NOT defined here. They are sent from
+    # app/__init__.py:_register_after_request, which is the after_request that is
+    # actually registered. This class held a second Content-Security-Policy that
+    # nothing read -- it allowed cdnjs.cloudflare.com, which this application has
+    # never used, and omitted 'unsafe-inline' from script-src, so sending it would
+    # have broken every page with an inline handler. Two dead policies naming two
+    # different CDNs is how nobody notices the live answer is "no policy at all".
+    # Keep one policy, in the place that sends it.
 
     # HTTPS / TLS Configuration
     FORCE_HTTPS = os.getenv("FLASK_ENV") == "production"
