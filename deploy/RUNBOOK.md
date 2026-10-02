@@ -286,49 +286,76 @@ The dataset is small and the downtime is a minute. Do it before the database gro
 before GATBOX starts posting maintenance text into it — a technician's em dash would
 otherwise fail an ingest.
 
+**This spans two containers.** Renaming and creating a database needs a superuser, and
+the application role is not one, so steps 2 and 3 run on the PostgreSQL host as the
+`postgres` user. Everything else runs on the application host.
+
+**On the application host** — stop the service and dump:
+
 ```bash
 cd /opt/arcade-tracker && set -a; . .env; set +a
-systemctl stop arcade-tracker                       # nothing may write during this
-
-# 1. Dump. --no-owner/--no-privileges so it restores into a fresh database cleanly.
+systemctl stop arcade-tracker
 pg_dump --no-owner --no-privileges "$DATABASE_URL" > /root/pre-utf8.sql
-wc -c /root/pre-utf8.sql                            # sanity: not a few hundred bytes
+wc -c /root/pre-utf8.sql
+```
 
-# 2. Keep the old database rather than dropping it. Needs no connections, so the
-#    service must be stopped (step 0) -- psql itself connects to postgres, not to it.
-psql "${DATABASE_URL%/*}/postgres" -c \
-  "ALTER DATABASE arcade_tracker RENAME TO arcade_tracker_sqlascii"
+`--no-owner --no-privileges` so it restores cleanly into a fresh database. Check the byte
+count: a few hundred bytes means the dump caught nothing and you must stop here.
 
-# 3. UTF8 with the C collation: correct, and it needs no locales installed on the
-#    database server. TEMPLATE template0 is required to choose an encoding.
-psql "${DATABASE_URL%/*}/postgres" -c \
-  "CREATE DATABASE arcade_tracker ENCODING 'UTF8' LC_COLLATE 'C' LC_CTYPE 'C' \
-   TEMPLATE template0 OWNER arcade_tracker"
+**On the PostgreSQL host**, as the `postgres` user — rename the old one, create the new:
 
-# 4. Restore. If this errors on invalid byte sequences, the old database held text in
-#    some other encoding -- stop and work out what, do not force it.
+```bash
+psql -c "ALTER DATABASE arcade_tracker RENAME TO arcade_tracker_sqlascii"
+```
+
+```bash
+psql -c "CREATE DATABASE arcade_tracker ENCODING 'UTF8' LC_COLLATE 'C' LC_CTYPE 'C' TEMPLATE template0 OWNER arcade_tracker"
+```
+
+The rename needs no open connections, which is why the service is stopped first. `C`
+collation with `UTF8` encoding is correct and needs no locales installed on the database
+host — it sorts by byte value. `TEMPLATE template0` is required in order to choose an
+encoding at all. `OWNER arcade_tracker` matters: since PostgreSQL 15 the `public` schema
+belongs to the database owner, so the application role can restore into it without being
+a superuser. Verified against 18.6 with a non-superuser owner.
+
+**Back on the application host** — restore and prove it before starting:
+
+```bash
 psql "$DATABASE_URL" -q -f /root/pre-utf8.sql
+```
 
-# 5. Prove it before starting the service.
-psql "$DATABASE_URL" -tAc "SHOW server_encoding"                      # UTF8
-psql "$DATABASE_URL" -tAc "SELECT count(*) FROM game"                 # the same count as before
-/opt/arcade-tracker-venv/bin/python scripts/check_schema.py           # silent on encoding now
+If that errors on an invalid byte sequence, the old database held text in some other
+encoding. Stop and work out what it was; do not force it.
 
+```bash
+psql "$DATABASE_URL" -tAc "SHOW server_encoding"
+psql "$DATABASE_URL" -tAc "SELECT count(*) FROM game"
+/opt/arcade-tracker-venv/bin/python scripts/check_schema.py
 systemctl start arcade-tracker
 ```
 
-Then remove `?client_encoding=utf8` from `DATABASE_URL` if you added it — a UTF8
-database gives a UTF8 connection by default.
+Expect `UTF8`, the same machine count as before, and no encoding complaint.
 
-Drop `arcade_tracker_sqlascii` once you are satisfied, not before:
+Afterwards, undo whichever stopgap was in place — on the PostgreSQL host as `postgres`:
 
 ```bash
-psql "${DATABASE_URL%/*}/postgres" -c "DROP DATABASE arcade_tracker_sqlascii"
+psql -c "ALTER ROLE arcade_tracker RESET client_encoding"
+```
+
+A UTF8 database gives a UTF8 connection by default, so the override is no longer doing
+anything and leaving it only hides the next problem.
+
+Drop the old database once you are satisfied, not before — on the PostgreSQL host:
+
+```bash
+psql -c "DROP DATABASE arcade_tracker_sqlascii"
 ```
 
 Rehearsed on a throwaway cluster: an em dash already stored in the SQL_ASCII database
-survives the dump and restore byte-for-byte, and new non-ASCII inserts work afterwards
-with no client override.
+survives the dump and restore byte-for-byte, new non-ASCII inserts work afterwards with
+no client override, and a non-superuser database owner can create tables and write
+non-ASCII in a database it owns.
 
 ## Rollback
 
