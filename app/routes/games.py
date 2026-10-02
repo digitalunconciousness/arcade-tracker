@@ -701,6 +701,75 @@ def resolve_barcode(code):
     return redirect(url_for("maintenance.game_maintenance", game_id=game.id))
 
 
+def _label_url(game) -> str:
+    """What a label's QR encodes. One definition, so the sheet and the single label
+    can never disagree -- a label that encodes a different URL from its neighbour is
+    not something you find out until you scan it."""
+    base = (current_app.config.get("BASE_URL") or request.host_url).rstrip("/")
+    return f"{base}/g/{game.barcode}"
+
+
+@games_bp.route("/labels")
+@login_required
+def label_sheet_pick():
+    """Choose which machines go on a label sheet.
+
+    Printing 29 labels one page at a time is the kind of chore people skip, and a
+    machine without a current label is a machine GATBOX and the scan kiosk cannot
+    identify -- so the picker exists to make the whole floor printable in one go.
+    """
+    games = Game.query.order_by(Game.name).all()
+    return render_template(
+        "label_sheet_pick.html",
+        games=games,
+        without_barcode=[g for g in games if not g.barcode],
+    )
+
+
+@games_bp.route("/labels/sheet")
+@login_required
+def label_sheet():
+    """A printable sheet of QR labels, three to a row.
+
+    Unlike the single-label page this never backfills a missing barcode. Minting an
+    identifier is a decision, and a decision taken 29 at a time behind a print button
+    is not one anybody reviewed -- so machines without one are listed and skipped.
+    """
+    import segno
+
+    # The picker submits one "ids" field per checkbox (?ids=1&ids=2); a hand-written
+    # link or one built from the reprint list is more naturally ?ids=1,2,3. Accept both,
+    # because the first version of this read only the first value and silently printed
+    # one label when asked for twenty-nine.
+    parts = [part for value in request.args.getlist("ids")
+             for part in value.split(",") if part.strip()]
+    query = Game.query
+    if request.args.get("ids") is not None:
+        try:
+            ids = [int(part) for part in parts]
+        except ValueError:
+            flash("That label sheet link is malformed; pick the machines again.", "error")
+            return redirect(url_for("games.label_sheet_pick"))
+        if not ids:
+            flash("No machines selected.", "error")
+            return redirect(url_for("games.label_sheet_pick"))
+        query = query.filter(Game.id.in_(ids))
+
+    selected = query.order_by(Game.name).all()
+    skipped = [g for g in selected if not g.barcode]
+    labels = [
+        {"game": g, "url": _label_url(g),
+         "qr": segno.make(_label_url(g), error="m").svg_data_uri(scale=4, border=2)}
+        for g in selected if g.barcode
+    ]
+    if not labels:
+        flash("None of those machines has an ID yet, so there is nothing to print. "
+              "Give each one its roster slug first.", "error")
+        return redirect(url_for("games.label_sheet_pick"))
+
+    return render_template("label_sheet.html", labels=labels, skipped=skipped)
+
+
 @games_bp.route("/game/<int:game_id>/label")
 @login_required
 def game_label(game_id):
@@ -726,8 +795,7 @@ def game_label(game_id):
             "warning",
         )
 
-    base_url = (current_app.config.get("BASE_URL") or request.host_url).rstrip("/")
-    label_url = f"{base_url}/g/{game.barcode}"
+    label_url = _label_url(game)
     qr_data_uri = segno.make(label_url, error="m").svg_data_uri(scale=6, border=2)
 
     return render_template(

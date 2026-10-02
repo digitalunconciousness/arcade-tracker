@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}Label sheet — {{ labels|length }} machine{{ '' if labels|length == 1 else 's' }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="page-header no-print">
+        <h1>Label sheet</h1>
+        <div>
+            <button onclick="window.print()" class="btn btn-primary">Print {{ labels|length }} label{{ '' if labels|length == 1 else 's' }}</button>
+            <a href="{{ url_for('games.label_sheet_pick') }}" class="btn btn-secondary">Choose again</a>
+        </div>
+    </div>
+
+    {% if skipped %}
+    <div class="no-print" style="border: 2px solid #c00; padding: 12px; margin-bottom: 16px;">
+        <strong>{{ skipped|length }} machine{{ '' if skipped|length == 1 else 's' }} skipped: no ID yet.</strong>
+        Give each one its roster slug first — nothing here invents an identifier, because a
+        printed label makes it permanent.
+        <ul style="margin: 8px 0 0;">
+            {% for game in skipped %}
+            <li><a href="{{ url_for('games.edit_game', game_id=game.id) }}">{{ game.name }}</a></li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    <p class="no-print" style="opacity: 0.8; font-size: 0.9em;">
+        Each QR opens that machine's maintenance page on a phone, and sets the machine on
+        GATBOX when read by the bench scanner. Check the link under one label before printing
+        the sheet: it must be the address that works from outside the building.
+    </p>
+
+    <div class="label-sheet">
+        {% for label in labels %}
+        <div class="label-card">
+            <img src="{{ label.qr }}" alt="QR code for {{ label.game.name }}" class="label-qr">
+            <div class="label-name">{{ label.game.name }}</div>
+            {% if label.game.manufacturer %}<div class="label-mfr">{{ label.game.manufacturer }}</div>{% endif %}
+            <div class="label-code">{{ label.game.barcode }}</div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<style>
+    .label-sheet {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+        align-items: start;
+    }
+    .label-card {
+        text-align: center;
+        padding: 10px 8px;
+        border: 1px dashed #999;
+        border-radius: 6px;
+        background: #fff;
+        color: #000;
+        /* A label split across two sheets of paper is wasted paper and a reprint. */
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+    .label-qr { width: 100%; max-width: 150px; height: auto; display: block; margin: 0 auto 6px; }
+    .label-name { font-size: 1em; font-weight: bold; line-height: 1.2; }
+    .label-mfr { font-size: 0.8em; }
+    .label-code { font-family: monospace; font-size: 0.7em; margin-top: 3px; opacity: 0.7; word-break: break-all; }
+
+    @media print {
+        .no-print, .nav, .theme-toggle { display: none !important; }
+        body, .container { background: #fff !important; }
+        .container { max-width: none; padding: 0; }
+        /* Dashed guides are for cutting, so they must survive the printer. */
+        .label-card { border: 1px dashed #000; }
+    }
+    @page { margin: 10mm; }
+</style>
+{% endblock %}
