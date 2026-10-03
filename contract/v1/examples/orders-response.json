@@ -1,0 +1,25 @@
+{
+  "contract": "v1",
+  "machine": "widget-wars",
+  "status": "open",
+  "orders": [
+    {
+      "id": 41,
+      "external_id": "9f2c7b1e4a6d48f0b3c5e7a9d1f2b4c6",
+      "issue": "Rail peaked at 6.1 V under load - check the regulator",
+      "priority": "High",
+      "status": "Open",
+      "source": "gatbox",
+      "reported": 1790000100.0
+    },
+    {
+      "id": 12,
+      "external_id": null,
+      "issue": "Coin door latch sticks",
+      "priority": "Low",
+      "status": "Open",
+      "source": "web",
+      "reported": 1789900000.0
+    }
+  ]
+}

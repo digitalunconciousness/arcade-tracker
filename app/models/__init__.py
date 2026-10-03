@@ -5,6 +5,7 @@ Usage::
     from app.models import User, Game, PlayRecord
 """
 
+from app.models.device import Device
 from app.models.game import Game, PlayRecord
 from app.models.inventory import (
     InventoryItem,
@@ -16,6 +17,7 @@ from app.models.inventory import (
     item_game_compatibility,
 )
 from app.models.maintenance import MaintenanceRecord, WorkLog
+from app.models.rail import Reading, RailSession
 from app.models.user import User
 
 __all__ = [
@@ -31,4 +33,7 @@ __all__ = [
     "InventoryRequest",
     "InventoryRequestHistory",
     "item_game_compatibility",
+    "Device",
+    "RailSession",
+    "Reading",
 ]

@@ -1,0 +1,113 @@
+{
+  "contract": "v1",
+  "device": "a1b2c3d4e5f6",
+  "items": [
+    {
+      "kind": "rail_session",
+      "uid": "90410581d446ef1d8aaf702a9fc2e866",
+      "file": "rail_20260925_021402.csv",
+      "machine": "widget-wars",
+      "started": 1790000000.0,
+      "ended": 1790000001.5,
+      "duration_s": 1.5,
+      "samples": 4,
+      "rate": 2.0,
+      "timebase": "monotonic uptime",
+      "clock": {
+        "source": "rtc",
+        "ntp_from": 1789999000.0
+      },
+      "profile": {
+        "id": "rail-5v",
+        "label": "+5V rail",
+        "kind": "rail",
+        "rail": "+5V"
+      },
+      "mode": "VDC",
+      "window": {
+        "lo": 4.75,
+        "hi": 5.25,
+        "unit": "V",
+        "source": "machine:widget-wars"
+      },
+      "alarm_hi": 5.775,
+      "powered": {
+        "mean": 5.558,
+        "min": 5.012,
+        "max": 6.104,
+        "readings": 2,
+        "in_window_pct": 50.0
+      },
+      "verdict": {
+        "state": "over",
+        "detail": "1 time above 5.775 V",
+        "suspect": 0
+      },
+      "counts": {
+        "over_voltage": 1,
+        "excursions": 1,
+        "power_cycles": 1,
+        "gaps": 0,
+        "ol_events": 1,
+        "marks": 0,
+        "suspect": 0
+      },
+      "readings": [
+        {
+          "uid": "369828bf88a973c7e85fc6f55ccdd429",
+          "epoch": 1790000000.0,
+          "up": 100.0,
+          "v": 5.012,
+          "raw": "5.012",
+          "unit": "V",
+          "mode": "VDC",
+          "alarm": "ok",
+          "ol": false
+        },
+        {
+          "uid": "bd19a578580f280d0b04c205b9ba93b0",
+          "epoch": 1790000000.5,
+          "up": 100.5,
+          "v": 0.004,
+          "raw": "4.0",
+          "unit": "mV",
+          "mode": "VDC",
+          "alarm": null,
+          "ol": false
+        },
+        {
+          "uid": "add1504522ff87c3667149e6b6e282e4",
+          "epoch": 1790000001.0,
+          "up": 101.0,
+          "v": 6.104,
+          "raw": "6.104",
+          "unit": "V",
+          "mode": "VDC",
+          "alarm": "spike",
+          "ol": false
+        },
+        {
+          "uid": "0140b6fc435ecfab04afd98809100709",
+          "epoch": 1790000001.5,
+          "up": 101.5,
+          "v": null,
+          "raw": "inf",
+          "unit": "TΩ",
+          "mode": "VDC",
+          "alarm": null,
+          "ol": true
+        }
+      ]
+    },
+    {
+      "kind": "order",
+      "uid": "9f2c7b1e4a6d48f0b3c5e7a9d1f2b4c6",
+      "machine": "widget-wars",
+      "rail_session": "90410581d446ef1d8aaf702a9fc2e866",
+      "created": 1790000100.0,
+      "issue": "Rail peaked at 6.1 V under load - check the regulator",
+      "priority": "High",
+      "technician": "bench"
+    }
+  ]
+}

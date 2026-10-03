@@ -1,0 +1,20 @@
+{
+  "contract": "v1",
+  "received": 2,
+  "results": [
+    {
+      "uid": "90410581d446ef1d8aaf702a9fc2e866",
+      "kind": "rail_session",
+      "status": "duplicate",
+      "readings": {
+        "created": 0,
+        "duplicate": 4
+      }
+    },
+    {
+      "uid": "9f2c7b1e4a6d48f0b3c5e7a9d1f2b4c6",
+      "kind": "order",
+      "status": "duplicate"
+    }
+  ]
+}
