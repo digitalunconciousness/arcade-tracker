@@ -1,6 +1,11 @@
 {% extends "base.html" %}
 
 {% block content %}
+{% if game.barcode %}
+<p style="color: var(--text-secondary);">
+  <a href="{{ url_for('rails.machine', slug=game.barcode) }}">Rail history for this machine →</a>
+</p>
+{% endif %}
 <h1> Maintenance Record for {{ game.name }}</h1>
 
 <form method="POST">

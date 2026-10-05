@@ -16,6 +16,10 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
+# Timestamps are stored naive, holding UTC. The columns are TIMESTAMP WITHOUT TIME
+# ZONE, and an aware datetime would be converted to the database session's own zone
+# and have its offset dropped -- storing a different instant depending on a server
+# setting. See rails._epoch, which reads them back on that understanding.
 from app.extensions import db
 
 # verdict.state, decided by GATBOX. None when the profile has no window at all -- a bench
@@ -85,7 +89,7 @@ class RailSession(db.Model):
     suspect: int = db.Column(db.Integer, default=0)
 
     received: datetime = db.Column(
-        db.DateTime, default=lambda: datetime.now(timezone.utc)
+        db.DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None)
     )
 
     # Relationships

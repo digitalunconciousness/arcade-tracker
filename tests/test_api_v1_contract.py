@@ -393,6 +393,29 @@ def test_orders_for_an_unknown_machine_is_404(client, device):
     assert "nope" in response.get_json()["error"]
 
 
+def test_an_epoch_becomes_a_naive_utc_datetime():
+    """Naive, holding UTC -- and this is asserted on the function, not on a stored row.
+
+    These columns are TIMESTAMP WITHOUT TIME ZONE. Handing psycopg2 an *aware* datetime makes
+    it convert to the database session's own zone and drop the offset, so 09:00 UTC lands as
+    04:00 on a server set to CDT and every page then labels that "UTC" -- silently right on a
+    UTC server, wrong on any other.
+
+    The suite runs on SQLite (see conftest), which does no such conversion, so a round-trip
+    assertion here would pass whether or not the bug were present. gdd-integration's
+    verify-sync.sh asserts the stored value against real PostgreSQL; this pins the contract
+    of the conversion itself, which is what the storage depends on.
+    """
+    from datetime import datetime, timezone
+
+    from app.routes.api_v1 import _when
+
+    got = _when(1790000000.0)
+    assert got.tzinfo is None, "aware: psycopg2 would shift it to the server's zone"
+    assert got == datetime.fromtimestamp(1790000000.0, timezone.utc).replace(tzinfo=None)
+    assert _when(None) is None and _when("nope") is None
+
+
 def test_the_device_records_when_it_was_last_seen(client, device, app):
     from app.models import Device
 

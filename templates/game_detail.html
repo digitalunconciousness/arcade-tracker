@@ -71,6 +71,24 @@
 <div style="margin: 30px 0;">
 {% endif %}
     <div style="flex: 1;">
+        {% if rail_last %}
+        <h2>Rail History</h2>
+        <p>
+          <span style="color: {{ rail_verdict.colour }}; font-weight: bold;">{{ rail_verdict.label|upper }}</span>
+          {%- if rail_last.powered_mean is not none %}
+            · powered mean {{ "%.4f"|format(rail_last.powered_mean) }} {{ rail_last.window_unit or 'V' }}
+          {%- endif %}
+          {%- if rail_last.started %}
+            · {{ rail_last.started.strftime('%Y-%m-%d %H:%M') }} UTC
+          {%- endif %}
+        </p>
+        <p>
+          {{ rail_count }} session{{ '' if rail_count == 1 else 's' }} metered ·
+          <a href="{{ url_for('rails.machine', slug=game.barcode) }}">full history and graphs</a> ·
+          <a href="{{ url_for('rails.session', uid=rail_last.uid) }}">the last session</a>
+        </p>
+        {% endif %}
+
         <h2>Recent Play Records</h2>
         {% if recent_records %}
         <table class="table">

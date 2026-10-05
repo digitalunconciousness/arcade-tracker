@@ -53,13 +53,21 @@ def _bad(message: str, code: int = 400):
 
 
 def _when(value):
-    """An epoch float from the wire to a datetime, or None.
+    """An epoch float from the wire to a naive-UTC datetime, or None.
 
     Epoch is authoritative in the contract because the Pi's CSV timestamps are local wall
     clock with no offset, which means nothing on another host.
+
+    **Naive on purpose.** These columns are TIMESTAMP WITHOUT TIME ZONE, and handing psycopg2
+    an aware datetime makes it convert to the database session's own zone and drop the
+    offset: 09:00 UTC is stored as 04:00 on a server set to CDT, and every page then labels
+    that "UTC". Worse, it is silently right on a UTC server and wrong on any other, so the
+    same code stores a different instant depending on a setting nothing here can see.
+    Converting to UTC and dropping the tzinfo ourselves stores the instant we were sent,
+    whatever the server is set to -- and matches what rails._epoch assumes on the way out.
     """
     if isinstance(value, (int, float)):
-        return datetime.fromtimestamp(float(value), timezone.utc)
+        return datetime.fromtimestamp(float(value), timezone.utc).replace(tzinfo=None)
     return None
 
 
@@ -144,7 +152,7 @@ def ingest():
             else:
                 results.append({"uid": item.get("uid"), "kind": kind, "status": "rejected",
                                 "reason": f"unknown kind {kind!r}"})
-        device.last_seen = datetime.now(timezone.utc)
+        device.last_seen = datetime.now(timezone.utc).replace(tzinfo=None)
         from app.security.utils import get_client_ip
 
         device.last_ip = get_client_ip()
@@ -340,7 +348,8 @@ def _ingest_order(item, games):
             technician=item.get("technician"),
             status="Open",
             work_order_type="game",
-            date_reported=_when(item.get("created")) or datetime.now(timezone.utc),
+            date_reported=_when(item.get("created"))
+            or datetime.now(timezone.utc).replace(tzinfo=None),
             external_id=uid,
             source="gatbox",
             rail_session_id=session_id,
