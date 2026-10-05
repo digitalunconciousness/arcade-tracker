@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Rail history — Arcade Tracker{% endblock %}
+
+{% block content %}
+<h1>Rail History</h1>
+<p style="color: var(--text-secondary);">
+  What GATBOX has measured and pushed. The {{ limit }} most recent sessions.
+</p>
+
+{% if not sessions %}
+<div style="border: 2px solid var(--neon-cyan); border-radius: 8px; padding: 20px; margin: 20px 0;">
+  <h2 style="margin-top: 0;">Nothing has arrived yet</h2>
+  <p>No rail sessions have been pushed. That is the expected state until a GATBOX is
+     given a hub token and has metered something.</p>
+  <p style="color: var(--text-secondary);">On the Pi, <code>/etc/gatbox/hub.conf</code> needs
+     a token from <code>scripts/create_device.py</code>; <code>gatbox-sync.timer</code> pushes
+     finished sessions every two minutes.</p>
+</div>
+{% else %}
+<table class="table">
+  <thead>
+    <tr><th>When</th><th>Machine</th><th>Profile</th><th>Verdict</th>
+        <th>Powered mean</th><th>In window</th><th>Readings</th></tr>
+  </thead>
+  <tbody>
+    {% for row in sessions %}
+    <tr>
+      <td><a href="{{ url_for('rails.session', uid=row.s.uid) }}">
+        {{ row.s.started.strftime('%Y-%m-%d %H:%M') if row.s.started else row.s.file }}
+        {%- if row.s.started %} <span style="color: var(--text-secondary);">UTC</span>{% endif %}
+      </a></td>
+      <td>
+        {% if row.game %}
+          <a href="{{ url_for('rails.machine', slug=row.game.barcode) }}">{{ row.game.name }}</a>
+        {% else %}<span style="color: var(--text-secondary);">unknown</span>{% endif %}
+      </td>
+      <td>{{ row.s.profile_label or row.s.profile_id or '—' }}
+          {%- if row.s.rail %} <span style="color: var(--text-secondary);">{{ row.s.rail }}</span>{% endif %}</td>
+      <td><span style="color: {{ row.verdict.colour }};">{{ row.verdict.label }}</span></td>
+      <td>{{ "%.4f"|format(row.s.powered_mean) ~ ' ' ~ (row.s.window_unit or 'V')
+             if row.s.powered_mean is not none else '—' }}</td>
+      <td>{{ "%.2f%%"|format(row.s.in_window_pct) if row.s.in_window_pct is not none else '—' }}</td>
+      <td>{{ row.s.samples or '—' }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+{% endblock %}

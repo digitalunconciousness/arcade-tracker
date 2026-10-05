@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+{% block title %}{{ s.file }} — rail session{% endblock %}
+
+{% block content %}
+<h1>{{ game.name if game else s.file }}</h1>
+<p style="color: var(--text-secondary);">
+  {{ s.file }}
+  {%- if game %} · <a href="{{ url_for('rails.machine', slug=game.barcode) }}">this machine's history</a>{% endif %}
+  · <a href="{{ url_for('rails.floor') }}">all rail history</a>
+</p>
+
+<div style="border-left: 4px solid {{ verdict.colour }}; padding: 10px 14px; margin: 16px 0;
+            background: var(--dark-card);">
+  <strong style="color: {{ verdict.colour }}; font-size: 1.2em;">{{ verdict.label|upper }}</strong>
+  {% if s.verdict_detail %}<div style="color: var(--text-secondary);">{{ s.verdict_detail }}</div>{% endif %}
+  {% if s.verdict is none %}
+  <div style="color: var(--text-secondary);">
+    This profile has no window, so there is nothing to pass or fail against — which is not
+    the same as having passed.
+  </div>
+  {% endif %}
+</div>
+
+{% if s.clock and s.clock != 'ntp' %}
+<p style="color: var(--neon-orange); border: 1px solid var(--neon-orange); border-radius: 6px;
+          padding: 8px 12px;">
+  ⚠ The Pi's clock was <strong>{{ s.clock }}</strong> when this session started
+  {%- if s.clock_ntp_from %}, last set from NTP {{ s.clock_ntp_from.strftime('%Y-%m-%d %H:%M') }} UTC{% endif %}.
+  The times below may be wrong. The trace and durations come from the Pi's monotonic uptime
+  and are unaffected.
+</p>
+{% endif %}
+
+<div style="display: flex; flex-wrap: wrap; gap: 24px; margin: 16px 0;">
+  <div><strong>Started</strong><br>{{ s.started.strftime('%Y-%m-%d %H:%M:%S') ~ ' UTC' if s.started else '—' }}</div>
+  <div><strong>Duration</strong><br>{{ "%.1f s"|format(s.duration_s) if s.duration_s is not none else '—' }}</div>
+  <div><strong>Readings</strong><br>{{ s.samples or '—' }}{% if s.rate %} ({{ "%.2f"|format(s.rate) }}/s){% endif %}</div>
+  <div><strong>Profile</strong><br>{{ s.profile_label or s.profile_id or '—' }}{% if s.rail %} · {{ s.rail }}{% endif %}</div>
+  <div><strong>Mode</strong><br>{{ s.mode or '—' }}</div>
+  <div><strong>Window</strong><br>
+    {{ "[%g, %g] %s"|format(s.window_lo, s.window_hi, s.window_unit or 'V') if s.window_lo is not none else 'none' }}
+    {%- if s.window_source %}<br><span style="color: var(--text-secondary); font-size: 0.9em;">from {{ s.window_source }}</span>{% endif %}</div>
+  {% if s.alarm_hi is not none %}
+  <div><strong>Over-voltage above</strong><br>{{ "%g %s"|format(s.alarm_hi, s.window_unit or 'V') }}</div>
+  {% endif %}
+</div>
+
+{% if s.powered_mean is not none %}
+<div style="display: flex; flex-wrap: wrap; gap: 24px; margin: 16px 0;">
+  <div><strong>Powered mean</strong><br>{{ "%.4f %s"|format(s.powered_mean, s.window_unit or 'V') }}</div>
+  <div><strong>Range</strong><br>{{ "%.4f – %.4f"|format(s.powered_min, s.powered_max) }}</div>
+  <div><strong>In window</strong><br>{{ "%.2f%%"|format(s.in_window_pct) if s.in_window_pct is not none else '—' }}</div>
+  <div><strong>Of</strong><br>{{ s.powered_readings or '—' }} powered readings</div>
+</div>
+<p style="color: var(--text-secondary); font-size: 0.9em;">
+  These are GATBOX's own figures, stored as sent. Readings taken while the board was off, and
+  autorange glitches it set aside, are already excluded.
+</p>
+{% endif %}
+
+{% if s.over_voltage or s.excursions or s.power_cycles or s.gaps or s.ol_events or s.suspect %}
+<p>
+  {% if s.over_voltage %}<strong>{{ s.over_voltage }}</strong> over-voltage{% endif %}
+  {% if s.excursions %} · <strong>{{ s.excursions }}</strong> excursion(s){% endif %}
+  {% if s.power_cycles %} · <strong>{{ s.power_cycles }}</strong> power cycle(s){% endif %}
+  {% if s.gaps %} · <strong>{{ s.gaps }}</strong> gap(s){% endif %}
+  {% if s.ol_events %} · <strong>{{ s.ol_events }}</strong> over-range event(s){% endif %}
+  {% if s.suspect %} · <strong>{{ s.suspect }}</strong> suspect reading(s) set aside{% endif %}
+</p>
+{% endif %}
+
+<h2>Trace</h2>
+{% if trace.points %}
+<div style="height: 360px; margin: 10px 0;">
+  <canvas id="trace"></canvas>
+</div>
+{% if ol_count %}
+<p style="color: var(--text-secondary); font-size: 0.9em;">
+  {{ ol_count }} over-range reading(s) appear as breaks in the line, not as zero — the meter
+  reported no value for them.
+</p>
+{% endif %}
+{% else %}
+<p>No trace was stored for this session.</p>
+{% endif %}
+
+{% if orders %}
+<h2>Work orders from this session</h2>
+<ul>
+  {% for o in orders %}
+  <li><a href="{{ url_for('maintenance.view_maintenance', maintenance_id=o.id) }}">{{ o.issue_description[:80] }}</a>
+      — {{ o.status.replace('_', ' ') }}</li>
+  {% endfor %}
+</ul>
+{% endif %}
+
+<h2>Readings</h2>
+<p style="color: var(--text-secondary);">
+  {% if reading_total > table_limit %}
+    The first {{ table_limit }} of {{ reading_total }}. The full-resolution CSV stays on the Pi,
+    which is its archive; what arrived here is the reduced trace.
+  {% else %}
+    {{ reading_total }} stored. The full-resolution CSV stays on the Pi, which is its archive.
+  {% endif %}
+</p>
+{% if readings %}
+<table class="table">
+  <thead><tr><th>t (s)</th><th>Reading</th><th>Mode</th><th>State</th></tr></thead>
+  <tbody>
+    {% for r in readings %}
+    <tr>
+      <td>{{ "%.3f"|format(r.up - readings[0].up) if r.up is not none and readings[0].up is not none
+              else "%.3f"|format(r.epoch - readings[0].epoch) }}</td>
+      {# raw and unit as the meter printed them -- "4.0" with unit "mV" -- rather than the
+         normalised value, so the table reads like the meter face. #}
+      <td>{% if r.ol %}<span style="color: var(--neon-orange);">over-range</span>
+          {%- else %}{{ r.raw }}{% if r.unit %} {{ r.unit }}{% endif %}{% endif %}</td>
+      <td>{{ r.mode or '—' }}</td>
+      <td>
+        {%- if r.alarm == 'alarm' %}<span style="color: #ff00ff;">alarm</span>
+        {%- elif r.alarm == 'spike' %}<span style="color: var(--neon-orange);">spike</span>
+        {%- elif r.alarm %}<span style="color: var(--text-secondary);">{{ r.alarm }}</span>
+        {%- else %}—{% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+{% if trace.points %}
+<script type="application/json" id="trace-data">{{ trace|tojson }}</script>
+<script>
+(function () {
+  var d = JSON.parse(document.getElementById("trace-data").textContent);
+  var colour = function (p) {
+    if (p.alarm === "alarm") return "#ff00ff";
+    if (p.alarm === "spike") return "#ff8000";
+    return "#00ffff";
+  };
+  var sets = [{
+    label: "Reading (" + d.unit + ")",
+    // y is null for an over-range reading and stays null: spanGaps false breaks the line
+    // there. A zero would draw a dropout to 0 V that the meter never reported.
+    data: d.points.map(function (p) { return { x: p.x, y: p.y }; }),
+    borderColor: "#00ffff", borderWidth: 1.5, pointRadius: 0, tension: 0,
+    spanGaps: false, segment: {}, order: 1
+  }];
+  // Within one session the window really is constant, so a flat band is correct here --
+  // unlike the per-machine history, where it can step.
+  var span = function (v, c, dash) {
+    return { label: null, data: d.points.map(function (p) { return { x: p.x, y: v }; }),
+             borderColor: c, borderWidth: 1, borderDash: dash || [], pointRadius: 0,
+             tension: 0, order: 3 };
+  };
+  if (d.lo !== null && d.lo !== undefined) {
+    var hi = span(d.hi, "#00ff00"); hi.fill = "+1";
+    hi.backgroundColor = "rgba(0,255,0,0.07)"; hi.label = "Window";
+    sets.push(hi, span(d.lo, "#00ff00"));
+  }
+  if (d.alarm !== null && d.alarm !== undefined) {
+    var a = span(d.alarm, "#ff00ff", [5, 4]); a.label = "Over-voltage limit"; sets.push(a);
+  }
+  // Mark the readings GATBOX flagged, so a one-sample spike is visible on a line of
+  // thousands of points where a 0-radius line would hide it.
+  var flagged = d.points.filter(function (p) { return p.alarm === "spike" || p.alarm === "alarm"; });
+  if (flagged.length) {
+    sets.push({ label: "Flagged", type: "scatter",
+                data: flagged.map(function (p) { return { x: p.x, y: p.y }; }),
+                pointBackgroundColor: flagged.map(colour),
+                pointBorderColor: flagged.map(colour), pointRadius: 4, order: 0 });
+  }
+  new Chart(document.getElementById("trace"), {
+    type: "line",
+    data: { datasets: sets },
+    options: {
+      responsive: true, maintainAspectRatio: false, parsing: false,
+      plugins: {
+        legend: { labels: { color: "#cccccc", filter: function (i) { return !!i.text; } } },
+        tooltip: { mode: "nearest", intersect: false }
+      },
+      scales: {
+        x: { type: "linear", ticks: { color: "#cccccc" },
+             grid: { color: "rgba(255,255,255,0.08)" },
+             title: { display: true, text: "seconds from the start of the session",
+                      color: "#cccccc" } },
+        y: { ticks: { color: "#cccccc" }, grid: { color: "rgba(255,255,255,0.08)" },
+             title: { display: true, text: d.unit, color: "#cccccc" } }
+      }
+    }
+  });
+})();
+</script>
+{% endif %}
+{% endblock %}

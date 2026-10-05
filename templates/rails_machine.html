@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% block title %}{{ game.name }} — rail history{% endblock %}
+
+{% block content %}
+<h1>{{ game.name }}</h1>
+<p style="color: var(--text-secondary);">
+  Rail history ·
+  <a href="{{ url_for('games.game_detail', game_id=game.id) }}">machine</a> ·
+  <a href="{{ url_for('maintenance.game_maintenance', game_id=game.id) }}">report a fault</a> ·
+  <a href="{{ url_for('rails.floor') }}">all rail history</a>
+</p>
+
+{% if not sessions %}
+<div style="border: 2px solid var(--neon-cyan); border-radius: 8px; padding: 20px; margin: 20px 0;">
+  <h2 style="margin-top: 0;">No sessions for this machine</h2>
+  <p>Nothing has been metered on <code>{{ game.barcode }}</code>, or nothing has been pushed yet.</p>
+</div>
+{% else %}
+
+<h2>Verdicts, oldest first</h2>
+<div style="display: flex; flex-wrap: wrap; gap: 3px; margin: 10px 0 6px;">
+  {% for row in timeline %}
+  <a href="{{ url_for('rails.session', uid=row.s.uid) }}"
+     title="{{ row.s.started.strftime('%Y-%m-%d %H:%M') ~ ' UTC — ' if row.s.started }}{{ row.verdict.label }}{{ ' — ' ~ row.s.verdict_detail if row.s.verdict_detail }}"
+     style="width: 16px; height: 26px; border-radius: 2px; background: {{ row.verdict.colour }};
+            display: inline-block;"></a>
+  {% endfor %}
+</div>
+<p style="color: var(--text-secondary); font-size: 0.9em;">
+  {% for state, v in verdicts.items() %}
+  <span style="color: {{ v.colour }};">■</span> {{ v.label }}{% if not loop.last %} &nbsp; {% endif %}
+  {% endfor %}
+</p>
+
+<h2>Powered mean per session</h2>
+{% if window_changed %}
+<p style="color: var(--neon-orange);">
+  The window changed during this history, so the band below steps. Readings before a step were
+  judged against the window of their day, not the one in force now.
+</p>
+{% endif %}
+<div style="height: 340px; margin: 10px 0 24px;">
+  <canvas id="history"></canvas>
+</div>
+
+<h2>Sessions, newest first</h2>
+<table class="table">
+  <thead>
+    <tr><th>When</th><th>Verdict</th><th>Powered mean</th><th>Range</th>
+        <th>Window</th><th>In window</th><th>Events</th></tr>
+  </thead>
+  <tbody>
+    {% for row in sessions %}
+    <tr>
+      <td><a href="{{ url_for('rails.session', uid=row.s.uid) }}">
+        {{ row.s.started.strftime('%Y-%m-%d %H:%M') if row.s.started else row.s.file }}
+        {%- if row.s.started %} <span style="color: var(--text-secondary);">UTC</span>{% endif %}
+      </a>
+      {%- if row.s.clock and row.s.clock != 'ntp' %}
+        <span title="The Pi had no verified clock at the start of this session, so these times may be wrong. Durations and the trace are unaffected."
+              style="color: var(--neon-orange);">⚠</span>
+      {% endif %}</td>
+      <td><span style="color: {{ row.verdict.colour }};">{{ row.verdict.label }}</span></td>
+      <td>{{ "%.4f"|format(row.s.powered_mean) if row.s.powered_mean is not none else '—' }}</td>
+      <td>{{ "%.3f – %.3f"|format(row.s.powered_min, row.s.powered_max)
+             if row.s.powered_min is not none else '—' }}</td>
+      <td>{{ "[%g, %g]"|format(row.s.window_lo, row.s.window_hi)
+             if row.s.window_lo is not none else 'none' }}</td>
+      <td>{{ "%.2f%%"|format(row.s.in_window_pct) if row.s.in_window_pct is not none else '—' }}</td>
+      <td>
+        {%- set bits = [] -%}
+        {%- if row.s.over_voltage %}{% set _ = bits.append(row.s.over_voltage ~ ' over') %}{% endif -%}
+        {%- if row.s.excursions %}{% set _ = bits.append(row.s.excursions ~ ' out') %}{% endif -%}
+        {%- if row.s.power_cycles %}{% set _ = bits.append(row.s.power_cycles ~ ' cycles') %}{% endif -%}
+        {%- if row.s.suspect %}{% set _ = bits.append(row.s.suspect ~ ' suspect') %}{% endif -%}
+        {{ bits|join(', ') if bits else '—' }}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{# Data as a JSON island rather than Jinja-built JS array literals. The older chart pages
+   here interpolate values straight into JS string literals, which breaks on an apostrophe
+   and does not survive a few thousand points; tojson escapes properly. #}
+<script type="application/json" id="history-data">{{ chart|tojson }}</script>
+<script>
+(function () {
+  var d = JSON.parse(document.getElementById("history-data").textContent);
+  if (!d.points.length) return;
+  var at = function (p) { return p.t ? p.t * 1000 : null; };
+  var labels = d.points.map(function (p) {
+    return p.t ? new Date(p.t * 1000).toLocaleDateString() : "";
+  });
+  // window_lo/window_hi are per point and stepped, because they can change between
+  // sessions: one flat band would claim they never did.
+  new Chart(document.getElementById("history"), {
+    type: "line",
+    data: {
+      labels: labels,
+      datasets: [
+        { label: "Powered mean (" + d.unit + ")",
+          data: d.points.map(function (p) { return p.mean; }),
+          borderColor: "#00ffff", backgroundColor: "rgba(0,255,255,0.1)",
+          pointBackgroundColor: d.points.map(function (p) { return p.colour; }),
+          pointBorderColor: d.points.map(function (p) { return p.colour; }),
+          pointRadius: 5, borderWidth: 2, tension: 0, spanGaps: false, order: 1 },
+        { label: "Window high", data: d.points.map(function (p) { return p.hi; }),
+          borderColor: "#00ff00", borderWidth: 1, stepped: true, pointRadius: 0,
+          fill: "+1", backgroundColor: "rgba(0,255,0,0.07)", order: 3 },
+        { label: "Window low", data: d.points.map(function (p) { return p.lo; }),
+          borderColor: "#00ff00", borderWidth: 1, stepped: true, pointRadius: 0, order: 3 },
+        { label: "Over-voltage limit", data: d.points.map(function (p) { return p.alarm; }),
+          borderColor: "#ff00ff", borderWidth: 1, borderDash: [5, 4], stepped: true,
+          pointRadius: 0, order: 2 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: "#cccccc" } },
+        tooltip: { callbacks: { afterBody: function (items) {
+          var p = d.points[items[0].dataIndex];
+          var out = [];
+          if (p.verdict) out.push("verdict: " + p.verdict);
+          if (p.source) out.push("window from " + p.source);
+          if (p.min != null) out.push("min " + p.min + "  max " + p.max);
+          return out;
+        } } }
+      },
+      scales: {
+        x: { ticks: { color: "#cccccc", maxRotation: 0, autoSkip: true },
+             grid: { color: "rgba(255,255,255,0.08)" } },
+        y: { ticks: { color: "#cccccc" }, grid: { color: "rgba(255,255,255,0.08)" },
+             title: { display: true, text: d.unit, color: "#cccccc" } }
+      }
+    }
+  });
+})();
+</script>
+{% endif %}
+{% endblock %}

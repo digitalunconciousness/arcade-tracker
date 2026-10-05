@@ -22,7 +22,7 @@ from flask_login import login_required
 from werkzeug.utils import secure_filename
 
 from app.extensions import db
-from app.models import Game, PlayRecord, MaintenanceRecord
+from app.models import Game, MaintenanceRecord, PlayRecord, RailSession
 from app.utils.decorators import requires_role
 from app.utils.helpers import (
     allowed_file,
@@ -211,12 +211,26 @@ def game_detail(game_id):
     all_records_count = PlayRecord.query.filter_by(game_id=game_id).count()
     can_add_baseline = all_records_count == 0
 
+    # The rail panel: the latest session's summary and a count. Deliberately not the
+    # readings -- RailSession.readings is lazy, and this page has no use for a trace.
+    from app.routes.rails import verdict_of
+
+    rail_last = (
+        RailSession.query.filter_by(game_id=game_id)
+        .order_by(RailSession.started.desc().nullslast(), RailSession.id.desc())
+        .first()
+    )
+    rail_count = RailSession.query.filter_by(game_id=game_id).count()
+
     return render_template(
         "game_detail.html",
         game=game,
         recent_records=recent_records,
         maintenance_records=maintenance_records,
         can_add_baseline=can_add_baseline,
+        rail_last=rail_last,
+        rail_count=rail_count,
+        rail_verdict=verdict_of(rail_last) if rail_last else None,
     )
 
 

@@ -12,6 +12,10 @@ from datetime import datetime, timezone
 
 from werkzeug.security import check_password_hash, generate_password_hash
 
+# Timestamps are stored naive, holding UTC. The columns are TIMESTAMP WITHOUT TIME
+# ZONE, and an aware datetime would be converted to the database session's own zone
+# and have its offset dropped -- storing a different instant depending on a server
+# setting. See rails._epoch, which reads them back on that understanding.
 from app.extensions import db
 
 # A token reads gbx_<public_id>.<secret>. The public id is stored in the clear and indexed,
@@ -33,7 +37,7 @@ class Device(db.Model):
     token_hash: str = db.Column(db.String(256), nullable=False)
     enabled: bool = db.Column(db.Boolean, default=True, nullable=False)
     created: datetime = db.Column(
-        db.DateTime, default=lambda: datetime.now(timezone.utc)
+        db.DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None)
     )
     last_seen: datetime | None = db.Column(db.DateTime, nullable=True)
     last_ip: str | None = db.Column(db.String(45), nullable=True)

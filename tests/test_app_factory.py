@@ -14,6 +14,7 @@ EXPECTED_BLUEPRINTS = {
     # blueprint is simply absent and every one of its routes 404s. Naming it here turns
     # that silence into a failing test.
     "api_v1",
+    "rails",
 }
 
 
