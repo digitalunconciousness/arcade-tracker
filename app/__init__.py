@@ -208,6 +208,11 @@ def _register_after_request(app: Flask) -> None:
     def add_security_headers(response: Response) -> Response:
         response.headers["X-Frame-Options"] = "SAMEORIGIN"
         response.headers["X-Content-Type-Options"] = "nosniff"
+        # Phase 2.5 put a credential in a URL: /report/<token>, the coin-door form. Any
+        # off-origin request a page makes would carry that URL in its Referer. Set for the
+        # whole application rather than on the one blueprint that needs it, because a header
+        # only some responses carry is a header someone will forget.
+        response.headers["Referrer-Policy"] = "no-referrer"
         response.headers["X-XSS-Protection"] = "1; mode=block"
         response.headers["Content-Security-Policy"] = CSP
         return response

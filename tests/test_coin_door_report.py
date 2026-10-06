@@ -344,3 +344,73 @@ def test_under_enforcement_a_post_without_a_token_is_refused(strict_csrf_app):
     assert response.status_code == 400, response.status_code
     with strict_csrf_app.app_context():
         assert MaintenanceRecord.query.count() == 0
+
+
+# --- abuse ------------------------------------------------------------------------------
+
+def test_the_sixth_report_for_one_machine_is_refused(client, machine):
+    """Five an hour per machine. A coin door is not opened often, and this endpoint is
+    anonymous and reachable from the internet."""
+    from app.models import MaintenanceRecord
+
+    for n in range(5):
+        response = client.post(f"/report/{machine['token']}",
+                               data={"issue_description": f"Fault {n}"})
+        assert response.status_code in (200, 302), f"report {n}: {response.status_code}"
+    assert client.post(f"/report/{machine['token']}",
+                       data={"issue_description": "Fault 6"}).status_code == 429
+    with client.application.app_context():
+        assert MaintenanceRecord.query.count() == 5
+
+
+def test_reading_the_form_is_not_rationed(client, machine):
+    """Only filing is. Someone re-reading the page, or scanning the label twice because the
+    first did not focus, must not use up the machine's budget."""
+    for _ in range(10):
+        assert client.get(f"/report/{machine['token']}").status_code == 200
+
+
+def test_one_machine_running_out_does_not_block_another(client, machine):
+    """The limit is per machine. A busy night on one cabinet must not silence the floor."""
+    from app.extensions import db
+    from app.models import Game
+
+    with client.application.app_context():
+        other = Game.query.filter_by(barcode="cogs-n-gears").one()
+        other_token = other.mint_report_token()
+        db.session.commit()
+
+    for n in range(6):
+        client.post(f"/report/{machine['token']}", data={"issue_description": f"Fault {n}"})
+    response = client.post(f"/report/{other_token}",
+                           data={"issue_description": "Different machine"})
+    assert response.status_code in (200, 302), response.status_code
+
+
+def test_hitting_the_limit_is_logged_without_the_token(client, machine, caplog):
+    """The token is a credential. It is the one thing that must not reach a log line, since
+    a log is the place a credential outlives the person who typed it."""
+    import logging
+
+    for n in range(5):
+        client.post(f"/report/{machine['token']}", data={"issue_description": f"Fault {n}"})
+    with caplog.at_level(logging.INFO):
+        assert client.post(f"/report/{machine['token']}",
+                           data={"issue_description": "Fault 6"}).status_code == 429
+    logged = caplog.text
+    assert "COINDOOR_RATE_LIMITED" in logged, logged
+    assert machine["name"] in logged, "the machine has to be identifiable from the log"
+    assert machine["token"] not in logged, "the token reached a log line"
+
+
+def test_the_form_tells_the_browser_to_send_no_referrer(client, machine):
+    """The token is in the URL, so any request the page makes off-origin would carry it in
+    the Referer header."""
+    response = client.get(f"/report/{machine['token']}")
+    assert response.headers.get("Referrer-Policy") == "no-referrer"
+
+
+def test_every_page_says_no_referrer(client):
+    """Set once, for the whole application, rather than on the one blueprint that needs it:
+    a header that only some responses carry is a header someone will forget."""
+    assert client.get("/login").headers.get("Referrer-Policy") == "no-referrer"

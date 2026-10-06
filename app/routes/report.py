@@ -16,12 +16,14 @@ the mitigation, not prevention; it is not a substitute for accounts where attrib
 
 from __future__ import annotations
 
+import hashlib
 from datetime import datetime, timezone
 
 from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
 
-from app.extensions import db
+from app.extensions import db, limiter
 from app.models import Game, MaintenanceRecord
+from app.security.utils import log_security_event
 
 report_bp = Blueprint("report", __name__)
 
@@ -32,6 +34,38 @@ OPEN_STATUSES = ("Open", "In_Progress")
 # The textarea's maxlength is a hint to a browser. This endpoint is reachable from the
 # internet with curl, so the limit is enforced here as well.
 MAX_ISSUE = 2000
+
+# Per machine, per hour. A coin door is not opened often, and a second report for the same
+# fault is noise in the queue rather than information.
+MAX_PER_HOUR = 5
+
+
+def _token_rate_key() -> str:
+    """The rate-limit bucket for one machine.
+
+    Per machine, not per address: ``get_remote_address`` resolves to ``request.remote_addr``,
+    which through the Cloudflare tunnel is cloudflared's own address -- so every visitor from
+    the internet already shares one bucket and an address-keyed limit here would be close to
+    decorative. (``app/security/utils.get_client_ip`` does read X-Forwarded-For, so logging
+    can see the real client; the limiter cannot. Changing that means deciding to trust a
+    header, which is its own piece of work.)
+
+    Hashed rather than raw, because the key becomes a storage key: ``memory://`` today, but a
+    backend that persists would otherwise hold the credential.
+    """
+    token = (request.view_args or {}).get("token") or ""
+    return "coindoor:" + hashlib.sha256(token.encode()).hexdigest()[:32]
+
+
+def _rate_limited(_limit) -> None:
+    """Record a refused report. Never the token: a log outlives everything, and this one is
+    a credential. The machine is named instead, which is what anyone reading the log wants."""
+    game = Game.by_report_token((request.view_args or {}).get("token"))
+    log_security_event(
+        "COINDOOR_RATE_LIMITED",
+        details=f"machine: {game.name if game else '<unknown token>'}",
+        level="warning",
+    )
 
 
 def _utc_now() -> datetime:
@@ -70,6 +104,10 @@ def _open_count(game: Game) -> int:
 
 
 @report_bp.route("/report/<token>", methods=["GET", "POST"])
+# Filing only. Someone re-reading the page, or scanning the label twice because the first
+# scan did not focus the field, must not spend the machine's budget.
+@limiter.limit(f"{MAX_PER_HOUR} per hour", key_func=_token_rate_key, methods=["POST"],
+               on_breach=_rate_limited)
 def report_form(token: str):
     """The form, and the one thing it can do.
 

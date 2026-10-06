@@ -41,3 +41,22 @@ def app(_isolate_environment):
 @pytest.fixture()
 def client(app):
     return app.test_client()
+
+
+@pytest.fixture(autouse=True)
+def _reset_rate_limits():
+    """Flask-Limiter's storage outlives the app fixture.
+
+    ``limiter`` is a module-level singleton with ``storage_uri="memory://"``, so its counters
+    are created once per pytest process and shared by every test that follows -- a test that
+    exhausts a limit would quietly spend another test's budget, and the order they run in
+    would decide who fails.
+    """
+    from app.extensions import limiter
+
+    # ``limiter.storage`` asserts on an uninitialised limiter, and this runs before the app
+    # fixture builds one -- so on the first test of a process there is nothing to reset yet.
+    # Checking the attribute is less odd than catching the AssertionError behind it.
+    if getattr(limiter, "_storage", None) is not None:
+        limiter.reset()
+    yield
