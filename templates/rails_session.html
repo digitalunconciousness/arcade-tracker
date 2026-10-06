@@ -88,7 +88,7 @@
 <h2>Work orders from this session</h2>
 <ul>
   {% for o in orders %}
-  <li><a href="{{ url_for('maintenance.view_maintenance', maintenance_id=o.id) }}">{{ o.issue_description[:80] }}</a>
+  <li><a href="{{ url_for('maintenance.maintenance_detail', record_id=o.id) }}">{{ o.issue_description[:80] }}</a>
       — {{ o.status.replace('_', ' ') }}</li>
   {% endfor %}
 </ul>

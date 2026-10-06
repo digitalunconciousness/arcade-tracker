@@ -125,3 +125,37 @@ def response_has(body, text):
 
 def test_the_queue_renders_with_a_legacy_order_in_it(signed_in, bench):
     assert signed_in.get("/maintenance_orders").status_code == 200
+
+
+# --- the other direction: a session page listing the orders that cite it -----------------
+
+def test_the_session_page_lists_the_orders_from_it(signed_in, bench):
+    """`rails_session.html` has had a "Work orders from this session" block since Phase 4,
+    guarded by `{% if orders %}` -- and nothing could put an order on a session until Phase 6
+    made it a button, so the block had never rendered. It named an endpoint that does not
+    exist (`maintenance.view_maintenance`), so the first session page with an order attached
+    answered 500.
+    """
+    from app.extensions import db
+    from app.models import RailSession
+
+    with signed_in.application.app_context():
+        uid = db.session.get(RailSession, 1).uid if db.session.get(RailSession, 1) else None
+    uid = uid or bench["uids"][0]
+    response = signed_in.get(f"/rails/session/{uid}")
+    assert response.status_code == 200, response.status_code
+    body = response.get_data(as_text=True)
+    assert "Work orders from this session" in body
+    assert "Rail sags under load" in body
+
+
+def test_that_link_goes_to_the_order(signed_in, bench):
+    body = signed_in.get(f"/rails/session/{bench['uids'][0]}").get_data(as_text=True)
+    assert f"/maintenance_detail/{bench['order']}" in body
+
+
+def test_a_session_with_no_orders_still_renders(signed_in, bench):
+    """The guarded branch, the other way round."""
+    response = signed_in.get(f"/rails/session/{bench['uids'][2]}")
+    assert response.status_code == 200
+    assert "Work orders from this session" not in response.get_data(as_text=True)
