@@ -15,9 +15,10 @@ and compare the reply byte-for-byte against `examples/ingest-response.json`, the
 second time and compare against `examples/ingest-response-duplicate.json`. GATBOX's tests
 build a payload from its own report JSON and compare it against the same request example.
 
-`examples/roster-response.json` and `examples/orders-response.json` are illustrative: the tests
-assert their keys and types rather than exact bytes, because their content depends on what is
-on the floor.
+`examples/roster-response.json`, `examples/orders-response.json` and
+`examples/session-tag-request.json` are illustrative: the tests assert their keys and types
+rather than exact bytes, because their content depends on what is on the floor — and in the
+tag's case on an id the hub assigns, which cannot be fixed in advance.
 
 ## Endpoints
 
@@ -62,7 +63,12 @@ reports `duplicate` and changes nothing. The uid rules are **part of the contrac
 rail_session  sha256(f"{public_id}|rail_session|{file}").hexdigest()[:32]
 reading       sha256(f"{public_id}|reading|{file}|{epoch:.3f}").hexdigest()[:32]
 order         uuid4().hex                 — an order has no natural key
+session_tag   sha256(f"{public_id}|session_tag|{order}|{rail_session}").hexdigest()[:32]
 ```
+
+A `session_tag`'s uid is derivable from the item alone, and it is **not** what the hub dedupes
+on: the `(order, rail_session)` pair is a natural key, so re-sending with a freshly minted uid
+is still `duplicate`. The uid is there because every item carries one.
 
 `file` is the CSV's base name, e.g. `rail_20260925_021402.csv`. It is the only identity a
 session has on the Pi, and it is local wall-clock time with no zone, so it is not unique
@@ -131,8 +137,31 @@ that prompted it, by that session's uid. The hub records it with `source: "gatbo
 not seen is `rejected` rather than stored with the link quietly dropped — a link that silently
 disappears is worse than a retry, and both items being idempotent makes the retry free.
 
-Nothing on GATBOX raises one yet — the hub accepts them so that this contract does not need a
-v1.1 and a re-vendoring when it does.
+### `session_tag`
+
+A trace attached to an order that already exists. The case it is for: a machine has an order
+open, someone meters it again at the bench, and the second trace belongs on that order rather
+than on a duplicate nobody asked for.
+
+```json
+{"kind": "session_tag", "uid": "…", "order": 412,
+ "rail_session": "<session uid>", "created": 1790000500.0, "note": "second pass, cold"}
+```
+
+`order` is the hub's own id for the record, as returned by
+`GET /api/v1/machines/<slug>/orders`. `note` is optional.
+
+It does **not** touch `maintenance_record.rail_session_id`, which keeps its meaning: the
+session that prompted the order. A tag is a trace measured afterwards, and the two are stored
+and displayed separately.
+
+**Rejected** for an unknown `order`, for a `rail_session` the hub has not ingested (send the
+session first, as for an order), and for a session belonging to a different machine than the
+order — that last one is almost certainly a bug on the Pi, and filing one machine's trace
+against another's order would be worse than a refusal.
+
+**Accepted** for an order that has since been closed. GATBOX tags from a cache that can be
+minutes stale, and a rejection that can never clear is a retry loop rather than a diagnosis.
 
 ## Response
 

@@ -425,3 +425,180 @@ def test_the_device_records_when_it_was_last_seen(client, device, app):
                 headers=auth(device))
     with app.app_context():
         assert Device.query.filter_by(name=device["name"]).one().last_seen is not None
+
+
+# ---------------------------------------------------------------------------
+# session_tag: a trace attached to an order that already exists
+# ---------------------------------------------------------------------------
+
+def _tagged(client, device, app, **overrides):
+    """Post the example payload (so a session and an order exist), then a session_tag
+    naming that order and a second session. Returns (response item, order id)."""
+    from app.extensions import db
+    from app.models import MaintenanceRecord, RailSession
+
+    client.post("/api/v1/ingest", json=example("ingest-request.json"),
+                headers=auth(device))
+    sent = next(i for i in example("ingest-request.json")["items"] if i["kind"] == "order")
+    with app.app_context():
+        order_id = MaintenanceRecord.query.filter_by(external_id=sent["uid"]).one().id
+        # A second session for the same machine, ingested the ordinary way.
+        session = next(i for i in example("ingest-request.json")["items"]
+                       if i["kind"] == "rail_session")
+        second = dict(session, uid="b" * 32, file="rail_20261006_030303.csv", readings=[])
+    client.post("/api/v1/ingest", json={"contract": "v1", "device": device["public_id"], "items": [second]},
+                headers=auth(device))
+
+    item = {"kind": "session_tag", "uid": "c" * 32, "order": order_id,
+            "rail_session": "b" * 32, "created": 1790000500.0, "note": "second pass, cold"}
+    item.update(overrides)
+    body = client.post("/api/v1/ingest",
+                       json={"contract": "v1", "device": device["public_id"], "items": [item]},
+                       headers=auth(device)).get_json()
+    return body["results"][0], order_id
+
+
+def test_a_session_tag_attaches_a_second_trace(client, device, app):
+    from app.extensions import db
+    from app.models import MaintenanceRecord
+
+    result, order_id = _tagged(client, device, app)
+    assert result["status"] == "created", result
+    with app.app_context():
+        order = db.session.get(MaintenanceRecord, order_id)
+        assert [t.rail_session.uid for t in order.session_tags] == ["b" * 32]
+        assert order.session_tags[0].note == "second pass, cold"
+        assert order.session_tags[0].source == "gatbox"
+
+
+def test_the_tag_leaves_the_prompting_session_alone(client, device, app):
+    """rail_session_id means "why does this order exist" and a tag must not overwrite it."""
+    from app.extensions import db
+    from app.models import MaintenanceRecord
+
+    sent = next(i for i in example("ingest-request.json")["items"] if i["kind"] == "order")
+    _result, order_id = _tagged(client, device, app)
+    with app.app_context():
+        order = db.session.get(MaintenanceRecord, order_id)
+        assert order.rail_session.uid == sent["rail_session"]
+
+
+def test_the_same_tag_twice_is_duplicate(client, device, app):
+    """Unlike an order, a tag has a natural key -- the (order, session) pair -- so that is
+    what the hub dedupes on rather than the uid."""
+    from app.models import RailSessionTag
+
+    _tagged(client, device, app)
+    result, _order_id = _tagged(client, device, app)
+    assert result["status"] == "duplicate", result
+    with app.app_context():
+        assert RailSessionTag.query.count() == 1
+
+
+def test_a_tag_with_a_different_uid_for_the_same_pair_is_still_duplicate(client, device, app):
+    """The pair is the identity. A re-minted uid must not produce a second row."""
+    from app.models import RailSessionTag
+
+    _tagged(client, device, app)
+    result, _ = _tagged(client, device, app, uid="d" * 32)
+    assert result["status"] == "duplicate", result
+    with app.app_context():
+        assert RailSessionTag.query.count() == 1
+
+
+def test_a_tag_for_an_unknown_order_is_rejected(client, device, app):
+    from app.models import RailSessionTag
+
+    result, _ = _tagged(client, device, app, order=999999)
+    assert result["status"] == "rejected"
+    assert "order" in result["reason"]
+    with app.app_context():
+        assert RailSessionTag.query.count() == 0
+
+
+def test_a_tag_for_an_unsent_session_is_rejected(client, device, app):
+    """The same rule as an order naming an unsent session: refuse rather than drop the link.
+    This one clears on a retry once the session has been pushed."""
+    from app.models import RailSessionTag
+
+    result, _ = _tagged(client, device, app, rail_session="f" * 32)
+    assert result["status"] == "rejected"
+    assert "rail_session" in result["reason"]
+    with app.app_context():
+        assert RailSessionTag.query.count() == 0
+
+
+def test_a_tag_on_a_closed_order_is_accepted(client, device, app):
+    """**Accepted, not rejected.** GATBOX tags from a cache that can be minutes stale, and
+    gatbox-sync retries a rejected item -- so refusing a closed order would be a retry loop
+    that can never clear. The evidence is still worth having on the record."""
+    from app.extensions import db
+    from app.models import MaintenanceRecord, RailSessionTag
+
+    client.post("/api/v1/ingest", json=example("ingest-request.json"),
+                headers=auth(device))
+    sent = next(i for i in example("ingest-request.json")["items"] if i["kind"] == "order")
+    with app.app_context():
+        order = MaintenanceRecord.query.filter_by(external_id=sent["uid"]).one()
+        order.status = "Closed"
+        db.session.commit()
+
+    result, _ = _tagged(client, device, app)
+    assert result["status"] == "created", result
+    with app.app_context():
+        assert RailSessionTag.query.count() == 1
+
+
+def test_a_tag_whose_session_is_for_another_machine_is_rejected(client, device, app):
+    """Almost certainly a bug on the Pi, and silently filing one machine's trace against
+    another machine's order would be worse than a refusal."""
+    from app.extensions import db
+    from app.models import Game, RailSession, RailSessionTag
+
+    client.post("/api/v1/ingest", json=example("ingest-request.json"),
+                headers=auth(device))
+    sent = next(i for i in example("ingest-request.json")["items"] if i["kind"] == "order")
+    session = next(i for i in example("ingest-request.json")["items"]
+                   if i["kind"] == "rail_session")
+    other = dict(session, uid="e" * 32, file="rail_20261006_040404.csv",
+                 machine="pin-sprocket", readings=[])
+    client.post("/api/v1/ingest", json={"contract": "v1", "device": device["public_id"], "items": [other]},
+                headers=auth(device))
+    from app.models import MaintenanceRecord
+    with app.app_context():
+        order_id = MaintenanceRecord.query.filter_by(external_id=sent["uid"]).one().id
+
+    item = {"kind": "session_tag", "uid": "c" * 32, "order": order_id,
+            "rail_session": "e" * 32, "created": 1790000500.0}
+    body = client.post("/api/v1/ingest",
+                       json={"contract": "v1", "device": device["public_id"], "items": [item]},
+                       headers=auth(device)).get_json()
+    assert body["results"][0]["status"] == "rejected"
+    assert "machine" in body["results"][0]["reason"]
+    with app.app_context():
+        assert RailSessionTag.query.count() == 0
+
+
+def test_a_tag_needs_a_rail_session(client, device, app):
+    result, _ = _tagged(client, device, app, rail_session=None)
+    assert result["status"] == "rejected"
+
+
+def test_the_session_tag_example_matches_what_the_hub_reads(client, device, app):
+    """The example is illustrative -- `order` is a hub-assigned id, so it cannot be fixed in
+    advance the way the session uids can. Its *shape* is still the specification."""
+    illustrative = example("session-tag-request.json")
+    item = next(i for i in illustrative["items"] if i["kind"] == "session_tag")
+    assert set(item) == {"kind", "uid", "order", "rail_session", "created", "note"}
+    assert isinstance(item["order"], int)
+    assert len(item["uid"]) == 32
+
+
+def test_the_session_tag_example_uid_follows_the_documented_rule():
+    illustrative = example("session-tag-request.json")
+    pub = illustrative["device"]
+    item = next(i for i in illustrative["items"] if i["kind"] == "session_tag")
+    want = hashlib.sha256(
+        f"{pub}|session_tag|{item['order']}|{item['rail_session']}".encode()
+    ).hexdigest()[:32]
+    assert item["uid"] == want
