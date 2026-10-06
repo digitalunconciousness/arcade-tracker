@@ -118,6 +118,49 @@ class RailSession(db.Model):
         return f"<RailSession {self.file!r} {self.verdict or 'no verdict'}>"
 
 
+class RailSessionTag(db.Model):
+    """A trace attached to a work order after the fact.
+
+    Phase 6. A machine has an order open, someone meters it again at the bench, and the second
+    trace belongs on the order that exists rather than on a duplicate nobody asked for.
+
+    This is deliberately *not* a replacement for ``MaintenanceRecord.rail_session_id``, which
+    stays what contract v1 says it is: the session that prompted the order. That one answers
+    "why does this order exist"; these answer "what else has been measured since". Keeping a
+    copy of the prompting session in both places would be a thing that can drift, so the order
+    page shows them as two labelled lists instead of merging them.
+    """
+
+    __tablename__ = "rail_session_tag"
+    __table_args__ = (
+        # The ingest path dedupes on a deterministic uid, but the same tag must not become two
+        # rows however else it arrives.
+        db.UniqueConstraint("maintenance_record_id", "rail_session_id",
+                            name="uq_rail_session_tag_record_session"),
+    )
+
+    id: int = db.Column(db.Integer, primary_key=True)
+    maintenance_record_id: int = db.Column(
+        db.Integer, db.ForeignKey("maintenance_record.id"), nullable=False, index=True
+    )
+    rail_session_id: int = db.Column(
+        db.Integer, db.ForeignKey("rail_session.id"), nullable=False, index=True
+    )
+    note: str | None = db.Column(db.Text, nullable=True)
+    source: str = db.Column(db.String(20), default="gatbox")
+    created: datetime = db.Column(
+        db.DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None)
+    )
+
+    # No cascade to the session, for the same reason RailSession.game has none: a trace is the
+    # device's record of what it measured, not a property of whatever cited it. Deleting an
+    # order drops the citation and keeps the measurement.
+    rail_session = db.relationship("RailSession", backref="order_tags")
+
+    def __repr__(self) -> str:
+        return f"<RailSessionTag order={self.maintenance_record_id} session={self.rail_session_id}>"
+
+
 class Reading(db.Model):
     """One point of a session's downsampled trace."""
 
