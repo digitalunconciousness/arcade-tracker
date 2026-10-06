@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}Coin-door labels{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <h1>Coin-door labels</h1>
+    </div>
+
+    <div style="border: 2px solid #c00; padding: 12px; margin-bottom: 16px;">
+        <strong>These labels go inside the coin door.</strong>
+        Each one is a key: whoever can read the QR can file a maintenance request for that
+        machine without logging in. That is the point — but it also means a label stuck on the
+        outside of a cabinet, or photographed, is a credential handed out. The public labels
+        under <em>Label sheet</em> are the ones that go where people can see them.
+    </div>
+
+    {% if stale %}
+    <div style="border: 2px solid #c80; padding: 12px; margin-bottom: 16px;">
+        <strong>{{ stale|length }} machine{{ '' if stale|length == 1 else 's' }} need a
+        reprint:</strong> the token was rotated, so the label currently in the door is dead.
+        <ul style="margin: 8px 0 0;">
+            {% for game in stale %}<li>{{ game.name }}</li>{% endfor %}
+        </ul>
+        <p style="margin: 8px 0 0;">
+            <a href="{{ url_for('games.coin_door_label_sheet', ids=stale|map(attribute='id')|join(',')) }}"
+               class="btn btn-primary">Print just those {{ stale|length }}</a>
+        </p>
+    </div>
+    {% endif %}
+
+    <form method="get" action="{{ url_for('games.coin_door_label_sheet') }}">
+        <p>
+            <button type="submit" class="btn btn-primary">Print the selected labels</button>
+            <a href="{{ url_for('games.label_sheet_pick') }}" class="btn btn-secondary">Public labels instead</a>
+        </p>
+        <table class="table">
+            <thead><tr><th></th><th>Machine</th><th>Coin-door label</th><th></th></tr></thead>
+            <tbody>
+            {% for game in games %}
+                <tr>
+                    <td><input type="checkbox" name="ids" value="{{ game.id }}" checked></td>
+                    <td>{{ game.name }}</td>
+                    <td>
+                        {% if game.report_label_stale %}needs a reprint
+                        {% elif game.report_token %}printed
+                        {% else %}none yet{% endif %}
+                    </td>
+                    <td>
+                        {# Its own form, outside the one wrapping this table: a GET form for
+                           printing cannot also carry a POST that retires a label. #}
+                        {% if game.report_token %}
+                        <button type="submit" class="btn btn-secondary"
+                                formmethod="post"
+                                formaction="{{ url_for('games.rotate_report_token', game_id=game.id) }}"
+                                onclick="return confirm('Retire the label in {{ game.name }}\'s coin door? It will stop working until you print and fit a new one.')">
+                            Retire that label
+                        </button>
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </form>
+</div>
+{% endblock %}
