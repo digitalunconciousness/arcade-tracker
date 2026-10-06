@@ -15,6 +15,10 @@ EXPECTED_BLUEPRINTS = {
     # that silence into a failing test.
     "api_v1",
     "rails",
+    # Phase 2.5. Its own blueprint, not a route on maintenance_bp: it is the only
+    # unauthenticated write endpoint here, and keeping it separate is what makes
+    # "this cannot reach anything else" a thing you can read off the route table.
+    "report",
 }
 
 

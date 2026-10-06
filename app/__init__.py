@@ -139,6 +139,7 @@ def _register_blueprints(app: Flask) -> None:
         ("app.routes.skeeball", "skeeball_bp"),
         ("app.routes.api_v1", "api_v1_bp"),
         ("app.routes.rails", "rails_bp"),
+        ("app.routes.report", "report_bp"),
     ]
 
     import importlib
