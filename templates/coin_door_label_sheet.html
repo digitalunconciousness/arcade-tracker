@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}Coin-door label sheet — {{ labels|length }} machine{{ '' if labels|length == 1 else 's' }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="page-header no-print">
+        <h1>Coin-door label sheet</h1>
+        <div>
+            <button onclick="window.print()" class="btn btn-primary">Print {{ labels|length }} label{{ '' if labels|length == 1 else 's' }}</button>
+            <a href="{{ url_for('games.coin_door_label_pick') }}" class="btn btn-secondary">Choose again</a>
+        </div>
+    </div>
+
+    <div class="no-print" style="border: 2px solid #c00; padding: 12px; margin-bottom: 16px;">
+        <strong>Inside the coin door, not on the cabinet.</strong>
+        Each QR lets whoever reads it file a maintenance request for that machine with no
+        login. A label on the outside, or photographed, is a credential given away. Rotate a
+        machine's token if that happens — it will show up here as needing a reprint.
+        {% if fresh %}
+        <p style="margin: 8px 0 0;">
+            {{ fresh }} of these {{ 'is a' if fresh == 1 else 'are' }} new token{{ '' if fresh == 1 else 's' }},
+            minted just now by opening this page.
+        </p>
+        {% endif %}
+    </div>
+
+    <p class="no-print" style="opacity: 0.8; font-size: 0.9em;">
+        Check the link under one label before printing: it must be the address that works from
+        a phone inside the building, which for this site is the tunnel.
+    </p>
+
+    <div class="label-sheet">
+        {% for label in labels %}
+        <div class="label-card">
+            <img src="{{ label.qr }}" alt="Report QR code for {{ label.game.name }}" class="label-qr">
+            <div class="label-name">{{ label.game.name }}</div>
+            <div class="label-mfr">Something wrong? Scan this.</div>
+            {# The URL is printed so it can be checked before a sheet is committed to paper --
+               and because a QR nobody can read by eye is a QR nobody can verify. #}
+            <div class="label-code" style="font-size: 7pt; word-break: break-all;">{{ label.url }}</div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<style>
+    .label-sheet { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; align-items: start; }
+    .label-card {
+        text-align: center; padding: 10px 8px; border: 1px dashed #999; border-radius: 6px;
+        background: #fff; color: #000;
+        /* A label split across two sheets of paper is wasted paper and a reprint. */
+        break-inside: avoid; page-break-inside: avoid;
+    }
+    .label-qr { width: 100%; max-width: 150px; height: auto; }
+    .label-name { font-weight: 700; font-size: 10pt; margin-top: 4px; }
+    .label-mfr { font-size: 8pt; }
+    @media print {
+        .no-print { display: none !important; }
+        body { background: #fff; color: #000; }
+    }
+</style>
+{% endblock %}

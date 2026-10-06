@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import secrets
 from datetime import date, datetime, timezone
 
 from app.extensions import db
@@ -36,6 +37,17 @@ class Game(db.Model):
     times_in_top_10: int = db.Column(db.Integer, default=0)
     last_ranking_update: date | None = db.Column(db.Date, nullable=True)
 
+    # The secret a coin-door label carries, so a request can be filed with no login by
+    # whoever can open the door. **Never barcode.** barcode is the public identifier -- the
+    # roster slug, printed on the cabinet labels, shared with GATBOX -- and the slugs are
+    # guessable, which on a site published through a Cloudflare tunnel means anyone on the
+    # internet could file for any machine. Nullable: a machine with no coin-door label has
+    # no token, and minting one is a decision taken when a sheet is printed.
+    report_token: str | None = db.Column(db.String(64), unique=True, nullable=True)
+    # Set by a rotation: the label already inside the door now points at a dead URL, so the
+    # machine has to appear on a reprint list rather than being quietly unreportable.
+    report_label_stale: bool = db.Column(db.Boolean, default=False, nullable=False)
+
     # Relationships
     play_records = db.relationship(
         "PlayRecord", backref="game", lazy=True, cascade="all, delete-orphan"
@@ -43,6 +55,37 @@ class Game(db.Model):
     maintenance_records = db.relationship(
         "MaintenanceRecord", backref="game", lazy=True, cascade="all, delete-orphan"
     )
+
+    # ------------------------------------------------------------------
+    # Coin-door report token
+    # ------------------------------------------------------------------
+    def mint_report_token(self) -> str:
+        """This machine's token, minting one the first time.
+
+        Idempotent on purpose: printing a second sheet must not invalidate the label
+        already inside a door. Rotation is the explicit way to replace one.
+        """
+        if not self.report_token:
+            self.report_token = secrets.token_hex(16)
+        return self.report_token
+
+    def rotate_report_token(self) -> str:
+        """Replace the token, retiring the old one, and flag the label for reprint."""
+        self.report_token = secrets.token_hex(16)
+        self.report_label_stale = True
+        return self.report_token
+
+    @classmethod
+    def by_report_token(cls, token: str | None) -> "Game | None":
+        """The machine a token belongs to, or None.
+
+        The emptiness guard is not defensive tidying: ``filter_by(report_token=None)``
+        matches every machine that has no label yet, so without it an empty token would
+        resolve to an arbitrary machine and authorise a write against it.
+        """
+        if not token:
+            return None
+        return cls.query.filter_by(report_token=token).first()
 
     def __repr__(self) -> str:
         return f"<Game {self.name!r}>"

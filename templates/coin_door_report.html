@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+{# Standalone, not an extension of base.html. base.html is the application shell: its nav is
+   gated on current_user.is_authenticated, but it also pulls in the chart library and every
+   other asset a dashboard needs, and one future link added outside that gate would quietly
+   undo the containment this page exists to have. A page with nothing to click is easier to
+   keep that way than one that inherits a navigation bar. #}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {# A phone in a dark arcade, held in one hand: this is the only client this page has. #}
+    <title>Report a problem — {{ game.name }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/cyberpunk.css') }}">
+</head>
+<body>
+<div class="container" style="max-width: 34rem; padding: 1rem;">
+    <h1>Report a problem</h1>
+    <h2>{{ game.name }}</h2>
+
+    {% if open_count %}
+        <p class="alert alert-warning">
+            {{ open_count }} report{{ '' if open_count == 1 else 's' }} already open for this
+            machine. File another only if this is something different.
+        </p>
+    {% else %}
+        <p class="muted">Nothing reported for this machine right now.</p>
+    {% endif %}
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+            <p class="alert alert-{{ 'success' if category == 'success' else 'danger' }}">{{ message }}</p>
+        {% endfor %}
+    {% endwith %}
+
+    <form method="post" action="{{ url_for('report.report_form', token=token) }}">
+        {# CSRFProtect is global. Without this field the form 400s for the first real person
+           to use it, and never in the suite -- conftest switches CSRF off for every test. #}
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label for="issue_description">What is wrong?</label>
+        <textarea id="issue_description" name="issue_description" rows="6" required
+                  maxlength="2000"
+                  placeholder="What happens, and what you were doing when it happened."></textarea>
+        <button type="submit">Send it</button>
+    </form>
+
+    <p class="muted">
+        No login needed — you opened the coin door, which is the point. Nobody is notified
+        personally; this goes into the work queue.
+    </p>
+</div>
+</body>
+</html>

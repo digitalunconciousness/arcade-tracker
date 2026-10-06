@@ -53,6 +53,8 @@ INTRODUCED_BY = {
     ("maintenance_record", "external_id"): "d4e5f6a7b8c9",
     ("maintenance_record", "source"): "d4e5f6a7b8c9",
     ("maintenance_record", "rail_session_id"): "d4e5f6a7b8c9",
+    ("game", "report_token"): "e6f7a8b9c0d1",
+    ("game", "report_label_stale"): "e6f7a8b9c0d1",
 }
 
 # The revision that precedes each, i.e. what to stamp so `upgrade` will apply it.
@@ -66,11 +68,12 @@ PREDECESSOR = {
     "c1a2b3d4e5f6": "7a61de1d1679",
     "f1c2d3e4a5b6": "c1a2b3d4e5f6",
     "d4e5f6a7b8c9": "f1c2d3e4a5b6",
+    "e6f7a8b9c0d1": "d4e5f6a7b8c9",
 }
 
 ORDER = ["5a026e6869ec", "ebead5244def", "3e5463d29981", "e7582856b8aa",
          "8dcea35845db", "b547f37c117c", "7a61de1d1679", "c1a2b3d4e5f6",
-         "f1c2d3e4a5b6", "d4e5f6a7b8c9"]
+         "f1c2d3e4a5b6", "d4e5f6a7b8c9", "e6f7a8b9c0d1"]
 
 
 def check_encoding(db) -> dict | None:
