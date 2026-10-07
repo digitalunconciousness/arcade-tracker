@@ -26,7 +26,7 @@ from datetime import datetime, timezone
 from flask import Blueprint, g, jsonify, request
 
 from app.extensions import csrf, db, limiter
-from app.models import Game, MaintenanceRecord, RailSession, Reading
+from app.models import Game, MaintenanceRecord, RailSession, RailSessionTag, Reading
 from app.utils.decorators import device_rate_key, requires_device
 
 api_v1_bp = Blueprint("api_v1", __name__, url_prefix="/api/v1")
@@ -149,6 +149,8 @@ def ingest():
                 results.append(_ingest_session(device, item, games))
             elif kind == "order":
                 results.append(_ingest_order(item, games))
+            elif kind == "session_tag":
+                results.append(_ingest_session_tag(item))
             else:
                 results.append({"uid": item.get("uid"), "kind": kind, "status": "rejected",
                                 "reason": f"unknown kind {kind!r}"})
@@ -355,6 +357,62 @@ def _ingest_order(item, games):
             rail_session_id=session_id,
         )
     )
+    return {**out, "status": "created"}
+
+
+def _ingest_session_tag(item):
+    """Attach a trace to an order that already exists.
+
+    Unlike an order, this has a natural key -- the (order, session) pair -- so that is what
+    the hub dedupes on. A re-minted uid for the same pair is still a duplicate.
+    """
+    uid = item.get("uid")
+    out = {"uid": uid, "kind": "session_tag"}
+
+    def rejected(reason):
+        return {**out, "status": "rejected", "reason": reason}
+
+    if not isinstance(uid, str) or not UID.match(uid):
+        return rejected("uid must be 32 lowercase hex characters")
+
+    order_id = item.get("order")
+    if not isinstance(order_id, int) or isinstance(order_id, bool):
+        return rejected("order must be the hub's integer id for the record")
+    order = db.session.get(MaintenanceRecord, order_id)
+    if order is None:
+        return rejected(f"no order with id {order_id}")
+
+    session_uid = item.get("rail_session")
+    if not isinstance(session_uid, str) or not session_uid:
+        return rejected("rail_session is required")
+    session = RailSession.query.filter_by(uid=session_uid).first()
+    if session is None:
+        # Send the session first, as for an order. This clears on a retry; the refusals
+        # above do not, which is why gatbox-sync needs a ceiling on retries.
+        return rejected(f"rail_session {session_uid!r} has not been ingested yet")
+
+    # One machine's trace filed against another machine's order is a bug on the Pi, not
+    # evidence. A session with no machine is not checked: it was metered on the bench with
+    # nothing set, and attaching it deliberately is reasonable.
+    if session.game_id is not None and order.game_id is not None \
+            and session.game_id != order.game_id:
+        return rejected("that session is for a different machine than the order")
+
+    existing = RailSessionTag.query.filter_by(
+        maintenance_record_id=order.id, rail_session_id=session.id
+    ).first()
+    if existing is not None:
+        return {**out, "status": "duplicate"}
+
+    note = item.get("note")
+    db.session.add(RailSessionTag(
+        maintenance_record_id=order.id,
+        rail_session_id=session.id,
+        note=note.strip() if isinstance(note, str) and note.strip() else None,
+        source="gatbox",
+        created=_when(item.get("created"))
+        or datetime.now(timezone.utc).replace(tzinfo=None),
+    ))
     return {**out, "status": "created"}
 
 

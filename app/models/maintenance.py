@@ -46,6 +46,16 @@ class MaintenanceRecord(db.Model):
     )
 
     # Relationships
+    #
+    # The traces attached to this order after it was raised. Separate from rail_session_id,
+    # which is the one that prompted it -- see RailSessionTag for why they are kept apart.
+    session_tags = db.relationship(
+        "RailSessionTag",
+        backref="order",
+        lazy=True,
+        cascade="all, delete-orphan",
+        order_by="RailSessionTag.created",
+    )
     work_logs = db.relationship(
         "WorkLog",
         backref="maintenance_record",

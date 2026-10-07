@@ -357,6 +357,33 @@ survives the dump and restore byte-for-byte, new non-ASCII inserts work afterwar
 no client override, and a non-superuser database owner can create tables and write
 non-ASCII in a database it owns.
 
+## Where a work order came from
+
+Three sources now, shown on the queue and on the order page:
+
+| `source` | what it means |
+|---|---|
+| `web` (or empty) | typed into this application. Empty means it predates Phase 2. |
+| `coindoor` | somebody at the machine, with no login — they opened the coin door and scanned the label inside it. No account behind the description. |
+| `gatbox` | raised on GATBOX's 7″ screen at the bench, with the rail trace that prompted it. |
+
+A `gatbox` order carries **Prompted by** — the session that caused it — and may collect
+**Also attached** traces measured afterwards. Both link straight to the trace. An order with
+neither shows no section at all.
+
+GATBOX pushes these through `POST /api/v1/ingest`, so they arrive on the device token, not a
+session. Two things it is worth knowing when one looks wrong:
+
+- **An order for a machine this hub does not have is refused**, by design, with the slug in
+  the reason — the hub never invents a `Game`. GATBOX retries it five times and then parks it
+  and says so on its own screen. The fix is here: give the machine its roster slug, and the
+  next sync takes the order.
+- **An order naming a trace this hub has not ingested is also refused**, and that one clears
+  by itself: GATBOX sends the session and the order in the same request, so it normally never
+  happens, and when it does the retry resolves it.
+
+Device tokens are issued with `scripts/create_device.py --name gatbox-01` and shown once.
+
 ## Rollback
 
 ```bash

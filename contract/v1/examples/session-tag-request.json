@@ -1,0 +1,14 @@
+{
+  "contract": "v1",
+  "device": "a1b2c3d4e5f6",
+  "items": [
+    {
+      "kind": "session_tag",
+      "uid": "0734fe4f8739c1470dc6477d9364d42c",
+      "order": 412,
+      "rail_session": "90410581d446ef1d8aaf702a9fc2e866",
+      "created": 1790000500.0,
+      "note": "second pass, cold"
+    }
+  ]
+}

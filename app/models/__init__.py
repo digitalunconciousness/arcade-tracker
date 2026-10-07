@@ -17,7 +17,7 @@ from app.models.inventory import (
     item_game_compatibility,
 )
 from app.models.maintenance import MaintenanceRecord, WorkLog
-from app.models.rail import Reading, RailSession
+from app.models.rail import Reading, RailSession, RailSessionTag
 from app.models.user import User
 
 __all__ = [
@@ -35,5 +35,6 @@ __all__ = [
     "item_game_compatibility",
     "Device",
     "RailSession",
+    "RailSessionTag",
     "Reading",
 ]

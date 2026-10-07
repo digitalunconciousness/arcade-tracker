@@ -5,9 +5,10 @@
 # original without something going red. Regenerate with:
 #   python scripts/contract_checksums.py --write
 
-2e8e48c68158d922c4c7d153b5defa3bc46626e7987e0dfa6380391ff53444e7  README.md
+f98c6c994e703e0f8b492de237aa71d580a0b01e08a5f603aa068feba5a4c301  README.md
 1465d5c3ed1ec27ac1ff1585beb49bcabcfe436bd3cc71eb49fff144bdef8da6  examples/ingest-request.json
 94064ff06a9976018d3db91d285435b89f2e4bf010fec99ee406ede00de3907f  examples/ingest-response-duplicate.json
 81990c36ca07e0b98f42ab16ac152647ffb4e40a6c3adc9f334c66135d632a7b  examples/ingest-response.json
 b023b8f2f453c58988b8b59af7477eed67abf5f32fe5bab0df84b3b0e385d0a3  examples/orders-response.json
 068bb2e8eb57941d3164a30d7aa1d17504abcc2ba0d1ebaec1f5020a074b1cd3  examples/roster-response.json
+621cd5b3d4800bb066da3ddaab8f440d1c42199db6e960a34c5041bd0ca52cc0  examples/session-tag-request.json

@@ -49,11 +49,49 @@
     {% if record.technician %}
     <p style="color: #fff; margin-bottom: 5px;"><strong style="color: #00ffff;">Technician:</strong> {{ record.technician }}</p>
     {% endif %}
+
+    {# Three sources now, and they mean quite different things about how much to trust the
+       description: a tech typed it, a bench instrument raised it, or somebody at the coin
+       door reported it with no account behind them. Rows that predate Phase 2 have no
+       source at all, so nothing is shown for them rather than "unknown". #}
+    {% if record.source %}
+    <p style="color: #fff; margin-bottom: 5px;"><strong style="color: #00ffff;">Raised by:</strong>
+      {{ {'gatbox': 'GATBOX at the bench', 'coindoor': 'someone at the coin door',
+          'web': 'typed into this app'}.get(record.source, record.source) }}</p>
+    {% endif %}
     
     {% if record.cost %}
     <p style="color: #fff; margin-bottom: 5px;"><strong style="color: #00ffff;">Total Cost:</strong> ${{ "%.2f"|format(record.cost) }}</p>
     {% endif %}
   </div>
+
+  {# The traces. Two labelled lists, not one: rail_session_id is why this order exists and
+     the tags are what has been measured since. An order from the bench is only worth having
+     if the trace that prompted it is one click away -- which it was not until Phase 6. #}
+  {% if record.rail_session or record.session_tags %}
+  <div style="background: rgba(0, 20, 40, 0.6); border: 2px solid #7dfaff; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+    <h4 style="color: #7dfaff; margin-bottom: 15px;">Rail traces</h4>
+    {% if record.rail_session %}
+    <p style="color: #fff; margin-bottom: 8px;">
+      <strong style="color: #00ffff;">Prompted by:</strong>
+      <a href="{{ url_for('rails.session', uid=record.rail_session.uid) }}">{{ record.rail_session.file }}</a>
+      {% if record.rail_session.verdict %}<span style="color: #aaa;"> — {{ record.rail_session.verdict }}</span>{% endif %}
+    </p>
+    {% endif %}
+    {% if record.session_tags %}
+    <p style="color: #fff; margin-bottom: 5px;"><strong style="color: #00ffff;">Also attached:</strong></p>
+    <ul style="margin: 0 0 0 18px;">
+      {% for tag in record.session_tags %}
+      <li style="color: #fff;">
+        <a href="{{ url_for('rails.session', uid=tag.rail_session.uid) }}">{{ tag.rail_session.file }}</a>
+        {% if tag.rail_session.verdict %}<span style="color: #aaa;"> — {{ tag.rail_session.verdict }}</span>{% endif %}
+        {% if tag.note %}<span style="color: #aaa;"> · {{ tag.note }}</span>{% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+  </div>
+  {% endif %}
 
   <!-- Original Issue -->
   <div style="background: rgba(0, 20, 40, 0.6); border: 2px solid #ff6666; border-radius: 8px; padding: 20px; margin-bottom: 20px;">

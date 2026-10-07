@@ -57,6 +57,20 @@ INTRODUCED_BY = {
     ("game", "report_label_stale"): "e6f7a8b9c0d1",
 }
 
+# Which migration created each table. Only tables a migration actually creates belong here:
+# the older ones (game, user, maintenance_record and the rest) were built by db.create_all()
+# before this project had migrations, which is also why `upgrade` from an empty database does
+# not work and never has.
+#
+# Without this a missing table was the one case the report had nothing useful to say about --
+# "`db upgrade` may be enough" -- while a missing column got a revision and a stamp command.
+TABLE_INTRODUCED_BY = {
+    "device": "d4e5f6a7b8c9",
+    "rail_session": "d4e5f6a7b8c9",
+    "reading": "d4e5f6a7b8c9",
+    "rail_session_tag": "b1c2d3e4f5a6",
+}
+
 # The revision that precedes each, i.e. what to stamp so `upgrade` will apply it.
 PREDECESSOR = {
     "ebead5244def": "5a026e6869ec",
@@ -69,11 +83,12 @@ PREDECESSOR = {
     "f1c2d3e4a5b6": "c1a2b3d4e5f6",
     "d4e5f6a7b8c9": "f1c2d3e4a5b6",
     "e6f7a8b9c0d1": "d4e5f6a7b8c9",
+    "b1c2d3e4f5a6": "e6f7a8b9c0d1",
 }
 
 ORDER = ["5a026e6869ec", "ebead5244def", "3e5463d29981", "e7582856b8aa",
          "8dcea35845db", "b547f37c117c", "7a61de1d1679", "c1a2b3d4e5f6",
-         "f1c2d3e4a5b6", "d4e5f6a7b8c9", "e6f7a8b9c0d1"]
+         "f1c2d3e4a5b6", "d4e5f6a7b8c9", "e6f7a8b9c0d1", "b1c2d3e4f5a6"]
 
 
 def check_encoding(db) -> dict | None:
@@ -215,12 +230,15 @@ def main() -> int:
 
         print("\nSCHEMA IS BEHIND THE MODELS")
         for name in missing_tables:
-            print(f"  missing table : {name}")
+            rev = TABLE_INTRODUCED_BY.get(name, "?")
+            print(f"  missing table : {name}   (added by {rev})")
         for table, column in missing_columns:
             rev = INTRODUCED_BY.get((table, column), "?")
             print(f"  missing column: {table}.{column}   (added by {rev})")
 
         revs = {INTRODUCED_BY[k] for k in missing_columns if k in INTRODUCED_BY}
+        revs |= {TABLE_INTRODUCED_BY[t] for t in missing_tables
+                 if t in TABLE_INTRODUCED_BY}
         if revs:
             earliest = min(revs, key=ORDER.index)
             target = PREDECESSOR.get(earliest)
@@ -229,7 +247,10 @@ def main() -> int:
             print(f"  flask --app run:app db stamp {target}")
             print("  flask --app run:app db upgrade")
         else:
-            print("\nMissing tables only; `flask --app run:app db upgrade` may be enough.")
+            # Only reachable for a table no migration creates -- one of the create_all-era
+            # tables, which means the database was never built from this repo at all.
+            print("\nMissing tables that no migration creates; this database was not built"
+                  " from this repo. `flask --app run:app db upgrade` will not add them.")
         if stale_sequences:
             report_sequences(stale_sequences)
         return 1
