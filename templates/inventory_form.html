@@ -1,0 +1,51 @@
+{% extends "layout.html" %}
+{% import "ui.html" as ui %}
+{% block title %}{{ "Edit " ~ item.name if item else "Add a part" }}{% endblock %}
+
+{% block page_head %}
+{% if item %}
+{{ ui.page_head("Edit " ~ item.name, back=url_for("inventory.inventory_detail", item_id=item.id), back_label=item.name) }}
+{% else %}
+{{ ui.page_head("Add a part", back=url_for("inventory.inventory_list"), back_label="Parts") }}
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<form class="form" method="post" novalidate>
+  {{ form.hidden_tag() }}
+  {%- if form.errors %}
+  <div class="banners" role="alert"><div class="banner is-fault"><div class="banner__body"><span class="banner__title">Nothing was saved</span><p>Fix the fields marked below.</p></div></div></div>
+  {%- endif %}
+
+  <fieldset class="stack">
+    <legend>The part</legend>
+    {{ ui.field(form.name, autocomplete="off") }}
+    <div class="field-row">
+      {{ ui.field(form.part_number, autocomplete="off") }}
+      {{ ui.field(form.supplier) }}
+    </div>
+    {{ ui.field(form.description, rows=3) }}
+  </fieldset>
+
+  <fieldset class="stack">
+    <legend>Stock and price</legend>
+    <div class="field-row">
+      {{ ui.field(form.stock_quantity, min=0, inputmode="numeric",
+                  help=("Changing it here is logged as a count. To record a delivery or a repair, use “Change the stock” on the part's page." if item else none)) }}
+      {{ ui.field(form.minimum_stock, min=0, inputmode="numeric", help="At or below this, the part shows as low and raises an alert.") }}
+      {{ ui.field(form.unit_price, min=0, step="0.01", inputmode="decimal") }}
+    </div>
+  </fieldset>
+
+  <fieldset class="stack">
+    <legend>Where it goes</legend>
+    {{ ui.field(form.compatible_games, size=8, help="Hold Ctrl (⌘ on a Mac) to pick more than one. On a phone, tap each one.") }}
+    {{ ui.field(form.notes, rows=3) }}
+  </fieldset>
+
+  <div class="form__actions">
+    <button class="btn btn--primary" type="submit">{{ "Save part" if item else "Add part" }}</button>
+    <a class="btn btn--ghost" href="{{ url_for('inventory.inventory_detail', item_id=item.id) if item else url_for('inventory.inventory_list') }}">Cancel</a>
+  </div>
+</form>
+{% endblock %}

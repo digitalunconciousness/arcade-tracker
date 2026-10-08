@@ -105,13 +105,7 @@ html, body {
    ================================================ */
 
 @media (max-width: 968px) {
-    .table-responsive {
-        display: block;
-        width: 100%;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        margin-bottom: 20px;
-    }
+    
     
     /* Let tables scroll naturally - DON'T change display */
     table, .table {

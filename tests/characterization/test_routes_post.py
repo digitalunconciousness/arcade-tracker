@@ -536,7 +536,7 @@ class TestInventory:
     def test_a_request_with_no_quantity_is_refused(self, client, floor):
         login(client, "operator")
         resp = client.post("/inventory/request", data={"item_name": "x", "quantity": "0"})
-        assert resp.headers["Location"] == "/inventory/request"
+        assert resp.status_code == 400  # shown again with its errors since 4.5
 
     def test_receiving_a_request_adds_stock(self, client, floor):
         from app.models import InventoryItem, InventoryRequest

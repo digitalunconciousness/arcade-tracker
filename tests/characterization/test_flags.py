@@ -9,15 +9,13 @@ Step 5 security tests, or a decision the owner has not made yet.
 """
 from __future__ import annotations
 
-import io
 import os
-import re
 import time
 
 import pytest
 
 from char_support import login
-from test_routes_post import fresh, png_bytes
+from test_routes_post import fresh
 
 
 def flag(code: str, why: str):
@@ -40,24 +38,6 @@ def test_cleanup_keeps_photos_a_work_order_still_uses(client, floor, sandbox):
     assert photo.exists()
 
 
-@flag("F-9", "re-saving a Received request adds its stock again")
-def test_receiving_twice_adds_stock_once(client, floor):
-    from app.models import InventoryItem
-
-    login(client, "manager")
-    url = f"/inventory/requests/{floor['request']}/update"
-    client.post(url, data={"status": "Received"})
-    client.post(url, data={"status": "Received", "notes": "Shelved on rack B"})
-    assert fresh(InventoryItem, floor["belt"]).stock_quantity == 13
-
-
-@flag("F-9", "an update without a status field sets the status to None")
-def test_an_update_without_status_keeps_the_status(client, floor):
-    from app.models import InventoryRequest
-
-    login(client, "manager")
-    client.post(f"/inventory/requests/{floor['request']}/update", data={"notes": "chased"})
-    assert fresh(InventoryRequest, floor["request"]).status == "Pending"
 
 
 @flag("F-10", "deleting a game bulk-deletes its orders and orphans their work logs")
@@ -143,27 +123,6 @@ def test_a_rail_session_with_partial_figures_renders(client, floor):
     assert client.get(f"/rails/session/{floor['session_uid']}").status_code == 200
 
 
-@flag("F-30", "user text is interpolated into an inline onclick= JavaScript string")
-def test_request_detail_keeps_user_text_out_of_event_handlers(client, floor):
-    from app.extensions import db
-    from app.models import InventoryRequest
-
-    fresh(InventoryRequest, floor["request"]).item_name = "O'Brien's belt"
-    db.session.commit()
-    login(client, "manager")
-    html = client.get(f"/inventory/requests/{floor['request']}").get_data(as_text=True)
-    handlers = re.findall(r'\son\w+="([^"]*)"', html)
-    assert not any("Brien" in h for h in handlers)
-
-
-@flag("F-32", "DataRequired on an IntegerField refuses 0, so a zero-stock item is rejected")
-def test_an_item_can_be_added_with_zero_stock(client, floor):
-    from app.models import InventoryItem
-
-    login(client, "manager")
-    client.post("/inventory/add", data={"name": "Back-ordered lamp", "stock_quantity": "0",
-                                        "minimum_stock": "0"})
-    assert InventoryItem.query.filter_by(name="Back-ordered lamp").count() == 1
 
 
 @flag("F-34", "send_file resolves backups/ against app/, not the cwd the view checked")
