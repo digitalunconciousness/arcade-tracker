@@ -122,7 +122,7 @@ ELSEWHERE = {
     "/api/v1/machines/<slug>/orders": "tests/test_api_v1_contract.py",
     "/static/<path:filename>": "static files",
 }
-RETIRING = "/skeeball"  # struck by the owner 2026-10-08; retired in its own commit
+RETIRING = "/skeeball"  # retired 2026-10-08; test_route_authentication asserts it is gone
 
 
 def test_every_get_route_is_in_the_matrix(app):

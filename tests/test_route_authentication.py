@@ -1,10 +1,8 @@
-"""Every API route needs a session, except the health probe.
+"""Every route needs a session, except the few listed below with their reason.
 
-Four skeeball GET routes were reachable without logging in -- /api/lanes,
-/api/lanes/<id>/status, /api/lanes/<id>/stats and /api/health -- on a site
-published to the internet through a Cloudflare tunnel. The first three now
-require a session. /api/health stays open deliberately: deploy/deploy.sh polls it
-to decide whether a deployment succeeded, before any session exists.
+Four skeeball GET routes were once reachable without logging in, on a site published
+to the internet through a Cloudflare tunnel. Skeeball has since been retired
+(2026-10-08), and the one public probe left is /api/v1/health.
 
 This test reads the route table rather than a hand-written list, so a new
 unauthenticated route fails here instead of being noticed in production.
@@ -30,7 +28,6 @@ TOKEN_AUTHORISED = {
 
 # Routes that are allowed to answer without any credential at all, with the reason.
 PUBLIC = {
-    "/skeeball/api/health": "a subsystem health probe; deploy/deploy.sh reports it",
     "/login": "you cannot require a session to reach the login page",
     "/logout": "handled by flask_login",
     "/static/<path:filename>": "static assets",
@@ -131,12 +128,8 @@ def test_a_token_authorised_route_still_refuses_an_anonymous_caller(app, client)
     assert not served, "these answered an anonymous caller:\n  " + "\n  ".join(served)
 
 
-def test_the_health_probe_stays_open(client):
-    # deploy/deploy.sh probes this after its liveness gate and reports the result,
-    # so it has to answer without a session. It also exercises the skeeball lane
-    # manager, which is how a missing gpiozero shows up as a test failure here
-    # rather than as a 500 in production.
-    response = client.get("/skeeball/api/health", follow_redirects=False)
-    assert response.status_code == 200, (
-        f"the health probe must answer anonymously, got {response.status_code}"
-    )
+def test_skeeball_is_retired(client):
+    """Skeeball was retired on 2026-10-08 (docs/FEATURES.md §13). Its pages and its
+    unauthenticated health probe are gone: nothing under /skeeball answers."""
+    for path in ("/skeeball/", "/skeeball/api/health", "/skeeball/api/lanes"):
+        assert client.get(path).status_code == 404, path

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 EXPECTED_BLUEPRINTS = {
     "admin", "auth", "dashboard", "games", "inventory",
-    "maintenance", "reports", "skeeball",
+    "maintenance", "reports",
     # _register_blueprints swallows an ImportError with a printed warning, so a broken
     # blueprint is simply absent and every one of its routes 404s. Naming it here turns
     # that silence into a failing test.

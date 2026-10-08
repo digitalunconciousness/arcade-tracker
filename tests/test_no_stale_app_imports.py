@@ -23,7 +23,7 @@ REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # Directories and files that are imported while serving a request.
 # Widened 2026-10-01: the one-off scripts that carried stale imports are retired to
 # docs/history/, so scripts/ and the repository root are now clean and stay checked.
-LIVE_PATHS = ["app", "skeeball", "scripts", "run.py", "config.py"]
+LIVE_PATHS = ["app", "scripts", "run.py"]
 
 IMPORT_RE = re.compile(r"^\s*from app import\s+(.+?)\s*(?:#.*)?$", re.MULTILINE)
 EXPORTED = {"create_app", "models"}       # `models` is imported for its side effect

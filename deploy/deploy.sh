@@ -14,13 +14,10 @@ REPO=${ARCADE_REPO:-/opt/arcade-tracker}
 VENV=${ARCADE_VENV:-/opt/arcade-tracker-venv}
 BACKUPS=${ARCADE_BACKUPS:-/var/backups/arcade-tracker}
 SERVICE=${ARCADE_SERVICE:-arcade-tracker}
-# Liveness gate: the thinnest path that proves the app is serving. It used to be
-# /skeeball/api/health, which reaches the lane manager and so gpiozero -- a
-# dependency problem there would have failed every deploy for a reason that has
-# nothing to do with whether the site is up.
+# Liveness gate: the thinnest path that proves the app is serving. (The skeeball
+# health probe that used to be reported alongside it was retired with skeeball on
+# 2026-10-08; /api/v1/health is the unauthenticated probe now.)
 HEALTH=${ARCADE_HEALTH:-http://127.0.0.1:5000/}
-# Probed after the gate and reported, never fatal.
-HEALTH_SUBSYSTEM=${ARCADE_HEALTH_SUBSYSTEM:-http://127.0.0.1:5000/skeeball/api/health}
 BRANCH=${ARCADE_BRANCH:-master}
 KEEP=${ARCADE_KEEP:-14}
 
