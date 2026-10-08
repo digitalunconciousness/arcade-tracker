@@ -387,7 +387,8 @@ anything is changed.
    login through the label inside the door (R1, G17–G19). For F-16 (a readonly user scanning the outside
    label), the default is a read-only machine page for readonly users and the work-order form for operators
    and up. Same `/g/<barcode>` URL, same barcodes.
-3. **ngrok is retired.** Its leftovers (`scripts/setup_autostart.sh`'s ngrok unit) go in the cleanup.
-4. **Skeeball:** retire it (see 1).
+3. **ngrok is retired.** `scripts/setup_autostart.sh`, which installed the missing ngrok unit, moved to
+   `docs/history/` on 2026-10-08. The Cloudflare tunnel is the only public path.
+4. **Skeeball:** retired on 2026-10-08 (see 1 and `docs/history/skeeball/README.md`).
 5. **In-app backups stay.** The path traversal (F-18) and the download (F-34) get fixed in Step 5.
    PostgreSQL support (F-11) is a separate, later change.
