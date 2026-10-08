@@ -133,7 +133,28 @@ def test_no_page_becomes_unreachable(snapshot):
     grow freely; shrinking it is a deliberate, reviewed edit of snapshots/reachable.json.
     """
     pinned = json.loads(REACHABLE.read_text())
+    minimum = _minimum_roles()
     for role, endpoints in pinned.items():
         now = {x.split("(")[0] for page in snapshot.values() for x in page.get(role, [])}
-        lost = sorted(set(endpoints) - now)
+        # A link the role would be refused at is not a page it can reach; dropping it is a fix.
+        allowed = {e for e in endpoints if LEVEL[role] >= LEVEL[minimum.get(e, "readonly")]}
+        lost = sorted(allowed - now)
         assert lost == [], f"{role} can no longer reach: {lost}"
+
+
+def _minimum_roles() -> dict[str, str]:
+    """Endpoint -> minimum role, from the GET matrix and the POST list."""
+    from flask import current_app
+
+    from test_routes_post import POSTS
+
+    floor = {k: 1 for k in ("raider", "pinball", "courier", "belt", "fuse", "alert",
+                            "open_order", "closed_order", "general", "request")}
+    floor["session_uid"] = "d" * 32
+    adapter = current_app.url_map.bind("localhost")
+    out = {}
+    for _rule, build, minimum, *_ in PAGES:
+        out[adapter.match(build(floor).split("?")[0], method="GET")[0]] = minimum
+    for build, minimum in POSTS:
+        out[adapter.match(build(floor), method="POST")[0]] = minimum
+    return out

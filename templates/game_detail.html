@@ -196,5 +196,15 @@
     {%- endif %}
   </section>
 
+  {%- if current_user.has_role("admin") %}
+  <section class="card card--status is-fault" aria-labelledby="danger-title">
+    <h2 id="danger-title">Delete this machine</h2>
+    <p class="dim">Removes the machine with all its play records and work orders. Its printed labels
+      stop resolving. This cannot be undone.</p>
+    {{ ui.danger_form(url_for("games.delete_game", game_id=g.id), "Delete machine",
+                      "Delete " ~ g.name ~ " and all its records? This cannot be undone.", small=false) }}
+  </section>
+  {%- endif %}
+
 </div>
 {% endblock %}

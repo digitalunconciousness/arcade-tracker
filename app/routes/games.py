@@ -36,53 +36,17 @@ games_bp = Blueprint("games", __name__)
 @games_bp.route("/games")
 @login_required
 def games_list():
-    search = request.args.get("search", "")
-    location_filter = request.args.get("location", "")
-    status_filter = request.args.get("status", "")
+    from app.services.machines import list_machines
 
-    query = Game.query
-
-    if search:
-        query = query.filter(Game.name.contains(search))
-    if location_filter:
-        query = query.filter_by(location=location_filter)
-    if status_filter:
-        query = query.filter_by(status=status_filter)
-
-    # Get all games sorted alphabetically
-    games = query.order_by(Game.name.asc()).all()
-
-    # Separate into floor and warehouse games
-    floor_games = [g for g in games if g.location == "Floor"]
-    warehouse_games = [g for g in games if g.location == "Warehouse"]
-
-    # Get games with open maintenance requests
-    games_with_open_maintenance = set(
-        row[0]
-        for row in db.session.query(MaintenanceRecord.game_id)
-        .filter(MaintenanceRecord.status.in_(["Open", "In_Progress"]))
-        .distinct()
-        .all()
-    )
-
-    # Add maintenance indicator to games
-    for game in games:
-        game.has_open_maintenance = game.id in games_with_open_maintenance
-
-    # Get unique values for filter dropdowns
-    locations = db.session.query(Game.location.distinct()).all()
-    statuses = db.session.query(Game.status.distinct()).all()
-
+    search = request.args.get("search", "").strip()
+    location = request.args.get("location", "")
+    status = request.args.get("status", "")
     return render_template(
         "games_list.html",
-        games=games,
-        floor_games=floor_games,
-        warehouse_games=warehouse_games,
+        m=list_machines(search, location, status),
         search=search,
-        location_filter=location_filter,
-        status_filter=status_filter,
-        locations=[loc[0] for loc in locations],
-        statuses=[s[0] for s in statuses],
+        location_filter=location,
+        status_filter=status,
     )
 
 
@@ -540,6 +504,12 @@ def bulk_update_games():
     if not game_ids:
         flash("No games selected", "error")
         return redirect(url_for("games.games_list"))
+
+    # "Export selected" lives in the same bulk form as the updates, so the selection needs no
+    # JavaScript. The export itself stays the GET it always was; the POST only forwards the
+    # ids, so the CSRF token never ends up in a URL.
+    if action == "export":
+        return redirect(url_for("games.export_selected_games", game_ids=game_ids))
 
     games = Game.query.filter(Game.id.in_(game_ids)).all()
     count = len(games)

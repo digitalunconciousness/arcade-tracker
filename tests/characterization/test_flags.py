@@ -195,13 +195,3 @@ def test_a_backup_can_be_downloaded(client, floor, sandbox):
     login(client, "admin")
     resp = client.get("/download_backup/arcade_backup_20260101_000000.db")
     assert resp.status_code == 200
-
-
-@flag("F-35", "the dashboard reads item.current_stock / min_stock, which do not exist")
-def test_dashboard_low_stock_shows_the_stock_numbers(client, floor):
-    login(client, "manager")
-    html = client.get("/").get_data(as_text=True)
-    row = re.search(r"Glass Fuse 2A</a></td>(.*?)</tr>", html, re.S).group(1)
-    cells = [c.strip() for c in re.findall(r"<td[^>]*>(.*?)</td>", row, re.S)]
-    assert cells[0] == "1" and cells[1] == "5"
-

@@ -1,160 +1,151 @@
-{% extends "base.html" %}
+{% extends "layout.html" %}
+{% import "ui.html" as ui %}
+{% block title %}Dashboard{% endblock %}
+
+{% block page_head %}
+{% call ui.page_head("Dashboard", sub=today().strftime("%A %d %B %Y")) %}
+  {%- if current_user.has_role("manager") %}
+  <a class="btn btn--sm" href="{{ url_for('reports.graphs') }}">Analytics</a>
+  <a class="btn btn--sm" href="{{ url_for('reports.reports') }}">Reports</a>
+  <a class="btn btn--sm btn--ghost" href="{{ url_for('reports.export_report') }}">Export PDF</a>
+  {%- endif %}
+{% endcall %}
+{% endblock %}
 
 {% block content %}
-<h1 class="glitch" data-text="SYSTEM CONTROL CENTER">SYSTEM CONTROL CENTER</h1>
+<div class="stack dash">
 
-<div class="stats">
-    <div class="stat-card">
-        <span class="stat-number">{{ total_games }}</span>
-        <div class="stat-label">Total Games</div>
-    </div>
-    <div class="stat-card">
-        <span class="stat-number">{{ floor_games|length }}</span>
-        <div class="stat-label">Games on Floor</div>
-    </div>
-    {% if current_user.has_role('manager') %}
-    <div class="stat-card">
-        <span class="stat-number">${{ "%.2f"|format(total_revenue) }}</span>
-        <div class="stat-label">Total Revenue</div>
-    </div>
-    {% endif %}
-    <div class="stat-card">
-        <span class="stat-number">{{ total_plays }}</span>
-        <div class="stat-label">Total Plays</div>
-    </div>
-</div>
+  <dl class="readouts">
+    {{ ui.readout("Open work orders", d.open_order_count, tone=("fault" if d.open_order_count else "ok")) }}
+    {{ ui.readout("Machines down", d.down_games|length, "on the floor", tone=("fault" if d.down_games else "ok")) }}
+    {{ ui.readout("Machines", d.total_games, d.floor_games|length ~ " on the floor") }}
+    {{ ui.readout("Total plays", "{:,}".format(d.total_plays)) }}
+    {%- if current_user.has_role("manager") %}
+    {{ ui.readout("Total revenue", "${:,.2f}".format(d.total_revenue)) }}
+    {%- endif %}
+    {%- if current_user.has_role("operator") %}
+    {{ ui.readout("Low stock", d.low_stock|length, "parts below minimum", tone=("warn" if d.low_stock else none)) }}
+    {%- endif %}
+  </dl>
 
-<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin: 30px 0;">
-    <div class="card">
-        {% if current_user.has_role('manager') %}
-            <h2> Critical Systems - Require Attention</h2>
-            {% if worst_performers %}
-            <table class="table critical-table">
-                <thead>
-                    <tr>
-                        <th>Game Name</th>
-                        <th>Daily Revenue</th>
-                        <th>Total Revenue</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for game, daily_rev in worst_performers %}
-                    <tr class="performance-bad">
-                        <td><a href="{{ url_for('games.game_detail', game_id=game.id) }}">{{ game.name }}</a></td>
-                        <td class="revenue-text" style="color: #ff6666;">${{ "%.2f"|format(daily_rev) }}</td>
-                        <td class="revenue-text" style="color: #ff6666;">${{ "%.2f"|format(game.total_revenue) }}</td>
-                        <td>
-                            {% if current_user.has_role('manager') %}
-                                <a href="{{ url_for('games.record_plays', game_id=game.id) }}" class="btn btn-success" style="font-size: 12px; padding: 5px 10px;">Record Plays</a>
-                            {% else %}
-                                <a href="{{ url_for('games.game_detail', game_id=game.id) }}" class="btn" style="font-size: 12px; padding: 5px 10px;">View Game</a>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-            {% else %}
-            <p>No floor games to analyze yet.</p>
-            {% endif %}
-        {% else %}
-            <h2> Recent Activities</h2>
-            {% if recent_records %}
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>Game</th>
-                        <th>Plays Added</th>
-                        <th>Date</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for record in recent_records[:5] %}
-                    <tr>
-                        <td><a href="{{ url_for('games.game_detail', game_id=record.game_id) }}">{{ record.game.name }}</a></td>
-                        <td>{{ record.plays_count }} plays</td>
-                        <td>{{ record.date_recorded.strftime('%Y-%m-%d') }}</td>
-                        <td>
-                            <a href="{{ url_for('games.game_detail', game_id=record.game_id) }}" class="btn" style="font-size: 12px; padding: 5px 10px;">View Game</a>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-            {% else %}
-            <p>No recent play records. Start recording some plays!</p>
-            {% endif %}
-        {% endif %}
-    </div>
-    
-    <div class="card">
-        <h2> Active Floor Systems</h2>
-        {% if floor_games %}
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Game Name</th>
-                    <th>Position</th>
-                    {% if current_user.has_role('manager') %}<th>Revenue</th>{% endif %}
-                    <th>Status</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for game in floor_games[:10] %}
-                <tr>
-                    <td><a href="{{ url_for('games.game_detail', game_id=game.id) }}">{{ game.name }}</a></td>
-                    <td>{{ game.floor_position or 'Not Set' }}</td>
-                    {% if current_user.has_role('manager') %}<td>${{ "%.2f"|format(game.total_revenue) }}</td>{% endif %}
-                    <td>
-                        <span style="color: {{ 'green' if game.status == 'Working' else 'red' if game.status == 'Not_Working' else 'orange' }}">
-                            {{ game.status.replace('_', ' ') }}
-                        </span>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        {% else %}
-        <p>No games on the floor. <a href="{{ url_for('games.add_game') }}">Add games and set them to Floor location!</a></p>
-        {% endif %}
-    </div>
-</div>
+  <div class="dash__grid">
+    <section aria-labelledby="orders-title">
+      <div class="card__head">
+        <h2 id="orders-title">Open work orders</h2>
+        <a class="btn btn--sm btn--ghost" href="{{ url_for('maintenance.maintenance_orders') }}">All{% if d.open_order_count > d.open_orders|length %} {{ d.open_order_count }}{% endif %}</a>
+      </div>
+      {%- if d.open_orders %}
+      <ul class="rows">
+        {%- for o in d.open_orders %}
+        <li><a class="row" href="{{ url_for('maintenance.maintenance_detail', record_id=o.id) }}">
+          <span class="row__main">
+            <span class="row__title">{{ o.game.name if o.game else (o.location_description or "General") }}</span>
+            <span class="row__meta">{{ o.issue_description }}</span>
+          </span>
+          <span class="row__end">{% if o.priority %}{{ ui.status(o.priority) }}{% endif %}{{ ui.status(o.status) }}</span>
+        </a></li>
+        {%- endfor %}
+      </ul>
+      {%- else %}
+      {{ ui.empty("Nothing open", "Every machine is clear. New reports from the floor or a coin door show up here.") }}
+      {%- endif %}
+    </section>
 
-{% if low_stock_alerts %}
-<div class="card" style="margin: 30px 0; border-left: 4px solid #ff6666;">
-    <h2 style="color: #ff6666;">⚠️ Low Stock Alerts</h2>
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Item</th>
-                <th>Current Stock</th>
-                <th>Min Stock</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for alert in low_stock_alerts %}
-            <tr style="background-color: rgba(255, 102, 102, 0.1);">
-                <td><a href="{{ url_for('inventory.inventory_detail', item_id=alert.item.id) }}">{{ alert.item.name }}</a></td>
-                <td style="color: #ff6666; font-weight: bold;">{{ alert.item.current_stock }}</td>
-                <td>{{ alert.item.min_stock }}</td>
-                <td>
-                    <a href="{{ url_for('inventory.adjust_stock', item_id=alert.item.id) }}" class="btn btn-warning" style="font-size: 12px; padding: 5px 10px;">Restock</a>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</div>
-{% endif %}
+    {%- if d.down_games %}
+    <section aria-labelledby="down-title">
+      <h2 id="down-title">Down on the floor</h2>
+      <ul class="rows">
+        {%- for g in d.down_games %}
+        <li><a class="row" href="{{ url_for('games.game_detail', game_id=g.id) }}">
+          <span class="row__main"><span class="row__title">{{ g.name }}</span><span class="row__meta">{{ g.floor_position or "Position not set" }}</span></span>
+          <span class="row__end">{{ ui.status(g.status) }}</span>
+        </a></li>
+        {%- endfor %}
+      </ul>
+    </section>
+    {%- endif %}
 
-{% if current_user.has_role('manager') %}
-<div style="text-align: center; margin: 40px 0;">
-    <a href="{{ url_for('reports.graphs') }}" class="btn btn-success" style="font-size: 18px; padding: 15px 30px; margin: 10px;"> System Analytics</a>
-    <a href="{{ url_for('reports.reports') }}" class="btn" style="font-size: 18px; padding: 15px 30px; margin: 10px;"> Detailed Reports</a>
-    <a href="{{ url_for('reports.export_report') }}" class="btn btn-warning" style="font-size: 18px; padding: 15px 30px; margin: 10px;"> Export Data</a>
+    {%- if current_user.has_role("operator") and d.low_stock %}
+    <section aria-labelledby="stock-title">
+      <div class="card__head">
+        <h2 id="stock-title">Low stock</h2>
+        {%- if current_user.has_role("manager") %}<a class="btn btn--sm btn--ghost" href="{{ url_for('inventory.low_stock_alerts') }}">All alerts</a>{% endif %}
+      </div>
+      <ul class="rows">
+        {%- for a in d.low_stock %}
+        <li><div class="row">
+          <span class="row__main">
+            <a class="row__title" href="{{ url_for('inventory.inventory_detail', item_id=a.item.id) }}">{{ a.item.name }}</a>
+            <span class="row__meta"><span class="num">{{ a.item.stock_quantity }}</span> in stock · minimum <span class="num">{{ a.item.minimum_stock }}</span></span>
+          </span>
+          <span class="row__end"><a class="btn btn--sm" href="{{ url_for('inventory.adjust_stock', item_id=a.item.id) }}">Restock</a></span>
+        </div></li>
+        {%- endfor %}
+      </ul>
+    </section>
+    {%- endif %}
+
+    {%- if current_user.has_role("manager") %}
+    <section aria-labelledby="worst-title">
+      <h2 id="worst-title">Lowest earners</h2>
+      <p class="dim">Floor machines with a working counter, by revenue per day since added.</p>
+      {%- if d.worst_performers %}
+      <ul class="rows">
+        {%- for g, per_day in d.worst_performers %}
+        <li><div class="row">
+          <span class="row__main">
+            <a class="row__title" href="{{ url_for('games.game_detail', game_id=g.id) }}">{{ g.name }}</a>
+            <span class="row__meta"><span class="num">${{ "%.2f"|format(per_day) }}</span>/day · ${{ "%.2f"|format(g.total_revenue or 0) }} total</span>
+          </span>
+          <span class="row__end"><a class="btn btn--sm" href="{{ url_for('games.record_plays', game_id=g.id) }}">Record plays</a></span>
+        </div></li>
+        {%- endfor %}
+      </ul>
+      {%- else %}
+      {{ ui.empty("No floor machines to rank yet") }}
+      {%- endif %}
+    </section>
+    {%- endif %}
+
+    <section aria-labelledby="recent-title">
+      <h2 id="recent-title">Recent meter readings</h2>
+      {%- if d.recent_records %}
+      <ul class="rows">
+        {%- for r in d.recent_records %}
+        <li><a class="row" href="{{ url_for('games.game_detail', game_id=r.game_id) }}">
+          <span class="row__main"><span class="row__title">{{ r.game.name }}</span><span class="row__meta">{{ r.date_recorded.strftime("%Y-%m-%d") }}{% if r.notes %} · {{ r.notes }}{% endif %}</span></span>
+          <span class="row__end num">{{ r.plays_count }} plays</span>
+        </a></li>
+        {%- endfor %}
+      </ul>
+      {%- else %}
+      {{ ui.empty("No meter readings yet", "Record plays from a machine's page.") }}
+      {%- endif %}
+    </section>
+
+    <section aria-labelledby="floor-title">
+      <div class="card__head">
+        <h2 id="floor-title">On the floor</h2>
+        <a class="btn btn--sm btn--ghost" href="{{ url_for('games.games_list', location='Floor') }}">All {{ d.floor_games|length }}</a>
+      </div>
+      {%- if d.floor_games %}
+      <ul class="rows">
+        {%- for g in d.floor_games[:10] %}
+        <li><a class="row" href="{{ url_for('games.game_detail', game_id=g.id) }}">
+          <span class="row__main"><span class="row__title">{{ g.name }}</span><span class="row__meta">{{ g.floor_position or "Position not set" }}{% if current_user.has_role("manager") %} · ${{ "%.2f"|format(g.total_revenue or 0) }}{% endif %}</span></span>
+          <span class="row__end">{{ ui.status(g.status) }}</span>
+        </a></li>
+        {%- endfor %}
+      </ul>
+      {%- else %}
+      {%- if current_user.has_role("operator") %}
+      {{ ui.empty("No machines on the floor", "Add one, or move one in from the warehouse.", url_for("games.add_game"), "Add a machine") }}
+      {%- else %}
+      {{ ui.empty("No machines on the floor") }}
+      {%- endif %}
+      {%- endif %}
+    </section>
+  </div>
+
 </div>
-{% endif %}
 {% endblock %}

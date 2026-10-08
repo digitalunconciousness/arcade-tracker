@@ -5,6 +5,7 @@
  *     (without it, the nav simply stays open);
  *   - the phone menu toggle;
  *   - dismissible banners;
+ *   - select-all checkboxes (data-select-all="name") with a live count;
  *   - <form data-confirm="Question?" data-confirm-action="Delete">: a styled confirm dialog
  *     before submitting, falling back to window.confirm where <dialog> is missing.
  */
@@ -47,6 +48,31 @@
     document.addEventListener("click", function (e) {
       var close = e.target.closest(".banner__close");
       if (close) close.closest(".banner").remove();
+    });
+
+    // --- select-all checkboxes: <input data-select-all="name"> and a live count -----
+    function syncCount(name) {
+      var boxes = document.querySelectorAll('input[type=checkbox][name="' + name + '"]');
+      var n = Array.prototype.filter.call(boxes, function (b) { return b.checked; }).length;
+      document.querySelectorAll('[data-selected-count="' + name + '"]').forEach(function (el) {
+        el.textContent = n + " selected";
+      });
+      document.querySelectorAll('[data-select-all="' + name + '"]').forEach(function (all) {
+        all.checked = n > 0 && n === boxes.length;
+        all.indeterminate = n > 0 && n < boxes.length;
+      });
+    }
+    document.addEventListener("change", function (e) {
+      var t = e.target;
+      if (t.matches("[data-select-all]")) {
+        var name = t.getAttribute("data-select-all");
+        document.querySelectorAll('input[type=checkbox][name="' + name + '"]').forEach(function (b) {
+          b.checked = t.checked;
+        });
+        syncCount(name);
+      } else if (t.matches("input[type=checkbox][name]")) {
+        if (document.querySelector('[data-select-all="' + t.name + '"]')) syncCount(t.name);
+      }
     });
 
     // --- confirm before submitting a destructive form --------------------------------
