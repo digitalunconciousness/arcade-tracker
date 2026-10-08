@@ -1,3 +1,5 @@
 # Development and CI only. Install alongside the server requirements:
 #   pip install -r requirements.txt -r requirements-dev.txt
 pytest==9.0.1
+# Screenshots (tests/screenshots/take.py). Then: python -m playwright install chromium
+playwright==1.63.0
