@@ -1,0 +1,115 @@
+{#- The one base template. Every page extends this (the pre-redesign base.html is deleted when
+    the last page has moved over).
+
+    Blocks:
+      title        <title>, " · Arcade Tracker" is appended
+      page_head    the heading row; most pages use the page_head() macro from ui.html
+      content      the page
+      scripts      page scripts (Chart.js is loaded only by pages that draw a chart)
+
+    The nav offers each role exactly what its routes allow (owner's decision on F-31): an
+    item appears if and only if the role can open its page.
+-#}
+{%- set section = {
+    "dashboard": "dashboard", "games": "machines", "maintenance": "orders",
+    "inventory": "inventory", "rails": "rails", "reports": "reports", "admin": "admin",
+    "styleguide": "admin", "auth": "account",
+  }.get(request.blueprint) -%}
+{%- if request.endpoint == "games.scan" %}{% set section = "scan" %}{% endif -%}
+{%- if request.endpoint == "maintenance.maintenance_reports" %}{% set section = "reports" %}{% endif -%}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  {%- if csrf_token is defined %}
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  {%- endif %}
+  <meta name="theme-color" content="#150a28">
+  <meta name="apple-mobile-web-app-title" content="Arcade Tracker">
+  <title>{% block title %}{% endblock %}{% if self.title() %} · {% endif %}Arcade Tracker</title>
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='icon-192.png') }}">
+  <link rel="preload" href="{{ url_for('static', filename='fonts/chakra-petch-600-latin.woff2') }}" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/tokens.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}">
+  <script src="{{ url_for('static', filename='js/ui.js') }}"></script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="app-header">
+ <div class="app-header__inner">
+  <div class="app-header__bar">
+    <a class="brand" href="{{ url_for('dashboard.home') if current_user.is_authenticated else url_for('auth.login') }}">ARCADE<b>//</b>TRACKER</a>
+    {%- if current_user.is_authenticated %}
+    <a class="btn btn--sm app-header__scan" href="{{ url_for('games.scan') }}">Scan</a>
+    <button class="btn btn--sm menu-toggle" type="button" aria-expanded="false" aria-controls="app-nav">Menu</button>
+    {%- endif %}
+  </div>
+  {%- if current_user.is_authenticated %}
+  <nav class="app-nav" id="app-nav" aria-label="Main">
+    <ul class="app-nav__list">
+      {%- macro item(key, endpoint, label) %}
+      <li><a href="{{ url_for(endpoint) }}"{% if section == key %} aria-current="page"{% endif %}>{{ label }}</a></li>
+      {%- endmacro %}
+      {{ item("dashboard", "dashboard.home", "Dashboard") }}
+      <li class="app-nav__wide-only"><a href="{{ url_for('games.scan') }}"{% if section == "scan" %} aria-current="page"{% endif %}>Scan</a></li>
+      {{ item("machines", "games.games_list", "Machines") }}
+      {{ item("orders", "maintenance.maintenance_orders", "Work orders") }}
+      {%- if current_user.has_role("operator") %}
+      {{ item("inventory", "inventory.inventory_list", "Inventory") }}
+      {%- endif %}
+      {{ item("rails", "rails.floor", "Rail history") }}
+      {%- if current_user.has_role("manager") %}
+      {{ item("reports", "reports.reports", "Reports") }}
+      {%- endif %}
+      {%- if current_user.has_role("admin") %}
+      {{ item("admin", "admin.manage_users", "Admin") }}
+      {%- endif %}
+      <li class="app-nav__user">
+        <div class="cluster">
+          <span>{{ current_user.username }} · {{ current_user.role }}</span>
+          <a class="btn btn--sm btn--ghost" href="{{ url_for('auth.profile') }}"{% if section == "account" %} aria-current="page"{% endif %}>Profile</a>
+          <a class="btn btn--sm btn--ghost" href="{{ url_for('auth.logout') }}">Log out</a>
+        </div>
+      </li>
+    </ul>
+  </nav>
+  {%- endif %}
+ </div>
+</header>
+
+<main class="app-main" id="main" tabindex="-1">
+  {%- with messages = get_flashed_messages(with_categories=true) %}
+  {%- if messages %}
+  <div class="banners" role="status">
+    {%- for category, message in messages %}
+    {%- set tone = {"success": "ok", "error": "fault", "danger": "fault", "warning": "warn", "info": "info", "message": "info"}.get(category, "info") %}
+    <div class="banner is-{{ tone }}">
+      <div class="banner__body">{{ message }}</div>
+      <button class="banner__close" type="button" aria-label="Dismiss">×</button>
+    </div>
+    {%- endfor %}
+  </div>
+  {%- endif %}
+  {%- endwith %}
+
+  {% block page_head %}{% endblock %}
+  {% block content %}{% endblock %}
+</main>
+
+<dialog class="dialog" id="confirm-dialog" aria-labelledby="confirm-title">
+  <form method="dialog">
+    <h2 class="dialog__title" id="confirm-title">Are you sure?</h2>
+    <p class="dialog__text"></p>
+    <div class="dialog__actions">
+      <button class="btn" value="cancel" autofocus>Cancel</button>
+      <button class="btn btn--danger" value="confirm">Confirm</button>
+    </div>
+  </form>
+</dialog>
+{% block scripts %}{% endblock %}
+</body>
+</html>

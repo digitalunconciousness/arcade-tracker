@@ -41,7 +41,7 @@ def seed_floor() -> dict:
                    location="Warehouse", status="Not_Working", counter_status="Working",
                    coins_per_play=1.0, date_added=_dt(30))
     courier = Game(name="Star Courier", barcode="star-courier", location="Floor",
-                   status="Working", counter_status="Broken", coins_per_play=0.25,
+                   status="Working", counter_status="Broken_Counter", coins_per_play=0.25,
                    total_plays=5, total_revenue=1.25, date_added=_dt(10))
     db.session.add_all([raider, pinball, courier])
     db.session.flush()

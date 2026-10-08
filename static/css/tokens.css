@@ -1,0 +1,109 @@
+/* Arcade Tracker design tokens.
+ *
+ * The GATBOX palette (docs/design/gatbox-style-notes.md) as raw colours, then the semantic
+ * tokens every component uses. Components never name a raw colour: they say what a colour
+ * is *for* (surface, text, status), so a status keeps its meaning wherever it appears.
+ *
+ * Rules these tokens encode (tests/test_design_tokens.py checks the numbers):
+ *   - text on any surface      >= 4.5:1 (WCAG AA)
+ *   - control borders, focus   >= 3:1 against every surface (WCAG 1.4.11)
+ *   - colour = status: ok / warn / fault / info. The accent (magenta) means "you are here"
+ *     or "the main action", never a status.
+ */
+:root {
+  /* --- GATBOX palette, verbatim ------------------------------------------------------ */
+  --c-bg: #150a28;
+  --c-bg2: #1f0f3d;
+  --c-panel: #1f1240;
+  --c-line: #3d1e6b;
+  --c-mag: #ff2e9f;
+  --c-cyan: #7dfaff;
+  --c-lime: #5ef2b0;
+  --c-red: #ff4d6d;
+  --c-amber: #ffb74d;
+  --c-fg: #ece3ff;
+  --c-mut: #9080b0;
+
+  /* --- Tracker additions ------------------------------------------------------------- */
+  --c-raised: #28184e;      /* hover, table header. #2a1a52 put magenta text at 4.49:1 */
+  --c-control: #8466bd;     /* GATBOX's --line is 1.4:1: fine for dividers, not for a field edge */
+  --c-dim: #a394c4;         /* GATBOX's --mut lifted: 4.3:1 on a raised surface was below AA */
+
+  /* --- Surfaces ---------------------------------------------------------------------- */
+  --surface-page: var(--c-bg);
+  --surface-page-top: var(--c-bg2);
+  --surface: var(--c-panel);
+  --surface-raised: var(--c-raised);
+  --surface-inset: var(--c-bg);
+
+  /* --- Text -------------------------------------------------------------------------- */
+  --text: var(--c-fg);
+  --text-dim: var(--c-dim);
+  --text-on-accent: var(--c-bg);   /* dark text on filled magenta/cyan/lime: 5.6:1 or better */
+  --link: var(--c-cyan);
+
+  /* --- Lines ------------------------------------------------------------------------- */
+  --border: var(--c-line);          /* decorative: cards, dividers */
+  --border-control: var(--c-control);
+  --focus: var(--c-cyan);
+
+  /* --- Accent ------------------------------------------------------------------------ */
+  --accent: var(--c-mag);
+  --accent-tint: rgba(255, 46, 159, 0.12);
+
+  /* --- Status (the only colours that carry meaning) ---------------------------------- */
+  --ok: var(--c-lime);
+  --ok-tint: rgba(94, 242, 176, 0.12);
+  --warn: var(--c-amber);
+  --warn-tint: rgba(255, 183, 77, 0.14);
+  --fault: var(--c-red);
+  --fault-tint: rgba(255, 77, 109, 0.16);
+  --info: var(--c-cyan);
+  --info-tint: rgba(125, 250, 255, 0.08);
+  --muted: var(--c-dim);
+  --muted-tint: rgba(163, 148, 196, 0.10);
+
+  /* --- Type -------------------------------------------------------------------------- */
+  --font-display: "Chakra Petch", system-ui, sans-serif;
+  --font-body: "Share Tech Mono", ui-monospace, "Cascadia Mono", "Segoe UI Mono", monospace;
+  --fs-xs: 0.8125rem;   /* 13px: table headers, badge text */
+  --fs-sm: 0.875rem;    /* 14px: secondary lines */
+  --fs-base: 1rem;      /* 16px: body. Never smaller for body text on a phone */
+  --fs-md: 1.125rem;    /* 18px: buttons, h3 */
+  --fs-lg: 1.375rem;    /* 22px: h2 */
+  --fs-xl: 1.75rem;     /* 28px: h1, readout values */
+  --fs-2xl: 2.5rem;     /* 40px: hero readouts */
+  --lh-tight: 1.15;
+  --lh: 1.45;
+  --track-display: 0.04em;
+  --track-caps: 0.06em;
+
+  /* --- Space, shape, size ------------------------------------------------------------ */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-7: 48px;
+  --r-sm: 4px;
+  --r: 8px;
+  --r-lg: 10px;
+  --r-pill: 999px;
+  --tap: 44px;              /* minimum touch target */
+  --content-max: 1200px;
+  --gutter: 16px;
+
+  /* --- Effects (rationed: active states, badges, the brand) ------------------------- */
+  --glow-accent: 0 0 10px rgba(255, 46, 159, 0.35);
+  --glow-accent-inset: inset 0 0 10px rgba(255, 46, 159, 0.30);
+  --glow-brand: 0 0 12px rgba(255, 46, 159, 0.55);
+  --scanline-alpha: 0.14;
+  --dur: 150ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur: 0ms;
+  }
+}

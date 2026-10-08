@@ -1,0 +1,74 @@
+{#- Macros for the design system. Import with:
+      {% import "ui.html" as ui %}
+    Every macro is shown in every state at /styleguide.
+-#}
+
+{#- Page heading row. Actions go in the caller block:
+      {% call ui.page_head("Machines", sub="3 on the floor") %}<a class="btn" …>Add</a>{% endcall %} -#}
+{% macro page_head(title, sub=none, back=none, back_label="Back") -%}
+<div class="page-head">
+  <div>
+    {%- if back %}<a class="back-link" href="{{ back }}">← {{ back_label }}</a>{% endif %}
+    <h1>{{ title }}</h1>
+    {%- if sub %}<p class="page-head__sub">{{ sub }}</p>{% endif %}
+  </div>
+  {%- if caller %}
+  <div class="page-head__actions">{{ caller() }}</div>
+  {%- endif %}
+</div>
+{%- endmacro %}
+
+{#- A status chip. The colour comes from the value (app/ui.py), and the text is always there. -#}
+{% macro status(value, label=none) -%}
+<span class="chip is-{{ value|tone }}">{{ label or (value|status_label) }}</span>
+{%- endmacro %}
+
+{#- A chip with an explicit tone, for things that are not a stored status. -#}
+{% macro chip(tone, label) -%}
+<span class="chip is-{{ tone }}">{{ label }}</span>
+{%- endmacro %}
+
+{#- A panel that has nothing to show says why, and what to do next. -#}
+{% macro empty(title, text=none, action_url=none, action_label=none) -%}
+<div class="state">
+  <p class="state__title">{{ title }}</p>
+  {%- if text %}<p>{{ text }}</p>{% endif %}
+  {%- if action_url %}<a class="btn btn--sm" href="{{ action_url }}">{{ action_label }}</a>{% endif %}
+</div>
+{%- endmacro %}
+
+{% macro error_state(title, text=none, retry_url=none) -%}
+<div class="state state--error" role="alert">
+  <p class="state__title">{{ title }}</p>
+  {%- if text %}<p>{{ text }}</p>{% endif %}
+  {%- if retry_url %}<a class="btn btn--sm" href="{{ retry_url }}">Try again</a>{% endif %}
+</div>
+{%- endmacro %}
+
+{#- One readout: a label, a value, an optional detail line. Use inside <dl class="readouts">. -#}
+{% macro readout(label, value, detail=none, tone=none) -%}
+<div class="readout">
+  <dt>{{ label }}</dt>
+  <dd class="num{% if tone %} is-{{ tone }}{% endif %}">{{ value }}</dd>
+  {%- if detail %}<small>{{ detail }}</small>{% endif %}
+</div>
+{%- endmacro %}
+
+{#- A WTForms field with its label, help text and server-side errors. -#}
+{% macro field(f, help=none, required=none) -%}
+{%- set req = required if required is not none else f.flags.required -%}
+<div class="field{% if f.errors %} is-invalid{% endif %}">
+  <label for="{{ f.id }}">{{ f.label.text }}{% if req %} <span class="field__req" aria-hidden="true">*</span><span class="visually-hidden"> (required)</span>{% endif %}</label>
+  {{ f(aria_invalid=("true" if f.errors else none), aria_describedby=((f.id ~ "-help") if help else none), **kwargs) }}
+  {%- if help %}<span class="field__help" id="{{ f.id }}-help">{{ help }}</span>{% endif %}
+  {%- for error in f.errors %}<span class="field__error">{{ error }}</span>{% endfor %}
+</div>
+{%- endmacro %}
+
+{#- A destructive action: a POST form with its CSRF token and a confirm step (static/js/ui.js). -#}
+{% macro danger_form(action, label, question, confirm_label=none, small=true) -%}
+<form class="inline-form" method="post" action="{{ action }}" data-confirm="{{ question }}" data-confirm-action="{{ confirm_label or label }}">
+  {%- if csrf_token is defined %}<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% endif %}
+  <button class="btn btn--danger{% if small %} btn--sm{% endif %}" type="submit">{{ label }}</button>
+</form>
+{%- endmacro %}

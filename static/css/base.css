@@ -1,0 +1,202 @@
+/* Arcade Tracker base: fonts, page, type, links, focus, form controls, motion.
+ * Element-level defaults only; anything with a class lives in components.css.
+ */
+
+@font-face {
+  font-family: "Chakra Petch";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("../fonts/chakra-petch-600-latin.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Share Tech Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("../fonts/ShareTechMono-Regular.ttf") format("truetype");
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  background: var(--surface-page);
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: linear-gradient(180deg, var(--surface-page-top), var(--surface-page) 60vh) no-repeat,
+    var(--surface-page);
+  color: var(--text);
+  font: var(--fs-base) / var(--lh) var(--font-body);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Scanlines sit *behind* the content (z-index -1), so they never dim text. They go
+ * entirely for anyone who asked the system for less motion and effect. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, var(--scanline-alpha)) 0 1px,
+    transparent 1px 3px
+  );
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body::before {
+    display: none;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* --- Type ----------------------------------------------------------------------------- */
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  line-height: var(--lh-tight);
+  letter-spacing: var(--track-display);
+  margin: 0 0 var(--sp-3);
+}
+h1 {
+  font-size: var(--fs-xl);
+}
+h2 {
+  font-size: var(--fs-lg);
+}
+h3 {
+  font-size: var(--fs-md);
+}
+h4 {
+  font-size: var(--fs-sm);
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: var(--track-caps);
+}
+p {
+  margin: 0 0 var(--sp-3);
+}
+small {
+  font-size: var(--fs-sm);
+}
+code,
+kbd,
+samp {
+  font-family: var(--font-body);
+}
+hr {
+  border: 0;
+  border-top: 1px solid var(--border);
+  margin: var(--sp-5) 0;
+}
+
+a {
+  color: var(--link);
+  text-underline-offset: 0.2em;
+}
+a:hover {
+  text-decoration-thickness: 2px;
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--text-on-accent);
+}
+
+/* --- Focus: visible on every interactive element, keyboard or not ---------------------- */
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
+}
+
+/* --- Form controls ------------------------------------------------------------------- */
+input,
+select,
+textarea,
+button {
+  font: inherit;
+  color: inherit;
+}
+
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]),
+select,
+textarea {
+  width: 100%;
+  min-height: var(--tap);
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--surface-inset);
+  border: 1px solid var(--border-control);
+  border-radius: var(--r);
+  color: var(--text);
+}
+textarea {
+  min-height: 6.5em;
+  resize: vertical;
+}
+input::placeholder,
+textarea::placeholder {
+  color: var(--text-dim);
+  opacity: 1;
+}
+input[type="checkbox"],
+input[type="radio"] {
+  width: 22px;
+  height: 22px;
+  accent-color: var(--accent);
+}
+input[type="file"] {
+  max-width: 100%;
+  min-height: var(--tap);
+}
+input:disabled,
+select:disabled,
+textarea:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* --- Tables (element defaults; .table adds the phone layout) -------------------------- */
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+th {
+  text-align: left;
+  font-weight: normal;
+}
+
+img,
+svg,
+canvas {
+  max-width: 100%;
+}
+img {
+  height: auto;
+}
+
+[hidden] {
+  display: none !important;
+}

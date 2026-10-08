@@ -1,0 +1,901 @@
+/* Arcade Tracker components. Every one is shown, in every state, at /styleguide.
+ *
+ * Layout is phone first: everything is written for a 390px screen, and the
+ * min-width queries at the bottom of a section widen it for a desk.
+ * Status colour comes only from the .is-ok / .is-warn / .is-fault / .is-info / .is-muted
+ * modifiers, and always travels with a text label.
+ */
+
+/* =========================================================================================
+   Utilities
+   ========================================================================================= */
+.visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+.dim {
+  color: var(--text-dim);
+}
+.num {
+  font-variant-numeric: tabular-nums;
+}
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+.cluster {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  align-items: center;
+}
+
+.skip-link {
+  position: absolute;
+  left: var(--sp-2);
+  top: -100px;
+  z-index: 100;
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--surface-raised);
+  color: var(--text);
+  border-radius: var(--r);
+}
+.skip-link:focus {
+  top: var(--sp-2);
+}
+
+/* =========================================================================================
+   App shell: header, nav, main
+   ========================================================================================= */
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: rgba(21, 10, 40, 0.94);
+  border-bottom: 1px solid var(--border);
+}
+.app-header__bar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: var(--sp-2) var(--gutter);
+  min-height: 56px;
+}
+.brand {
+  font: 600 var(--fs-md) / 1 var(--font-display);
+  letter-spacing: var(--track-caps);
+  color: var(--text);
+  text-decoration: none;
+  text-shadow: var(--glow-brand);
+  white-space: nowrap;
+  margin-right: auto;
+  min-height: var(--tap);
+  display: inline-flex;
+  align-items: center;
+}
+.brand b {
+  color: var(--accent);
+}
+.menu-toggle {
+  display: none;
+}
+.js .menu-toggle {
+  display: inline-flex;
+}
+
+.app-nav {
+  border-top: 1px solid var(--border);
+}
+.js .app-nav:not([data-open]) {
+  display: none;
+}
+.app-nav__list {
+  list-style: none;
+  margin: 0 auto;
+  padding: var(--sp-2) var(--gutter) var(--sp-3);
+  max-width: var(--content-max);
+  display: grid;
+  gap: var(--sp-1);
+}
+.app-nav a {
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  padding: 0 var(--sp-3);
+  border-radius: var(--r);
+  border: 1px solid transparent;
+  color: var(--text);
+  text-decoration: none;
+  font: 600 var(--fs-md) / 1 var(--font-display);
+  letter-spacing: var(--track-display);
+}
+.app-nav a:hover {
+  background: var(--surface-raised);
+}
+.app-nav a[aria-current="page"] {
+  color: var(--accent);
+  border-color: var(--accent);
+  box-shadow: var(--glow-accent-inset);
+}
+.app-nav__user {
+  border-top: 1px solid var(--border);
+  margin-top: var(--sp-2);
+  padding-top: var(--sp-2);
+  color: var(--text-dim);
+  font-size: var(--fs-sm);
+}
+
+.app-main {
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: var(--sp-4) var(--gutter) var(--sp-7);
+}
+
+.app-nav__wide-only {
+  display: none;
+}
+
+@media (min-width: 900px) {
+  .app-header__inner {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-4);
+    max-width: var(--content-max);
+    margin: 0 auto;
+    padding: 0 var(--gutter);
+  }
+  .app-header__bar {
+    flex: none;
+    margin: 0;
+    padding: var(--sp-2) 0;
+  }
+  /* .app-header prefix: .btn sets display later in this file at the same specificity. */
+  .app-header .app-header__scan,
+  .js .app-header .menu-toggle {
+    display: none;
+  }
+  .app-nav,
+  .js .app-nav:not([data-open]) {
+    display: block;
+    flex: 1;
+    border-top: 0;
+  }
+  .app-nav__list {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: var(--sp-2) 0;
+    margin: 0;
+    max-width: none;
+  }
+  .app-nav__wide-only {
+    display: list-item;
+  }
+  .app-nav a {
+    min-height: var(--tap);
+    padding: 0 var(--sp-2);
+    font-size: var(--fs-sm);
+    white-space: nowrap;
+  }
+  .app-nav__user {
+    margin: 0 0 0 auto;
+    padding: 0;
+    border-top: 0;
+    white-space: nowrap;
+  }
+  .app-nav__user .cluster {
+    flex-wrap: nowrap;
+  }
+  .app-main {
+    padding-top: var(--sp-5);
+  }
+}
+
+/* Page heading row: title, optional subtitle, actions that wrap below on a phone. */
+.page-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-4);
+}
+.page-head h1 {
+  margin: 0;
+}
+.page-head__sub {
+  margin: var(--sp-1) 0 0;
+  color: var(--text-dim);
+}
+.page-head__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap);
+  margin-bottom: var(--sp-1);
+  color: var(--text-dim);
+  text-decoration: none;
+}
+.back-link:hover {
+  color: var(--text);
+}
+
+/* =========================================================================================
+   Buttons
+   ========================================================================================= */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  min-height: var(--tap);
+  min-width: var(--tap);
+  padding: var(--sp-2) var(--sp-4);
+  border: 1px solid var(--border-control);
+  border-radius: var(--r);
+  background: var(--surface);
+  color: var(--text);
+  font: 600 var(--fs-md) / 1.1 var(--font-display);
+  letter-spacing: var(--track-display);
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color var(--dur), background-color var(--dur);
+}
+.btn:hover {
+  border-color: var(--text);
+  text-decoration: none;
+}
+.btn:active {
+  border-color: var(--accent);
+}
+.btn--primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--text-on-accent);
+}
+.btn--primary:hover {
+  border-color: var(--text);
+  box-shadow: var(--glow-accent);
+}
+.btn--ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--link);
+}
+.btn--ghost:hover {
+  border-color: var(--border-control);
+}
+.btn--danger {
+  background: transparent;
+  border-color: var(--fault);
+  color: var(--fault);
+}
+.btn--danger:hover {
+  background: var(--fault-tint);
+  border-color: var(--fault);
+}
+.btn--sm {
+  font-size: var(--fs-sm);
+  padding: var(--sp-1) var(--sp-3);
+}
+.btn--block {
+  width: 100%;
+}
+.btn[disabled],
+.btn[aria-disabled="true"] {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+.btn[aria-busy="true"]::after {
+  content: "";
+  width: 0.9em;
+  height: 0.9em;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+/* A form that only holds one button (delete, close) sits inline with its siblings. */
+.inline-form {
+  display: inline;
+}
+
+/* =========================================================================================
+   Status: chips, badges, dots
+   ========================================================================================= */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  padding: 2px 10px;
+  min-height: 28px;
+  border: 1px solid currentColor;
+  border-radius: var(--r-pill);
+  font: var(--fs-sm) / 1.2 var(--font-body);
+  white-space: nowrap;
+  color: var(--text-dim);
+  background: var(--muted-tint);
+}
+.chip::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.chip--plain::before {
+  display: none;
+}
+.is-ok {
+  color: var(--ok);
+  --tint: var(--ok-tint);
+}
+.is-warn {
+  color: var(--warn);
+  --tint: var(--warn-tint);
+}
+.is-fault {
+  color: var(--fault);
+  --tint: var(--fault-tint);
+}
+.is-info {
+  color: var(--info);
+  --tint: var(--info-tint);
+}
+.is-muted {
+  color: var(--muted);
+  --tint: var(--muted-tint);
+}
+.chip.is-ok,
+.chip.is-warn,
+.chip.is-fault,
+.chip.is-info,
+.chip.is-muted {
+  background: var(--tint);
+}
+/* Only a fault glows: it is the one state that should pull the eye across a room. */
+.chip.is-fault {
+  box-shadow: 0 0 8px rgba(255, 77, 109, 0.35);
+}
+
+.badge {
+  display: inline-block;
+  padding: 1px 7px;
+  border: 1px solid currentColor;
+  border-radius: var(--r-sm);
+  font: var(--fs-xs) / 1.4 var(--font-body);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+/* =========================================================================================
+   Banners (flash messages and page-level conditions)
+   ========================================================================================= */
+.banners {
+  display: grid;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-4);
+}
+.banner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid currentColor;
+  border-radius: var(--r);
+  background: var(--tint, var(--muted-tint));
+}
+.banner__body {
+  flex: 1;
+  color: var(--text);
+}
+.banner__title {
+  display: block;
+  font: 600 var(--fs-md) / 1.2 var(--font-display);
+  letter-spacing: var(--track-display);
+  color: inherit;
+}
+.banner__body > .banner__title + * {
+  margin-top: var(--sp-1);
+}
+.banner .banner__title {
+  color: currentColor;
+}
+.banner__body p {
+  margin: 0;
+}
+.banner__close {
+  margin: calc(-1 * var(--sp-2)) calc(-1 * var(--sp-2)) calc(-1 * var(--sp-2)) 0;
+  min-width: var(--tap);
+  min-height: var(--tap);
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: var(--fs-lg);
+  line-height: 1;
+  cursor: pointer;
+  border-radius: var(--r);
+}
+
+/* =========================================================================================
+   Cards, readouts, tiles, key/value
+   ========================================================================================= */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: var(--sp-4);
+}
+.card > :last-child {
+  margin-bottom: 0;
+}
+.card__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-3);
+}
+.card__head h2,
+.card__head h3 {
+  margin: 0;
+}
+.card--status {
+  border-left: 4px solid currentColor;
+}
+.card--status > * {
+  color: var(--text);
+}
+
+.grid {
+  display: grid;
+  gap: var(--sp-3);
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+}
+
+/* Readouts: one number, its label above, an optional detail below. */
+.readouts {
+  display: grid;
+  gap: var(--sp-2);
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  margin: 0 0 var(--sp-4);
+  padding: 0;
+}
+.readout {
+  margin: 0;
+  padding: var(--sp-3);
+  background: var(--surface-inset);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+}
+.readout dt {
+  font-size: var(--fs-xs);
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: var(--track-caps);
+}
+.readout dd {
+  margin: var(--sp-1) 0 0;
+  font: 600 var(--fs-xl) / 1.1 var(--font-display);
+  font-variant-numeric: tabular-nums;
+}
+.readout small {
+  display: block;
+  margin-top: var(--sp-1);
+  color: var(--text-dim);
+}
+
+.tiles {
+  display: grid;
+  gap: var(--sp-2);
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
+}
+.tile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  min-height: 88px;
+  padding: var(--sp-3);
+  background: var(--surface);
+  border: 1px solid var(--border-control);
+  border-radius: var(--r);
+  color: var(--text);
+  text-decoration: none;
+}
+.tile:hover {
+  border-color: var(--text);
+}
+.tile b {
+  font: 600 var(--fs-md) / 1.15 var(--font-display);
+}
+.tile[aria-current="true"] {
+  border-color: var(--accent);
+  box-shadow: var(--glow-accent-inset);
+}
+
+.kv {
+  display: grid;
+  grid-template-columns: minmax(7em, auto) 1fr;
+  gap: var(--sp-2) var(--sp-4);
+  margin: 0;
+}
+.kv dt {
+  color: var(--text-dim);
+}
+.kv dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+/* =========================================================================================
+   Lists of things (the phone-first alternative to a table)
+   ========================================================================================= */
+.rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--sp-2);
+}
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  min-height: 60px;
+  padding: var(--sp-3);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+}
+a.row,
+.row--link {
+  color: var(--text);
+  text-decoration: none;
+  border-color: var(--border-control);
+}
+a.row:hover {
+  border-color: var(--text);
+}
+.row__main {
+  flex: 1;
+  min-width: 0;
+}
+.row__title {
+  display: block;
+  font: 600 var(--fs-md) / 1.2 var(--font-display);
+  letter-spacing: var(--track-display);
+  overflow-wrap: anywhere;
+}
+.row__meta {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--fs-sm);
+  color: var(--text-dim);
+}
+.row__end {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--sp-2);
+}
+
+/* =========================================================================================
+   Tables. On a phone, .table--stack turns each row into a card using data-label.
+   ========================================================================================= */
+.table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  background: var(--surface);
+}
+.table {
+  font-size: var(--fs-sm);
+}
+.table th,
+.table td {
+  padding: var(--sp-2) var(--sp-3);
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+.table thead th {
+  background: var(--surface-raised);
+  color: var(--text-dim);
+  font-size: var(--fs-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--track-caps);
+  white-space: nowrap;
+}
+.table tbody tr:last-child td {
+  border-bottom: 0;
+}
+.table tbody tr:hover {
+  background: rgba(40, 24, 78, 0.5);
+}
+.table .num {
+  text-align: right;
+}
+
+@media (max-width: 699px) {
+  .table--stack thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+  .table--stack,
+  .table--stack tbody,
+  .table--stack tr,
+  .table--stack td {
+    display: block;
+    width: 100%;
+  }
+  .table--stack tr {
+    padding: var(--sp-2) 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .table--stack tbody tr:last-child {
+    border-bottom: 0;
+  }
+  .table--stack td {
+    display: grid;
+    grid-template-columns: 9em 1fr;
+    gap: var(--sp-2);
+    border: 0;
+    padding: var(--sp-1) var(--sp-3);
+  }
+  .table--stack td::before {
+    content: attr(data-label);
+    color: var(--text-dim);
+    font-size: var(--fs-xs);
+    text-transform: uppercase;
+    letter-spacing: var(--track-caps);
+    padding-top: 2px;
+  }
+  .table--stack td.num {
+    text-align: left;
+  }
+}
+
+/* =========================================================================================
+   Forms
+   ========================================================================================= */
+.form {
+  display: grid;
+  gap: var(--sp-4);
+  max-width: 640px;
+}
+.form--wide {
+  max-width: none;
+}
+.field {
+  display: grid;
+  gap: var(--sp-1);
+}
+.field > label,
+.field__label {
+  font: 600 var(--fs-sm) / 1.2 var(--font-display);
+  letter-spacing: var(--track-caps);
+  text-transform: uppercase;
+}
+.field__req {
+  color: var(--accent);
+}
+.field__help {
+  font-size: var(--fs-sm);
+  color: var(--text-dim);
+}
+.field__error {
+  font-size: var(--fs-sm);
+  color: var(--fault);
+}
+.field__error::before {
+  content: "✕ ";
+}
+.field.is-invalid input,
+.field.is-invalid select,
+.field.is-invalid textarea,
+[aria-invalid="true"] {
+  border-color: var(--fault) !important;
+  box-shadow: 0 0 0 1px var(--fault);
+}
+.field--check {
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: var(--sp-3);
+  min-height: var(--tap);
+}
+.field--check > label {
+  font: var(--fs-base) / 1.3 var(--font-body);
+  text-transform: none;
+  letter-spacing: 0;
+}
+.field-row {
+  display: grid;
+  gap: var(--sp-4);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+}
+.form__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  padding-top: var(--sp-2);
+}
+fieldset {
+  margin: 0;
+  padding: var(--sp-4);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+}
+legend {
+  padding: 0 var(--sp-2);
+  font: 600 var(--fs-sm) / 1 var(--font-display);
+  letter-spacing: var(--track-caps);
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+/* =========================================================================================
+   Tabs (links between filtered views; no JS needed)
+   ========================================================================================= */
+.tabs {
+  display: flex;
+  gap: var(--sp-1);
+  overflow-x: auto;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: var(--sp-4);
+}
+.tabs a {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-height: var(--tap);
+  padding: 0 var(--sp-4);
+  border-bottom: 3px solid transparent;
+  color: var(--text-dim);
+  text-decoration: none;
+  font: 600 var(--fs-sm) / 1 var(--font-display);
+  letter-spacing: var(--track-caps);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.tabs a:hover {
+  color: var(--text);
+}
+.tabs a[aria-current="page"] {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+.tabs__count {
+  font-family: var(--font-body);
+  color: var(--text-dim);
+}
+
+/* =========================================================================================
+   Empty, loading and error states. A panel with nothing in it says why, and what next.
+   ========================================================================================= */
+.state {
+  display: grid;
+  justify-items: start;
+  gap: var(--sp-2);
+  padding: var(--sp-5) var(--sp-4);
+  border: 1px dashed var(--border-control);
+  border-radius: var(--r);
+  color: var(--text-dim);
+}
+.state__title {
+  font: 600 var(--fs-md) / 1.2 var(--font-display);
+  letter-spacing: var(--track-display);
+  color: var(--text);
+  margin: 0;
+}
+.state p {
+  margin: 0;
+}
+.state--error {
+  border-style: solid;
+  border-color: var(--fault);
+  background: var(--fault-tint);
+}
+.state--error .state__title {
+  color: var(--fault);
+}
+.state--loading .state__title::after {
+  content: "…";
+}
+
+/* =========================================================================================
+   Confirm dialog (static/js/ui.js opens it for forms with data-confirm)
+   ========================================================================================= */
+.dialog {
+  width: min(440px, calc(100vw - 2 * var(--gutter)));
+  padding: var(--sp-5);
+  border: 1px solid var(--border-control);
+  border-radius: var(--r-lg);
+  background: var(--c-bg2);
+  color: var(--text);
+}
+.dialog::backdrop {
+  background: rgba(10, 4, 22, 0.86);
+}
+.dialog__title {
+  margin-bottom: var(--sp-2);
+}
+.dialog__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--sp-2);
+  margin-top: var(--sp-5);
+}
+
+/* =========================================================================================
+   Chart frame (Chart.js draws into it; the empty state overlays it)
+   ========================================================================================= */
+.chart {
+  position: relative;
+  min-height: 240px;
+  padding: var(--sp-3);
+  background: rgba(31, 18, 64, 0.55);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+}
+.chart canvas {
+  width: 100% !important;
+}
+.chart__empty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: var(--sp-4);
+  text-align: center;
+  color: var(--text-dim);
+}
+
+/* =========================================================================================
+   Print: labels and PDFs-by-browser print in black on white
+   ========================================================================================= */
+@media print {
+  body {
+    background: #fff;
+    color: #000;
+  }
+  body::before,
+  .app-header,
+  .page-head__actions,
+  .banners,
+  .no-print {
+    display: none !important;
+  }
+  .app-main {
+    padding: 0;
+    max-width: none;
+  }
+  a {
+    color: #000;
+  }
+}
