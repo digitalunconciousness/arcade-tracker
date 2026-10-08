@@ -8,7 +8,7 @@
     {% endif %}
     
     <!-- PWA Meta Tags -->
-    <meta name="theme-color" content="#00d9ff">
+    <meta name="theme-color" content="#150a28">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Arcade Tracker">
@@ -20,30 +20,6 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/cyberpunk.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css') }}">
     
-    <script>
-        // Theme management
-        try {
-            const theme = localStorage.getItem('theme') || 'dark';
-            document.documentElement.setAttribute('data-theme', theme);
-        } catch {
-            document.documentElement.setAttribute('data-theme', 'dark');
-        }
-
-        function toggleTheme() {
-            const html = document.documentElement;
-            const current = html.getAttribute('data-theme') || 'dark';
-            const next = current === 'dark' ? 'light' : 'dark';
-            html.setAttribute('data-theme', next);
-            try { localStorage.setItem('theme', next); } catch {}
-            updateThemeIcon(next);
-        }
-
-        function updateThemeIcon(theme) {
-            const icon = document.querySelector('.theme-icon');
-            if (icon) icon.textContent = theme === 'dark' ? '🌙' : '☀️';
-        }
-    </script>
-
     <!-- Service Worker -->
     <script>
         if ('serviceWorker' in navigator) {
@@ -54,35 +30,6 @@
     </script>
 
     <style>
-        /* === Light Theme === */
-        [data-theme="light"] body { background: #f5f5f5; color: #000; }
-        [data-theme="light"] .nav { background: #fff; border-color: #ccc; }
-        [data-theme="light"] .nav a { color: #000; }
-        [data-theme="light"] .nav-dropdown-menu a { color: #000; }
-        [data-theme="light"] .theme-toggle { background: linear-gradient(145deg, #ffd700, #ffa500); border: 3px solid #000; }
-
-        /* === Theme Toggle Button === */
-        .theme-toggle {
-            position: fixed;
-            bottom: 25px;
-            right: 25px;
-            width: 55px;
-            height: 55px;
-            border-radius: 50%;
-            background: linear-gradient(145deg, #00d9ff, #0088cc);
-            border: 3px solid #fff;
-            color: #000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            cursor: pointer;
-            box-shadow: 0 4px 20px rgba(0, 217, 255, 0.5);
-            transition: all 0.3s ease;
-            z-index: 9999;
-        }
-        .theme-toggle:hover { transform: scale(1.1); }
-
         /* === Navbar === */
         .nav {
             display: flex;
@@ -295,17 +242,7 @@
         {% block content %}{% endblock %}
     </div>
 
-    <button onclick="toggleTheme()" class="theme-toggle" title="Toggle theme">
-        <span class="theme-icon"></span>
-    </button>
-
     <script>
-    // === Initialize theme icon on load ===
-    if (typeof updateThemeIcon === 'function') {
-        const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
-        updateThemeIcon(currentTheme);
-    }
-
     // === Mobile Dropdown Handling ===
     document.addEventListener("DOMContentLoaded", function() {
         document.querySelectorAll(".nav-dropdown-toggle").forEach(toggle => {

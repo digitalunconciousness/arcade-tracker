@@ -165,13 +165,39 @@ class TestAuth:
         resp = client.post("/setup", data={"username": "intruder", "password": "x"})
         assert resp.headers["Location"] == "/login"
 
+    def test_setup_page_opens_on_an_empty_database(self, client, app):
+        """F-36, fixed in the base-shell step: this was a 500 on every fresh install."""
+        resp = client.get("/setup")
+        assert resp.status_code == 200
+        assert 'name="confirm"' in resp.get_data(as_text=True)
+
     def test_setup_creates_the_first_admin(self, client, app):
         from app.models import User
 
-        resp = client.post("/setup", data={"username": "first-admin", "password": "pw"})
+        resp = client.post("/setup", data={"username": "first-admin",
+                                           "password": "Synthetic-Passw0rd!",
+                                           "confirm": "Synthetic-Passw0rd!"})
         assert resp.headers["Location"] == "/login"
         user = User.query.filter_by(username="first-admin").one()
         assert user.role == "admin" and user.must_change_password is False
+
+    @pytest.mark.parametrize(("data", "message"), [
+        ({"username": "ab", "password": "Synthetic-Passw0rd!", "confirm": "Synthetic-Passw0rd!"},
+         "at least 3 characters"),
+        ({"username": "first-admin", "password": "short", "confirm": "short"},
+         "at least 8 characters"),
+        ({"username": "first-admin", "password": "alllowercase1", "confirm": "alllowercase1"},
+         "uppercase, lowercase"),
+        ({"username": "first-admin", "password": "Synthetic-Passw0rd!", "confirm": "different"},
+         "two passwords are different"),
+    ])
+    def test_setup_validates_on_the_server(self, client, app, data, message):
+        from app.models import User
+
+        resp = client.post("/setup", data=data)
+        assert resp.status_code == 400
+        assert message in resp.get_data(as_text=True)
+        assert User.query.count() == 0
 
     def test_change_password_checks_current_and_strength(self, client, floor):
         from app.models import User

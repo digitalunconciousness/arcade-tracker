@@ -227,7 +227,3 @@ def test_dashboard_low_stock_shows_the_stock_numbers(client, floor):
     cells = [c.strip() for c in re.findall(r"<td[^>]*>(.*?)</td>", row, re.S)]
     assert cells[0] == "1" and cells[1] == "5"
 
-
-@flag("F-36", "setup.html uses a form object the /setup view never passes: a fresh install 500s")
-def test_first_run_setup_page_opens_on_an_empty_database(client, app):
-    assert client.get("/setup").status_code == 200
