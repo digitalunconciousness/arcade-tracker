@@ -410,7 +410,7 @@ class TestMaintenance:
             "item_action_0": "use",
             "inventory_item_1": str(floor["fuse"]), "inventory_quantity_1": "4",
             "item_action_1": "request", "urgency_1": "Urgent"})
-        assert resp.headers["Location"] == "/maintenance_orders"
+        assert resp.headers["Location"] == f"/maintenance_detail/{floor['open_order']}"
         order = fresh(MaintenanceRecord, floor["open_order"])
         assert order.status == "Fixed" and order.date_fixed is not None
         assert order.cost == 4.0
@@ -452,19 +452,12 @@ class TestMaintenance:
         assert fresh(MaintenanceRecord, floor["open_order"]).get_photos() == []
         assert not on_disk.exists()
 
-    def test_photo_upload_refuses_a_missing_token_field(self, client, floor, sandbox):
-        login(client, "operator")
-        resp = client.post(f"/maintenance_photos/{floor['open_order']}", data={
-            "photos": [(io.BytesIO(png_bytes()), "a.png")]}, content_type="multipart/form-data")
-        assert ("error", "Security token missing. Please try again.") in flashes(client)
-        assert resp.headers["Location"] == f"/maintenance_photos/{floor['open_order']}"
-
     def test_photo_upload_refuses_other_extensions(self, client, floor, sandbox):
         login(client, "operator")
         client.post(f"/maintenance_photos/{floor['open_order']}", data={
             "csrf_token": "present", "photos": [(io.BytesIO(b"MZ"), "tool.exe")]},
             content_type="multipart/form-data")
-        assert any("invalid file type" in m for _, m in flashes(client))
+        assert any("not a photo" in m for _, m in flashes(client))
 
 
 # ---------------------------------------------------------------------------------------

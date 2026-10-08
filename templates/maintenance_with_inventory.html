@@ -1,209 +1,81 @@
-{% extends "base.html" %}
+{% extends "layout.html" %}
+{% import "ui.html" as ui %}
+{#- The full work-order form. With a machine (/maintenance/game/<id>) or without one
+    (/maintenance/general, for the building, the bar or equipment). -#}
+{% block title %}{{ "New work order · " ~ game.name if game else "General work order" }}{% endblock %}
+
+{% block page_head %}
+{%- if game %}
+{{ ui.page_head("New work order", sub=game.name, back=url_for("games.game_detail", game_id=game.id), back_label=game.name) }}
+{%- else %}
+{{ ui.page_head("General work order", sub="Not tied to a machine: the building, the bar, equipment.", back=url_for("maintenance.maintenance_orders"), back_label="Work orders") }}
+{%- endif %}
+{% endblock %}
 
 {% block content %}
-{% if game.barcode %}
-<p style="color: var(--text-secondary);">
-  <a href="{{ url_for('rails.machine', slug=game.barcode) }}">Rail history for this machine →</a>
-</p>
-{% endif %}
-<h1> Maintenance Record for {{ game.name }}</h1>
+<form class="form form--wide" method="post" novalidate>
+  {{ form.hidden_tag() }}
 
-<form method="POST">
-    {{ form.hidden_tag() }}
-    
-    <div class="form-group">
-        <label for="issue_description">Issue Description *</label>
-        {{ form.issue_description(rows=4, placeholder="Describe the problem or maintenance needed...") }}
-        {% if form.issue_description.errors %}
-            {% for error in form.issue_description.errors %}
-                <small style="color: var(--neon-pink);">{{ error }}</small>
-            {% endfor %}
-        {% endif %}
+  {%- if not game %}
+  <div class="field-row">
+    <div class="field">
+      <label for="work_order_type">Type</label>
+      <select id="work_order_type" name="work_order_type">
+        {%- for value, label in [("general", "General"), ("facility", "Facility"), ("equipment", "Equipment")] %}
+        <option value="{{ value }}"{% if request.form.get("work_order_type") == value %} selected{% endif %}>{{ label }}</option>
+        {%- endfor %}
+      </select>
     </div>
-    
-    <div class="form-group">
-        <label for="fix_description">Possible Diagnosis / Initial Assessment</label>
-        {{ form.fix_description(rows=3, placeholder="What do you think might be wrong? Initial troubleshooting notes...") }}
-        <small style="color: var(--text-secondary); font-size: 12px;">This can be updated later as work progresses</small>
+    <div class="field">
+      <label for="location_description">Where</label>
+      <input id="location_description" name="location_description" value="{{ request.form.get('location_description', '') }}" placeholder="Back bar, restroom, office…">
     </div>
-    
-    <div class="form-group">
-        <label for="cost">Estimated Cost ($)</label>
-        {{ form.cost(placeholder="Estimated cost (can be updated later)") }}
-        <small style="color: var(--text-secondary); font-size: 12px;">Rough estimate - will be updated when work is completed</small>
+  </div>
+  {%- endif %}
+
+  {{ ui.field(form.issue_description, rows=4, placeholder="What it does, when it started, what you tried") }}
+
+  <div class="field-row">
+    <div class="field">
+      <label for="priority">Priority</label>
+      <select id="priority" name="priority">
+        {%- set chosen = request.form.get("priority", "Medium") %}
+        {%- for p in priorities %}<option value="{{ p }}"{% if p == chosen %} selected{% endif %}>{{ p }}</option>{% endfor %}
+      </select>
     </div>
-    
-    <div class="form-group">
-        <label for="technician">Assigned Technician</label>
-        {{ form.technician(placeholder="Who should work on this?") }}
-    </div>
-    
-    <div class="form-group">
-        <label for="status">Initial Status *</label>
-        {{ form.status() }}
-    </div>
-    
-    <!-- Inventory Selection Section -->
-    <div style="background: var(--dark-card); padding: 20px; border-radius: 8px; border: 1px solid var(--neon-green); margin: 20px 0;">
-        <h3 style="color: var(--neon-green); margin-top: 0;"> Inventory Items to Use (Optional)</h3>
-        <p style="color: var(--text-secondary); margin-bottom: 15px;">Select inventory items needed for this repair. Stock will be automatically updated.</p>
-        
-        <div id="inventory-items">
-            {% for inventory_form in form.inventory_items %}
-            <div class="inventory-item-row" style="display: flex; gap: 15px; margin-bottom: 15px; align-items: end;">
-                <div style="flex: 2;">
-                    <label for="{{ inventory_form.item_id.id }}">Item {{ loop.index }}</label>
-                    {{ inventory_form.item_id(onchange="updateItemInfo(" ~ loop.index0 ~ ")") }}
-                </div>
-                <div style="flex: 1;">
-                    <label for="{{ inventory_form.quantity_used.id }}">Quantity</label>
-                    {{ inventory_form.quantity_used(placeholder="0") }}
-                </div>
-                <div style="flex: 1;">
-                    <label>Available</label>
-                    <div id="available_{{ loop.index0 }}" style="padding: 8px; color: var(--text-secondary); font-size: 12px;">-</div>
-                </div>
-                <div style="flex: 1;">
-                    <label>Est. Cost</label>
-                    <div id="cost_{{ loop.index0 }}" style="padding: 8px; color: var(--neon-yellow); font-size: 12px;">$0.00</div>
-                </div>
-            </div>
-            {% endfor %}
+    {{ ui.field(form.status) }}
+    {{ ui.field(form.technician, placeholder="Optional", autocomplete="off") }}
+  </div>
+
+  {{ ui.field(form.fix_description, rows=3, help="Your first diagnosis. It can be updated as the work goes on.") }}
+  {{ ui.field(form.cost, inputmode="decimal", help="An estimate is fine; parts used below are added to it.") }}
+
+  <fieldset>
+    <legend>Parts used from stock</legend>
+    <p class="dim" style="margin-top: 0">Stock is taken out as soon as the order is saved. To order parts instead, update the order after saving it.</p>
+    <div class="parts">
+      {%- for row in form.inventory_items %}
+      <div class="parts__row">
+        <div class="field">
+          <label for="{{ row.item_id.id }}">Part {{ loop.index }}</label>
+          {{ row.item_id(id=row.item_id.id) }}
         </div>
-        
-        <div style="text-align: right; margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--neon-green);">
-            <strong style="color: var(--neon-yellow);">Total Inventory Cost: <span id="total-cost">$0.00</span></strong>
+        <div class="field">
+          <label for="{{ row.quantity_used.id }}">Qty</label>
+          {{ row.quantity_used(id=row.quantity_used.id, inputmode="numeric", min=0) }}
         </div>
+        {%- for error in row.item_id.errors + row.quantity_used.errors %}<span class="field__error">{{ error }}</span>{% endfor %}
+      </div>
+      {%- endfor %}
     </div>
-    
-    <div style="display: flex; gap: 10px; align-items: center; margin-top: 20px;">
-        <button type="submit" class="btn btn-warning"> Add Maintenance Record</button>
-        <a href="{{ url_for('games.game_detail', game_id=game.id) }}" class="btn" style="background: #6c757d; color: white; text-decoration: none;">Cancel</a>
-    </div>
+  </fieldset>
+
+  <div class="form__actions">
+    <button class="btn btn--primary" type="submit">Save work order</button>
+    <a class="btn btn--ghost" href="{{ url_for('games.game_detail', game_id=game.id) if game else url_for('maintenance.maintenance_orders') }}">Cancel</a>
+    {%- if game and game.barcode %}
+    <a class="btn btn--ghost" href="{{ url_for('rails.machine', slug=game.barcode) }}">Rail history</a>
+    {%- endif %}
+  </div>
 </form>
-
-<script>
-function updateItemInfo(index) {
-    const selectId = `inventory_items-${index}-item_id`;
-    const quantityId = `inventory_items-${index}-quantity_used`;
-    const select = document.getElementById(selectId);
-    const quantityInput = document.getElementById(quantityId);
-    const availableDiv = document.getElementById(`available_${index}`);
-    const costDiv = document.getElementById(`cost_${index}`);
-    
-    if (select && select.value && select.value != '-1') {
-        const option = select.selectedOptions[0];
-        const text = option.text;
-        
-        // Parse stock from the option text "Item Name (Stock: X)"
-        const stockMatch = text.match(/Stock:\s*(\d+)/);
-        const stock = stockMatch ? parseInt(stockMatch[1]) : 0;
-        
-        // Get price from data attribute if available
-        const price = parseFloat(option.dataset.price || 0);
-        
-        availableDiv.textContent = stock;
-        if (quantityInput) {
-            quantityInput.max = stock;
-            
-            // Update cost when quantity changes
-            quantityInput.oninput = function() {
-                const quantity = parseInt(this.value) || 0;
-                const cost = quantity * price;
-                costDiv.textContent = `$${cost.toFixed(2)}`;
-                updateTotalCost();
-            };
-        }
-        
-        // Reset quantity and cost
-        if (quantityInput) quantityInput.value = '';
-        costDiv.textContent = '$0.00';
-    } else {
-        availableDiv.textContent = '-';
-        costDiv.textContent = '$0.00';
-        if (quantityInput) {
-            quantityInput.max = 999;
-            quantityInput.oninput = null;
-        }
-    }
-    updateTotalCost();
-}
-
-function updateTotalCost() {
-    let total = 0;
-    const itemCount = {{ form.inventory_items|length }};
-    for (let i = 0; i < itemCount; i++) {
-        const costDiv = document.getElementById(`cost_${i}`);
-        if (costDiv) {
-            const costText = costDiv.textContent.replace('$', '');
-            const cost = parseFloat(costText) || 0;
-            total += cost;
-        }
-    }
-    const totalElement = document.getElementById('total-cost');
-    if (totalElement) {
-        totalElement.textContent = `$${total.toFixed(2)}`;
-    }
-}
-</script>
-
-<style>
-.form-group {
-    margin-bottom: 20px;
-}
-
-.form-group label {
-    display: block;
-    margin-bottom: 8px;
-    font-weight: 700;
-    color: var(--neon-cyan);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    text-shadow: 0 0 5px var(--neon-cyan);
-}
-
-.form-group input,
-.form-group select,
-.form-group textarea {
-    width: 100%;
-    padding: 12px;
-    border: 1px solid var(--neon-cyan);
-    border-radius: 4px;
-    background: var(--dark-card);
-    color: var(--text-primary);
-    font-family: 'Share Tech Mono', monospace;
-    transition: all 0.3s ease;
-    box-sizing: border-box;
-}
-
-.form-group input:focus,
-.form-group select:focus,
-.form-group textarea:focus {
-    outline: none;
-    border-color: var(--neon-pink);
-    box-shadow: 0 0 15px rgba(255, 0, 255, 0.5);
-}
-
-.form-group small {
-    display: block;
-    margin-top: 5px;
-    font-style: italic;
-}
-
-textarea {
-    resize: vertical;
-    min-height: 60px;
-}
-
-.inventory-item-row select,
-.inventory-item-row input {
-    font-size: 12px;
-    padding: 8px;
-}
-
-.inventory-item-row label {
-    font-size: 12px;
-    margin-bottom: 4px;
-}
-</style>
 {% endblock %}
