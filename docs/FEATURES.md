@@ -371,6 +371,10 @@ anything is changed.
   but `send_file` resolves a relative path against `app.root_path` (the `app/` package), so it raises and
   returns a 500.
 
+- **F-35 The dashboard's low-stock table is blank.** `index.html` reads `item.current_stock` and
+  `item.min_stock`; the fields are `stock_quantity` and `minimum_stock`, and Jinja renders a missing
+  attribute as empty. Found in the baseline screenshots.
+
 ---
 
 ## 13. Owner decisions (2026-10-08)
