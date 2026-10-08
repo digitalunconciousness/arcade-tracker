@@ -194,44 +194,33 @@ def add_game():
 @games_bp.route("/game/<int:game_id>")
 @login_required
 def game_detail(game_id):
-    game = Game.query.get_or_404(game_id)
-    recent_records = (
-        PlayRecord.query.filter_by(game_id=game_id)
-        .order_by(PlayRecord.date_recorded.desc())
-        .limit(10)
-        .all()
-    )
-    maintenance_records = (
-        MaintenanceRecord.query.filter_by(game_id=game_id)
-        .order_by(MaintenanceRecord.date_reported.desc())
-        .all()
-    )
+    """The machine page: where a scanned back-of-cabinet label lands (via /g/<barcode>).
 
-    # Check if there are no play records (can add baseline)
-    all_records_count = PlayRecord.query.filter_by(game_id=game_id).count()
-    can_add_baseline = all_records_count == 0
-
-    # The rail panel: the latest session's summary and a count. Deliberately not the
-    # readings -- RailSession.readings is lazy, and this page has no use for a trace.
+    Everyone signed in sees the machine's status, its open work orders and its history;
+    what each role can *do* here is exactly what the linked routes allow.
+    """
     from app.routes.rails import verdict_of
+    from app.services.machines import machine_page
 
-    rail_last = (
-        RailSession.query.filter_by(game_id=game_id)
-        .order_by(RailSession.started.desc().nullslast(), RailSession.id.desc())
-        .first()
-    )
-    rail_count = RailSession.query.filter_by(game_id=game_id).count()
-
+    game = db.get_or_404(Game, game_id)
+    page = machine_page(game)
     return render_template(
         "game_detail.html",
+        page=page,
         game=game,
-        recent_records=recent_records,
-        maintenance_records=maintenance_records,
-        can_add_baseline=can_add_baseline,
-        rail_last=rail_last,
-        rail_count=rail_count,
-        rail_verdict=verdict_of(rail_last) if rail_last else None,
+        rail_verdict=verdict_of(page.rail_last) if page.rail_last else None,
+        priorities=["Low", "Medium", "High", "Critical"],
     )
+
+
+@games_bp.route("/machine-images/<path:filename>")
+@login_required
+def game_image(filename):
+    """A machine's photo. Uploads are saved to UPLOAD_FOLDER, outside static/, and until
+    this route nothing served them, so every machine image was a broken link (F-7)."""
+    from flask import send_from_directory
+
+    return send_from_directory(current_app.config["UPLOAD_FOLDER"], filename)
 
 
 @games_bp.route("/edit_game/<int:game_id>", methods=["GET", "POST"])
@@ -701,10 +690,12 @@ def scan():
 @games_bp.route("/g/<code>")
 @login_required
 def resolve_barcode(code):
-    """Resolve a scanned barcode/QR payload to a game's maintenance page.
+    """Resolve a scanned barcode/QR payload to the machine's page.
 
-    Matches on the ``barcode`` slug first, then falls back to a numeric id so
-    labels that encode the raw database id still resolve.
+    **Printed labels encode this URL: it never changes.** Matches on the ``barcode`` slug
+    first, then falls back to a numeric id so labels that encode the raw database id still
+    resolve. It used to land on the work-order form, which readonly users may not open (F-16);
+    the machine page shows everyone the machine and gives operators the report form.
     """
     game = Game.query.filter_by(barcode=code).first()
     if game is None and code.isdigit():
@@ -712,7 +703,7 @@ def resolve_barcode(code):
     if game is None:
         flash(f"No machine found for scanned code '{code}'.", "error")
         return redirect(url_for("games.scan"))
-    return redirect(url_for("maintenance.game_maintenance", game_id=game.id))
+    return redirect(url_for("games.game_detail", game_id=game.id))
 
 
 def _picked_games():

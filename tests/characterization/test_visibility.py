@@ -120,3 +120,20 @@ def test_each_role_is_offered_the_same_actions(snapshot):
     for rule in expected:
         for role in expected[rule]:
             assert snapshot[rule].get(role) == expected[rule][role], f"{rule} as {role}"
+
+
+REACHABLE = Path(__file__).parent / "snapshots" / "reachable.json"
+
+
+def test_no_page_becomes_unreachable(snapshot):
+    """Every endpoint a role could reach by following links before must stay reachable.
+
+    The new nav keeps sections only (their sub-pages are linked from the section pages), so a
+    redesigned page may drop a link only if another page still offers it. The pinned list can
+    grow freely; shrinking it is a deliberate, reviewed edit of snapshots/reachable.json.
+    """
+    pinned = json.loads(REACHABLE.read_text())
+    for role, endpoints in pinned.items():
+        now = {x.split("(")[0] for page in snapshot.values() for x in page.get(role, [])}
+        lost = sorted(set(endpoints) - now)
+        assert lost == [], f"{role} can no longer reach: {lost}"

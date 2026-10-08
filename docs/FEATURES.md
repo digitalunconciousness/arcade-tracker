@@ -269,7 +269,7 @@ anything is changed.
 
 - **F-6 Photo cleanup deletes live photos.** X4 removes every file older than a year without checking whether
   a work order still references it. The order keeps the filename, and the image 404s. It's manager-reachable.
-- **F-7 Game images never display.** G2 and G4 save to `uploads/`, but the templates load
+- **F-7 Game images never display.** *Fixed in 4.2: served by `games.game_image`.* G2 and G4 save to `uploads/`, but the templates load
   `static/uploads/<file>`, and nothing serves `uploads/`.
 - **F-8 Failed image saves still count.** `compress_and_save_image` returns `False` on a non-image, but M9
   and A4 ignore that and attach the filename anyway, which produces broken photos. Files are always JPEG but
@@ -302,7 +302,7 @@ anything is changed.
 
 ### Access control (security pass, Step 5)
 
-- **F-16 `/g/<code>` requires operator.** It redirects to M1, which is operator-only, so a **readonly**
+- **F-16 `/g/<code>` requires operator.** *Fixed in 4.2: it lands on the machine page.* It redirects to M1, which is operator-only, so a **readonly**
   user who scans a QR label gets "permission denied" on the dashboard. Decide what readonly should see on the
   machine page.
 - **F-17 Any signed-in user, readonly included, can:** reboot the skeeball Pi (S27), drive its GPIO (S14),
@@ -318,7 +318,7 @@ anything is changed.
   - Only S7 `/skeeball/api/health` is unauthenticated in the current code. S8–S10 are behind login.
   - S7 should stay public only if something outside polls it, and then without the side effects.
   - The brief mentions several unauthenticated GETs; if production differs from this branch, tell me.
-- **F-21 CSRF:**
+- **F-21 CSRF:** *Enforced app-wide since 2026-10-08; logout is still a GET.*
   - Raw POSTs with no token in their template: `coin_door_label_pick.html` (G19), `inventory_detail.html`
     (I6), `low_stock_alerts.html` (I8), `storage_admin.html` (X4), and one of the two forms in
     `maintenance_photos.html`.
@@ -375,7 +375,7 @@ anything is changed.
   `item.min_stock`; the fields are `stock_quantity` and `minimum_stock`, and Jinja renders a missing
   attribute as empty. Found in the baseline screenshots.
 
-- **F-36 First-run setup is a 500.** `setup.html` renders `form.hidden_tag()` and form fields, but the
+- **F-36 First-run setup is a 500.** *Fixed in 4.1.* `setup.html` renders `form.hidden_tag()` and form fields, but the
   `/setup` view never passes a form, so `GET /setup` on an empty database crashes. A fresh install can
   only get its first admin from `scripts/create_admin.py`.
 - **F-37 The PWA manifest names the real venue.** `static/manifest.json` carried the business's name in
