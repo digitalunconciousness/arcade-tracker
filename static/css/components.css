@@ -606,6 +606,16 @@ a.row:hover {
   justify-content: flex-end;
   gap: var(--sp-2);
 }
+/* On a narrow phone the chips go under the text instead of squeezing it into a column. */
+@media (max-width: 519px) {
+  .row {
+    flex-wrap: wrap;
+  }
+  .row__end {
+    flex-basis: 100%;
+    justify-content: flex-start;
+  }
+}
 
 /* =========================================================================================
    Tables. On a phone, .table--stack turns each row into a card using data-label.
@@ -1068,4 +1078,79 @@ legend {
     text-transform: uppercase;
     letter-spacing: var(--track-caps);
   }
+}
+
+/* =========================================================================================
+   Work orders: parts rows, the work log, photos, close panel
+   ========================================================================================= */
+.parts {
+  display: grid;
+  gap: var(--sp-3);
+}
+.parts__row {
+  display: grid;
+  grid-template-columns: 1fr 5.5rem;
+  gap: var(--sp-2);
+  align-items: end;
+}
+.parts__row--request {
+  grid-template-columns: 1fr 1fr;
+}
+.parts__row--request > .field:first-child {
+  grid-column: 1 / -1;
+}
+@media (min-width: 700px) {
+  .parts__row--request {
+    grid-template-columns: 2fr 5.5rem 1fr 1fr;
+  }
+  .parts__row--request > .field:first-child {
+    grid-column: auto;
+  }
+}
+.log {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--sp-3);
+  border-left: 2px solid var(--border-control);
+  padding-left: var(--sp-4);
+}
+.log__head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1) var(--sp-3);
+  font-size: var(--fs-sm);
+  color: var(--text-dim);
+}
+.log__head b {
+  color: var(--text);
+  font-weight: normal;
+}
+.log p {
+  margin: var(--sp-1) 0 0;
+  white-space: pre-wrap;
+}
+.photos {
+  display: grid;
+  gap: var(--sp-2);
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+}
+.photos figure {
+  margin: 0;
+}
+.photos img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+}
+.photos figcaption {
+  margin-top: var(--sp-1);
+}
+.prose {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }

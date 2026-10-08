@@ -22,42 +22,15 @@ from app.models import (
     InventoryRequest,
     InventoryRequestHistory,
     LowStockAlert,
-    MaintenanceInventoryUsage,
     MaintenanceRecord,
-    PlayRecord,
     StockHistory,
 )
 from app.forms.inventory import InventoryItemForm, StockAdjustmentForm
 from app.security.utils import log_security_event
+from app.services.stock import check_low_stock_alert
 from app.utils.decorators import requires_role
-from app.utils.helpers import allowed_file, compress_and_save_image, get_directory_size
 
 inventory_bp = Blueprint("inventory", __name__, url_prefix="/inventory")
-
-
-# ---------------------------------------------------------------------------
-# Internal helpers
-# ---------------------------------------------------------------------------
-
-def _check_low_stock_alert(item):
-    """Check if item needs a low stock alert and create one if needed."""
-    if item.is_low_stock():
-        existing_alert = LowStockAlert.query.filter_by(
-            item_id=item.id, resolved=False
-        ).first()
-        if not existing_alert:
-            alert = LowStockAlert(item_id=item.id, email_sent=False)
-            db.session.add(alert)
-            db.session.commit()
-    else:
-        active_alerts = LowStockAlert.query.filter_by(
-            item_id=item.id, resolved=False
-        ).all()
-        for alert in active_alerts:
-            alert.resolved = True
-            alert.resolved_date = datetime.now(dt.UTC)
-        if active_alerts:
-            db.session.commit()
 
 
 # ---------------------------------------------------------------------------
@@ -269,9 +242,8 @@ def edit_inventory_item(item_id):
             if form.stock_quantity.data > old_stock:
                 item.last_restocked = datetime.now(dt.UTC)
 
+        check_low_stock_alert(item)
         db.session.commit()
-
-        _check_low_stock_alert(item)
 
         flash(f'Inventory item "{item.name}" updated successfully!', "success")
         return redirect(url_for("inventory.inventory_detail", item_id=item_id))
@@ -318,9 +290,8 @@ def adjust_stock(item_id):
         )
 
         db.session.add(stock_history)
+        check_low_stock_alert(item)
         db.session.commit()
-
-        _check_low_stock_alert(item)
 
         flash(
             f'Stock adjusted for "{item.name}": {old_quantity} → {new_quantity}',
@@ -651,7 +622,7 @@ def update_inventory_request(request_id):
                 )
                 db.session.add(stock_history)
 
-                _check_low_stock_alert(item)
+                check_low_stock_alert(item)
 
                 flash(
                     f"Request #{request_id} received! "

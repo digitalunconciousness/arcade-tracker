@@ -40,17 +40,6 @@ def test_cleanup_keeps_photos_a_work_order_still_uses(client, floor, sandbox):
     assert photo.exists()
 
 
-@flag("F-8", "an upload Pillow cannot read is still attached to the work order")
-def test_a_photo_that_is_not_an_image_is_not_attached(client, floor, sandbox):
-    from app.models import MaintenanceRecord
-
-    login(client, "operator")
-    client.post(f"/maintenance_photos/{floor['open_order']}", data={
-        "csrf_token": "present", "photos": [(io.BytesIO(b"not an image"), "fake.png")]},
-        content_type="multipart/form-data")
-    assert fresh(MaintenanceRecord, floor["open_order"]).get_photos() == []
-
-
 @flag("F-9", "re-saving a Received request adds its stock again")
 def test_receiving_twice_adds_stock_once(client, floor):
     from app.models import InventoryItem
@@ -94,18 +83,6 @@ def test_edit_game_with_a_bad_year_explains_itself(client, floor, sandbox):
     resp = client.post(f"/edit_game/{floor['raider']}", data={"name": "Neon Raider",
                                                              "year": "eighty-seven"})
     assert resp.status_code in (200, 302)
-
-
-@flag("F-12", "ReportLab parses tag-like text (an unclosed <b>, a <br>) as markup: a 500")
-def test_a_work_order_pdf_survives_markup_characters(client, floor):
-    from app.extensions import db
-    from app.models import MaintenanceRecord
-
-    fresh(MaintenanceRecord, floor["open_order"]).issue_description = "Loose wire, see <b>J3"
-    db.session.commit()
-    login(client, "readonly")
-    resp = client.get(f"/download_maintenance_record/{floor['open_order']}")
-    assert resp.status_code == 200 and resp.data.startswith(b"%PDF")
 
 
 @flag("F-15", "the location filter is ANDed with Floor-only, so any other location is empty")

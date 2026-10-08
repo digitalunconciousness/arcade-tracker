@@ -310,13 +310,6 @@ body {
     border: 1px solid;
 }
 
-.alert-success {
-    background-color: rgba(0, 255, 0, 0.1);
-    border-color: var(--neon-green);
-    color: var(--neon-green);
-    box-shadow: 0 0 15px rgba(0, 255, 0, 0.3);
-}
-
 /* Stats Cards */
 .stats {
     display: flex;

@@ -271,7 +271,7 @@ anything is changed.
   a work order still references it. The order keeps the filename, and the image 404s. It's manager-reachable.
 - **F-7 Game images never display.** *Fixed in 4.2: served by `games.game_image`.* G2 and G4 save to `uploads/`, but the templates load
   `static/uploads/<file>`, and nothing serves `uploads/`.
-- **F-8 Failed image saves still count.** `compress_and_save_image` returns `False` on a non-image, but M9
+- **F-8 Failed image saves still count.** *Fixed in 4.4 for work-order photos (refused, and saved as .jpg); the profile picture is fixed in the account step.* `compress_and_save_image` returns `False` on a non-image, but M9
   and A4 ignore that and attach the filename anyway, which produces broken photos. Files are always JPEG but
   keep their original extension (`.png`, `.gif`).
 - **F-9 A "Received" request can add stock twice.** I12 adds stock whenever the submitted status is
@@ -283,7 +283,7 @@ anything is changed.
 - **F-11 The backups page can't back up production.** X5–X9 are SQLite-only (`arcade.db`), but production
   is PostgreSQL (`deploy/RUNBOOK.md` uses `pg_dump`). The page shows nothing useful and "Create backup" fails
   or backs up a stale file. `scripts/daily_backup.sh` has the same problem.
-- **F-12 The 500 errors I can see:**
+- **F-12 The 500 errors I can see:** *The work-order PDFs escape user text since 4.4.*
   - G5 with a bad or empty `date` field.
   - G4 with a non-numeric year.
   - The PDF exports when a description contains text that looks like a ReportLab tag, such as an
@@ -308,7 +308,7 @@ anything is changed.
 - **F-17 Any signed-in user, readonly included, can:** reboot the skeeball Pi (S27), drive its GPIO (S14),
   switch GPIO mode, write revenue (S25, S26), reset lanes, rotate coin-door tokens (G19), and mint tokens by
   printing (G18).
-- **F-18 Path traversal in backups.** X7 and X9 join a form value onto `backups/` with no check, so
+- **F-18 Path traversal in backups.** *The photo half is fixed in 4.4 (only an order's own photo can be deleted); the backup half is the admin step.* X7 and X9 join a form value onto `backups/` with no check, so
   `../instance/arcade.db` or `../.env` can be restored over or deleted. Combined with CSRF being off, a
   forged POST to a signed-in admin could delete the live SQLite file. X8 checks the prefix but not for `..`.
   M10 deletes any filename in the photo folder, not only that order's photos.

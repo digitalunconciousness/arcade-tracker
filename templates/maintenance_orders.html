@@ -1,359 +1,66 @@
-{% extends "base.html" %}
+{% extends "layout.html" %}
+{% import "ui.html" as ui %}
+{% block title %}Work orders{% endblock %}
+
+{% block page_head %}
+{% call ui.page_head("Work orders", sub=o.counts.open ~ " open · " ~ o.counts.closed ~ " closed") %}
+  {%- if current_user.has_role("operator") %}
+  <a class="btn btn--sm btn--primary" href="{{ url_for('maintenance.general_maintenance') }}">General order</a>
+  {%- endif %}
+  {%- if current_user.has_role("manager") %}
+  <a class="btn btn--sm" href="{{ url_for('maintenance.maintenance_reports') }}">Reports</a>
+  {%- endif %}
+{% endcall %}
+{% endblock %}
 
 {% block content %}
-<h1> Maintenance Orders</h1>
+<nav class="tabs" aria-label="Work order status">
+  {%- for key, label in [("open", "Open"), ("closed", "Closed"), ("all", "All")] %}
+  <a href="{{ url_for('maintenance.maintenance_orders', tab=key, search=o.search or none) }}"{% if o.tab == key %} aria-current="page"{% endif %}>{{ label }} <span class="tabs__count">{{ o.counts[key] }}</span></a>
+  {%- endfor %}
+</nav>
 
-<div style="margin: 20px 0;">
-    <button onclick="document.querySelectorAll('.maintenance-tab').forEach(t=>t.style.display='none');document.getElementById('openOrders').style.display='block';[document.getElementById('openTab'),document.getElementById('closedTab'),document.getElementById('allTab')].forEach(b=>{b.className='btn';b.style.background='#6c757d'});this.className='btn btn-warning';this.style.background='';" id="openTab" class="btn btn-warning" style="margin-right: 10px;"> Open Orders ({{ open_records|length }})</button>
-    <button onclick="document.querySelectorAll('.maintenance-tab').forEach(t=>t.style.display='none');document.getElementById('closedOrders').style.display='block';[document.getElementById('openTab'),document.getElementById('closedTab'),document.getElementById('allTab')].forEach(b=>{b.className='btn';b.style.background='#6c757d'});this.style.background='var(--neon-green)';" id="closedTab" class="btn" style="background: #6c757d; margin-right: 10px;"> Closed Orders ({{ closed_records|length }})</button>
-    <button onclick="document.querySelectorAll('.maintenance-tab').forEach(t=>t.style.display='none');document.getElementById('allOrders').style.display='block';[document.getElementById('openTab'),document.getElementById('closedTab'),document.getElementById('allTab')].forEach(b=>{b.className='btn';b.style.background='#6c757d'});this.style.background='var(--neon-cyan)';" id="allTab" class="btn" style="background: var(--neon-cyan);"> All Orders ({{ all_records|length }})</button>
-</div>
+<form class="filters" method="get" action="{{ url_for('maintenance.maintenance_orders') }}" role="search">
+  <input type="hidden" name="tab" value="{{ o.tab }}">
+  <div class="field filters__search">
+    <label for="search">Search</label>
+    <input id="search" name="search" type="search" value="{{ o.search }}" placeholder="Machine, issue, technician, place" autocomplete="off">
+  </div>
+  <div class="field">
+    <label for="sort">Sort</label>
+    <select id="sort" name="sort">
+      {%- for key, label in sorts.items() %}<option value="{{ key }}"{% if o.sort == key %} selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="filters__actions">
+    <button class="btn" type="submit">Apply</button>
+    {%- if o.search %}<a class="btn btn--ghost" href="{{ url_for('maintenance.maintenance_orders', tab=o.tab) }}">Clear</a>{% endif %}
+  </div>
+</form>
 
-<!-- Open Orders Tab -->
-<div id="openOrders" class="maintenance-tab">
-    <h2> Open Maintenance Orders</h2>
-    {% if open_records %}
-    <table class="table" id="openOrdersTable" style="--table-cell-padding: 8px 8px;">
-<style>
-#openOrdersTable th, #closedOrdersTable th, #allOrdersTable th {
-    padding: 10px 8px !important;
-    font-size: 12px;
-}
-#openOrdersTable td, #closedOrdersTable td, #allOrdersTable td {
-    padding: 6px 8px !important;
-    font-size: 13px;
-    vertical-align: middle;
-}
-</style>
-        <thead>
-            <tr>
-                <th onclick="sortMaintenanceTable(0, 'openOrdersTable')" style="cursor: pointer;" title="Click to sort">Status ↕</th>
-                <th onclick="sortMaintenanceTable(1, 'openOrdersTable')" style="cursor: pointer;" title="Click to sort">Game ↕</th>
-                <th onclick="sortMaintenanceTable(2, 'openOrdersTable')" style="cursor: pointer;" title="Click to sort">Issue ↕</th>
-                <th onclick="sortMaintenanceTable(3, 'openOrdersTable')" style="cursor: pointer;" title="Click to sort">Reported ↕</th>
-                <th onclick="sortMaintenanceTable(4, 'openOrdersTable')" style="cursor: pointer;" title="Click to sort">Technician ↕</th>
-                <th onclick="sortMaintenanceTable(5, 'openOrdersTable')" style="cursor: pointer;" title="Click to sort">Cost ↕</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for record in open_records %}
-            <tr style="height: 45px; cursor: pointer;" onclick="window.location='{{ url_for('maintenance.maintenance_detail', record_id=record.id) }}';">
-                <td>
-                    {% if record.status == 'Open' %}
-                        <span style="color: #ff4444; font-weight: bold;"> Open</span>
-                    {% elif record.status == 'In_Progress' %}
-                        <span style="color: #ffaa00; font-weight: bold;"> In Progress</span>
-                    {% endif %}
-                </td>
-                <td>{% if record.game_id %}<a href="{{ url_for('games.game_detail', game_id=record.game_id) }}">{{ record.game.name }}</a>{% else %}<span style="color: var(--neon-purple); font-style: italic;">General Maintenance</span>{% endif %}</td>
-                <td>{% if record.source and record.source != 'web' %}<span style="color: #7dfaff; font-size: 0.8em; border: 1px solid #7dfaff; border-radius: 3px; padding: 0 4px; margin-right: 5px;">{{ 'bench' if record.source == 'gatbox' else 'coin door' }}</span>{% endif %}{{ record.issue_description[:50] }}{% if record.issue_description|length > 50 %}...{% endif %}</td>
-                <td>{{ record.date_reported.strftime('%Y-%m-%d') }}</td>
-                <td>{{ record.technician or 'Not Assigned' }}</td>
-                <td>${{ "%.2f"|format(record.cost or 0) }}</td>
-                <td style="padding: 8px; white-space: nowrap;" onclick="event.stopPropagation();">
-                    <div style="display: flex; gap: 4px; align-items: center;">
-                        <a href="{{ url_for('maintenance.maintenance_detail', record_id=record.id) }}" class="btn" style="background: var(--neon-cyan); font-size: 10px; padding: 4px 8px; margin: 0; min-width: 45px; text-align: center; color: black;">View</a>
-                        {% if current_user.has_role('operator') %}
-                            <a href="{{ url_for('maintenance.maintenance_photos', maintenance_id=record.id) }}" class="btn" style="background: var(--neon-pink); font-size: 10px; padding: 4px 8px; margin: 0; min-width: 45px; text-align: center;">Photos</a>
-                        {% endif %}
-                        <a href="{{ url_for('maintenance.update_maintenance', record_id=record.id) }}" class="btn" style="background: var(--neon-purple); font-size: 10px; padding: 4px 8px; margin: 0; min-width: 50px; text-align: center;">Update</a>
-                        <button onclick="document.getElementById('closeForm').action='/close_maintenance/{{ record.id }}';document.getElementById('modalGameName').textContent='Record #{{ record.id }}';document.getElementById('modalIssue').textContent='Maintenance Order';document.getElementById('closeModal').style.display='block';return false;" 
-                                class="btn btn-success" 
-                                style="font-size: 10px; padding: 4px 8px; margin: 0; min-width: 45px; text-align: center;">Close</button>
-                    </div>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    {% else %}
-    <p style="color: var(--neon-green);"> No open maintenance orders! All systems operational.</p>
-    {% endif %}
-</div>
-
-<!-- Closed Orders Tab -->
-<div id="closedOrders" class="maintenance-tab" style="display: none;">
-    <h2> Closed Maintenance Orders</h2>
-    {% if closed_records %}
-    <table class="table" id="closedOrdersTable">
-        <thead>
-            <tr>
-                <th onclick="sortMaintenanceTable(0, 'closedOrdersTable')" style="cursor: pointer;" title="Click to sort">Status ↕</th>
-                <th onclick="sortMaintenanceTable(1, 'closedOrdersTable')" style="cursor: pointer;" title="Click to sort">Game ↕</th>
-                <th onclick="sortMaintenanceTable(2, 'closedOrdersTable')" style="cursor: pointer;" title="Click to sort">Issue ↕</th>
-                <th onclick="sortMaintenanceTable(3, 'closedOrdersTable')" style="cursor: pointer;" title="Click to sort">Reported ↕</th>
-                <th onclick="sortMaintenanceTable(4, 'closedOrdersTable')" style="cursor: pointer;" title="Click to sort">Fixed ↕</th>
-                <th onclick="sortMaintenanceTable(5, 'closedOrdersTable')" style="cursor: pointer;" title="Click to sort">Technician ↕</th>
-                <th onclick="sortMaintenanceTable(6, 'closedOrdersTable')" style="cursor: pointer;" title="Click to sort">Cost ↕</th>
-                <th>Fix Description</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for record in closed_records %}
-            <tr style="height: 45px; cursor: pointer;" onclick="window.location='{{ url_for('maintenance.maintenance_detail', record_id=record.id) }}';">
-                <td>
-                    {% if record.status == 'Fixed' %}
-                        <span style="color: var(--neon-green); font-weight: bold;"> Fixed</span>
-                    {% elif record.status == 'Deferred' %}
-                        <span style="color: #888; font-weight: bold;">⏸ Deferred</span>
-                    {% endif %}
-                </td>
-                <td>{% if record.game_id %}<a href="{{ url_for('games.game_detail', game_id=record.game_id) }}">{{ record.game.name }}</a>{% else %}<span style="color: var(--neon-purple); font-style: italic;">General Maintenance</span>{% endif %}</td>
-                <td>{% if record.source and record.source != 'web' %}<span style="color: #7dfaff; font-size: 0.8em; border: 1px solid #7dfaff; border-radius: 3px; padding: 0 4px; margin-right: 5px;">{{ 'bench' if record.source == 'gatbox' else 'coin door' }}</span>{% endif %}{{ record.issue_description[:50] }}{% if record.issue_description|length > 50 %}...{% endif %}</td>
-                <td>{{ record.date_reported.strftime('%Y-%m-%d') }}</td>
-                <td>{{ record.date_fixed.strftime('%Y-%m-%d') if record.date_fixed else 'N/A' }}</td>
-                <td>{{ record.technician or 'N/A' }}</td>
-                <td>${{ "%.2f"|format(record.cost or 0) }}</td>
-                <td>{{ record.fix_description[:40] if record.fix_description else 'N/A' }}{% if record.fix_description and record.fix_description|length > 40 %}...{% endif %}</td>
-                <td style="padding: 8px; white-space: nowrap;" onclick="event.stopPropagation();">
-                    <div style="display: flex; gap: 4px; align-items: center;">
-                        <a href="{{ url_for('maintenance.maintenance_detail', record_id=record.id) }}" class="btn" style="background: var(--neon-cyan); font-size: 10px; padding: 4px 8px; margin: 0; min-width: 45px; text-align: center; color: black;">View</a>
-                        {% if current_user.has_role('operator') %}
-                            <a href="{{ url_for('maintenance.maintenance_photos', maintenance_id=record.id) }}" class="btn" style="background: var(--neon-pink); font-size: 10px; padding: 4px 8px; margin: 0; min-width: 45px; text-align: center;">Photos</a>
-                        {% endif %}
-                    </div>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    {% else %}
-    <p>No closed maintenance orders yet.</p>
-    {% endif %}
-</div>
-
-<!-- All Orders Tab -->
-<div id="allOrders" class="maintenance-tab" style="display: none;">
-    <h2> All Maintenance Orders</h2>
-    {% if all_records %}
-    <table class="table" id="allOrdersTable">
-        <thead>
-            <tr>
-                <th onclick="sortMaintenanceTable(0, 'allOrdersTable')" style="cursor: pointer;" title="Click to sort">Status ↕</th>
-                <th onclick="sortMaintenanceTable(1, 'allOrdersTable')" style="cursor: pointer;" title="Click to sort">Game ↕</th>
-                <th onclick="sortMaintenanceTable(2, 'allOrdersTable')" style="cursor: pointer;" title="Click to sort">Issue ↕</th>
-                <th onclick="sortMaintenanceTable(3, 'allOrdersTable')" style="cursor: pointer;" title="Click to sort">Reported ↕</th>
-                <th onclick="sortMaintenanceTable(4, 'allOrdersTable')" style="cursor: pointer;" title="Click to sort">Technician ↕</th>
-                <th onclick="sortMaintenanceTable(5, 'allOrdersTable')" style="cursor: pointer;" title="Click to sort">Cost ↕</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for record in all_records %}
-            <tr style="height: 45px; cursor: pointer;" onclick="window.location='{{ url_for('maintenance.maintenance_detail', record_id=record.id) }}';">
-                <td>
-                    {% if record.status == 'Open' %}
-                        <span style="color: #ff4444; font-weight: bold;"> Open</span>
-                    {% elif record.status == 'In_Progress' %}
-                        <span style="color: #ffaa00; font-weight: bold;"> In Progress</span>
-                    {% elif record.status == 'Fixed' %}
-                        <span style="color: var(--neon-green); font-weight: bold;"> Fixed</span>
-                    {% elif record.status == 'Deferred' %}
-                        <span style="color: #888; font-weight: bold;">⏸ Deferred</span>
-                    {% endif %}
-                </td>
-                <td>{% if record.game_id %}<a href="{{ url_for('games.game_detail', game_id=record.game_id) }}">{{ record.game.name }}</a>{% else %}<span style="color: var(--neon-purple); font-style: italic;">General Maintenance</span>{% endif %}</td>
-                <td>{% if record.source and record.source != 'web' %}<span style="color: #7dfaff; font-size: 0.8em; border: 1px solid #7dfaff; border-radius: 3px; padding: 0 4px; margin-right: 5px;">{{ 'bench' if record.source == 'gatbox' else 'coin door' }}</span>{% endif %}{{ record.issue_description[:50] }}{% if record.issue_description|length > 50 %}...{% endif %}</td>
-                <td>{{ record.date_reported.strftime('%Y-%m-%d') }}</td>
-                <td>{{ record.technician or 'Not Assigned' }}</td>
-                <td>${{ "%.2f"|format(record.cost or 0) }}</td>
-                <td style="padding: 8px; white-space: nowrap;" onclick="event.stopPropagation();">
-                    <div style="display: flex; gap: 4px; align-items: center;">
-                        <a href="{{ url_for('maintenance.maintenance_detail', record_id=record.id) }}" class="btn" style="background: var(--neon-cyan); font-size: 10px; padding: 4px 8px; margin: 0; min-width: 45px; text-align: center; color: black;">View</a>
-                        {% if current_user.has_role('operator') %}
-                            <a href="{{ url_for('maintenance.maintenance_photos', maintenance_id=record.id) }}" class="btn" style="background: var(--neon-pink); font-size: 10px; padding: 4px 8px; margin: 0; min-width: 45px; text-align: center;">Photos</a>
-                        {% endif %}
-                        {% if record.status in ['Open', 'In_Progress'] %}
-                            <a href="{{ url_for('maintenance.update_maintenance', record_id=record.id) }}" class="btn" style="background: var(--neon-purple); font-size: 10px; padding: 4px 8px; margin: 0; min-width: 50px; text-align: center;">Update</a>
-                            <button onclick="openCloseModalSimple({{ record.id }}); return false;" 
-                                    class="btn btn-success" 
-                                    style="font-size: 10px; padding: 4px 8px; margin: 0; min-width: 45px; text-align: center;">Close</button>
-                        {% endif %}
-                    </div>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    {% else %}
-    <p>No maintenance orders yet.</p>
-    {% endif %}
-</div>
-
-<!-- Close Maintenance Modal -->
-<div id="closeModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000;">
-    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--dark-card); padding: 30px; border-radius: 8px; border: 2px solid var(--neon-cyan); max-width: 500px; width: 90%;">
-        <h3> Close Maintenance Order</h3>
-        <p><strong>Game:</strong> <span id="modalGameName"></span></p>
-        <p><strong>Issue:</strong> <span id="modalIssue"></span></p>
-        
-        <form id="closeForm" method="POST">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-            <div class="form-group">
-                <label for="modalStatus">Final Status *</label>
-                <select id="modalStatus" name="status" required>
-                    <option value="Fixed"> Fixed</option>
-                    <option value="Deferred">⏸ Deferred</option>
-                </select>
-            </div>
-            
-            <div class="form-group">
-                <label for="modalFixDescription">Fix Description</label>
-                <textarea id="modalFixDescription" name="fix_description" rows="3" placeholder="Describe what was done to fix the issue..."></textarea>
-            </div>
-            
-            <div class="form-group">
-                <label for="modalTechnician">Technician</label>
-                <input type="text" id="modalTechnician" name="technician" placeholder="Who fixed this?">
-            </div>
-            
-            <div class="form-group">
-                <label for="modalCost">Cost ($)</label>
-                <input type="number" id="modalCost" name="cost" step="0.01" min="0" placeholder="0.00">
-            </div>
-            
-            <div style="text-align: right; margin-top: 20px;">
-                <button type="button" onclick="closeCloseModal()" class="btn" style="background: #6c757d; margin-right: 10px;">Cancel</button>
-                <button type="submit" class="btn btn-success"> Close Order</button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<script>
-let sortDirection = {};
-
-// Define all functions first, before any execution
-function openCloseModalSimple(maintenanceId) {
-    // Set the form action
-    document.getElementById('closeForm').action = '/close_maintenance/' + maintenanceId;
-    
-    // Try to get game name and issue from the table row
-    // For now, just show the ID
-    document.getElementById('modalGameName').textContent = 'Record #' + maintenanceId;
-    document.getElementById('modalIssue').textContent = 'Maintenance Order #' + maintenanceId;
-    
-    // Show modal
-    document.getElementById('closeModal').style.display = 'block';
-}
-
-function openCloseModal(maintenanceId, gameName, issue) {
-    document.getElementById('modalGameName').textContent = gameName;
-    document.getElementById('modalIssue').textContent = issue;
-    document.getElementById('closeForm').action = `/close_maintenance/${maintenanceId}`;
-    document.getElementById('closeModal').style.display = 'block';
-}
-
-function closeCloseModal() {
-    document.getElementById('closeModal').style.display = 'none';
-}
-
-function showTab(tabName) {
-    // Hide all tabs
-    document.querySelectorAll('.maintenance-tab').forEach(tab => tab.style.display = 'none');
-    
-    // Remove active class from all buttons
-    const buttons = [document.getElementById('openTab'), document.getElementById('closedTab'), document.getElementById('allTab')];
-    buttons.forEach(btn => {
-        btn.className = 'btn';
-        btn.style.background = '#6c757d';
-    });
-    
-    // Show selected tab and highlight button
-    if (tabName === 'open') {
-        document.getElementById('openOrders').style.display = 'block';
-        document.getElementById('openTab').className = 'btn btn-warning';
-        document.getElementById('openTab').style.background = '';
-    } else if (tabName === 'closed') {
-        document.getElementById('closedOrders').style.display = 'block';
-        document.getElementById('closedTab').style.background = 'var(--neon-green)';
-    } else if (tabName === 'all') {
-        document.getElementById('allOrders').style.display = 'block';
-        document.getElementById('allTab').style.background = 'var(--neon-cyan)';
-    }
-}
-
-function sortMaintenanceTable(columnIndex, tableId) {
-    const table = document.getElementById(tableId);
-    const tbody = table.getElementsByTagName('tbody')[0];
-    const rows = Array.from(tbody.getElementsByTagName('tr'));
-    
-    const sortKey = tableId + '_' + columnIndex;
-    sortDirection[sortKey] = sortDirection[sortKey] === 'asc' ? 'desc' : 'asc';
-    const isAscending = sortDirection[sortKey] === 'asc';
-    
-    rows.sort((a, b) => {
-        let aValue = a.getElementsByTagName('td')[columnIndex].textContent.trim();
-        let bValue = b.getElementsByTagName('td')[columnIndex].textContent.trim();
-        
-        // Handle date columns
-        if (columnIndex === 3 || columnIndex === 4) {
-            aValue = new Date(aValue === 'N/A' ? '1900-01-01' : aValue);
-            bValue = new Date(bValue === 'N/A' ? '1900-01-01' : bValue);
-            return isAscending ? aValue - bValue : bValue - aValue;
-        }
-        
-        // Handle cost column
-        if (columnIndex === 5 || columnIndex === 6) {
-            aValue = parseFloat(aValue.replace(', '')) || 0;
-            bValue = parseFloat(bValue.replace(', '')) || 0;
-            return isAscending ? aValue - bValue : bValue - aValue;
-        }
-        
-        // String sorting
-        return isAscending ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue);
-    });
-    
-    tbody.innerHTML = '';
-    rows.forEach(row => tbody.appendChild(row));
-    
-    // Update header
-    updateMaintenanceHeaders(columnIndex, isAscending, tableId);
-}
-
-function updateMaintenanceHeaders(sortedColumn, isAscending, tableId) {
-    const headers = document.querySelectorAll(`#${tableId} th[onclick]`);
-    headers.forEach((header, index) => {
-        const baseText = header.textContent.replace(' ↕', '').replace(' ↑', '').replace(' ↓', '');
-        if (index === sortedColumn) {
-            header.textContent = baseText + (isAscending ? ' ↑' : ' ↓');
-            header.style.color = 'var(--neon-cyan)';
-        } else {
-            header.textContent = baseText + ' ↕';
-            header.style.color = '';
-        }
-    });
-}
-
-function init() {
-    // Show open tab (with error handling)
-    try {
-        showTab('open');
-    } catch (e) {
-        console.error('Error showing tab:', e);
-    }
-    
-    // Event delegation for close buttons (robust to clicks on child elements)
-    document.addEventListener('click', function(e) {
-        const btn = e.target.closest && e.target.closest('.close-maintenance-btn');
-        if (!btn) return;
-        console.log('Close button clicked!', btn);
-        e.preventDefault();
-        e.stopPropagation();
-        const maintenanceId = btn.getAttribute('data-id');
-        const gameName = btn.getAttribute('data-game');
-        const issue = btn.getAttribute('data-issue');
-        openCloseModal(maintenanceId, gameName, issue);
-    });
-}
-
-// Initialize when DOM is ready
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-} else {
-    init();
-}
-</script>
+{%- if o.orders %}
+<ul class="rows">
+  {%- for r in o.orders %}
+  <li><a class="row" href="{{ url_for('maintenance.maintenance_detail', record_id=r.id) }}">
+    <span class="row__main">
+      <span class="row__title">{{ r.game.name if r.game else ("General · " ~ (r.location_description or r.work_order_type or "facility")) }}</span>
+      <span class="row__meta">{{ r.issue_description }}</span>
+      <span class="row__meta">#{{ r.id }} · {{ r.date_reported.strftime("%Y-%m-%d") if r.date_reported else "—" }}
+        {%- if r.date_fixed and r.status not in ("Open", "In_Progress") %} → {{ r.date_fixed.strftime("%Y-%m-%d") }}{% endif %}
+        · {{ r.technician or "unassigned" }}
+        {%- if r.cost %} · ${{ "%.2f"|format(r.cost) }}{% endif %}
+        {%- if r.source in ("gatbox", "coindoor") %} · <span class="badge is-info">{{ "bench" if r.source == "gatbox" else "coin door" }}</span>{% endif %}
+      </span>
+    </span>
+    <span class="row__end">{% if r.priority and r.status in ("Open", "In_Progress") %}{{ ui.status(r.priority) }}{% endif %}{{ ui.status(r.status) }}</span>
+  </a></li>
+  {%- endfor %}
+</ul>
+{%- elif o.search %}
+{{ ui.empty("No work orders match", "Try another word, or clear the search.", url_for("maintenance.maintenance_orders", tab=o.tab), "Clear search") }}
+{%- elif o.tab == "open" %}
+{{ ui.empty("Nothing open", "Every machine is clear. Reports from the floor, a coin door or the bench show up here.") }}
+{%- else %}
+{{ ui.empty("No work orders yet") }}
+{%- endif %}
 {% endblock %}
