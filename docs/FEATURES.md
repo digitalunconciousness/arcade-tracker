@@ -262,7 +262,7 @@ anything is changed.
   - About 30 historical `*.md` files and two PDFs.
 
   I'd move them to `docs/history/`, not delete them. Say if you want any gone outright.
-- **F-5 Debug leftovers:** `print("DEBUG: …")` dumps of full form data, including the CSRF token, in M9 and
+- **F-5 Debug leftovers:** *The prints are gone since 4.5 (M9 in 4.4, I2 in 4.5); P5 was struck.* `print("DEBUG: …")` dumps of full form data, including the CSRF token, in M9 and
   I2. The "debug" PDF route P5 is linked from no page (reachable by URL only).
 
 ### Broken or wrong (needs a decision or a fix)
@@ -274,7 +274,7 @@ anything is changed.
 - **F-8 Failed image saves still count.** *Fixed in 4.4 for work-order photos (refused, and saved as .jpg); the profile picture is fixed in the account step.* `compress_and_save_image` returns `False` on a non-image, but M9
   and A4 ignore that and attach the filename anyway, which produces broken photos. Files are always JPEG but
   keep their original extension (`.png`, `.gif`).
-- **F-9 A "Received" request can add stock twice.** I12 adds stock whenever the submitted status is
+- **F-9 A "Received" request can add stock twice.** *Fixed in 4.5: stock is added only on the change to Received, and a missing or unknown status keeps the old one.* I12 adds stock whenever the submitted status is
   *Received*, not only on the change to it, so re-saving notes on a received request adds stock again. A
   POST without `status` sets the status to `None`.
 - **F-10 Deleting a game orphans rows.** G8 uses bulk `query.delete()`, which skips the ORM cascades, so the
@@ -290,7 +290,7 @@ anything is changed.
     unclosed `<b>` or a `<br>`. Plain `<` and `&` are fine; checked by `test_flags.py`.
   - The skeeball DB init runs `sqlite_master`, which fails on PostgreSQL (the error is swallowed, and the
     lane is never linked).
-- **F-13 M3 mutates ORM objects** to strip newlines for its inline JavaScript. That's harmless today because
+- **F-13 M3 mutates ORM objects** *Fixed in 4.4: the page builds no JavaScript strings now.* to strip newlines for its inline JavaScript. That's harmless today because
   the request never commits, but it's one autoflush away from rewriting machine names.
 - **F-14 Writes on GET:**
   - `/` and `/reports` commit the monthly rankings.
@@ -351,7 +351,7 @@ anything is changed.
 
 - **F-29 A rail session with partial figures is a 500.** `rails_session.html` formats `powered_min` and
   `powered_max` whenever `powered_mean` is set, so a session that has a mean but no range crashes the page.
-- **F-30 User text inside inline JavaScript.** `inventory_request_detail.html` (and the newline-stripping
+- **F-30 User text inside inline JavaScript.** *Fixed in 4.5 for the inventory pages, which have no inline handlers at all now; M3 (F-13) is fixed since 4.4.* `inventory_request_detail.html` (and the newline-stripping
   in M3, F-13) put item names and notes inside `onclick="…('{{ … }}')"`. Jinja's escaping is decoded back
   by the HTML parser before the JavaScript runs, so a quote in an item name breaks the button, and a
   crafted one runs script.
@@ -363,10 +363,10 @@ anything is changed.
 
   `test_visibility.py` pins today's behaviour as a snapshot. **Decision needed:** the redesign should show
   each role exactly what its routes allow.
-- **F-32 Zero stock is rejected.** `DataRequired` on `stock_quantity` and `minimum_stock` treats 0 as
+- **F-32 Zero stock is rejected.** *Fixed in 4.5 (InputRequired; a count of 0 works too).* `DataRequired` on `stock_quantity` and `minimum_stock` treats 0 as
   missing, so an item with no stock can't be added or edited down to 0.
-- **F-33 Fields that are never saved.** `InventoryItemForm` has category, location and image fields that
-  the views never save.
+- **F-33 Fields that are never saved.** *Fixed in 4.5: removed from the form.* `InventoryItemForm` has category, location and image fields that
+  the views never save. (The page never rendered them; the tests posted `category` and it was dropped.)
 - **F-34 "Download backup" can never work.** X8 checks `backups/<f>` relative to the working directory,
   but `send_file` resolves a relative path against `app.root_path` (the `app/` package), so it raises and
   returns a 500.
@@ -378,6 +378,15 @@ anything is changed.
 - **F-36 First-run setup is a 500.** *Fixed in 4.1.* `setup.html` renders `form.hidden_tag()` and form fields, but the
   `/setup` view never passes a form, so `GET /setup` on an empty database crashes. A fresh install can
   only get its first admin from `scripts/create_admin.py`.
+- **F-38 "Damaged" and "Returned" set the stock instead of taking it off.** *Fixed in 4.5.* I5 only knew
+  added, removed, used and adjusted; the other two choices on its own form fell through to "set the stock
+  to", so writing off 2 damaged belts left 2 in stock. Found while moving I5 onto the service.
+- **F-39 Deleting a part with history fails on PostgreSQL.** *Fixed in 4.5.* I6 deleted the item with
+  its alerts, its requests and any work-order part usage still pointing at it. SQLite let it through and
+  left dangling rows; PostgreSQL refuses it with an FK error. Now a part used in a work order is kept (its
+  page says why and suggests setting the stock to 0), its alerts go with it, and its requests keep the
+  item name but lose the link.
+
 - **F-37 The PWA manifest names the real venue.** `static/manifest.json` carried the business's name in
   a public repository. It is renamed to "Arcade Tracker" in the base-shell step; the old value remains in
   git history.

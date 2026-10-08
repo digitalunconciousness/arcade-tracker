@@ -554,6 +554,10 @@
   margin: 0;
   overflow-wrap: anywhere;
 }
+.kv + h3,
+.kv + p {
+  margin-top: var(--sp-4);
+}
 
 /* =========================================================================================
    Lists of things (the phone-first alternative to a table)
@@ -605,6 +609,9 @@ a.row:hover {
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: var(--sp-2);
+}
+.row__end select {
+  width: auto;
 }
 /* On a narrow phone the chips go under the text instead of squeezing it into a column. */
 @media (max-width: 519px) {
@@ -709,6 +716,8 @@ a.row:hover {
 .field {
   display: grid;
   gap: var(--sp-1);
+  /* Side by side in a .field-row, a field without help text keeps its label on its input. */
+  align-content: start;
 }
 .field > label,
 .field__label {
@@ -740,6 +749,7 @@ a.row:hover {
 .field--check {
   grid-template-columns: auto 1fr;
   align-items: center;
+  align-content: center;
   gap: var(--sp-3);
   min-height: var(--tap);
 }
@@ -993,7 +1003,8 @@ legend {
   border: 1px solid var(--border);
   border-radius: var(--r);
 }
-.filters__search {
+.filters__search,
+.filters > .field--check {
   grid-column: 1 / -1;
 }
 .filters__actions {
@@ -1006,6 +1017,7 @@ legend {
     grid-template-columns: 2fr 1fr 1fr auto;
   }
   .filters__search,
+  .filters > .field--check,
   .filters__actions {
     grid-column: auto;
   }

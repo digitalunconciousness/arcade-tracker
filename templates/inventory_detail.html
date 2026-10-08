@@ -1,330 +1,127 @@
-{% extends "base.html" %}
+{% extends "layout.html" %}
+{% import "ui.html" as ui %}
+{% block title %}{{ item.name }}{% endblock %}
 
-{% block title %}{{ item.name }} - Inventory - Arcade Tracker{% endblock %}
+{% block page_head %}
+{% call ui.page_head(item.name, sub=item.part_number, back=url_for("inventory.inventory_list"), back_label="Parts") %}
+  <a class="btn btn--sm" href="{{ url_for('inventory.request_inventory', item_id=item.id) }}">Request more</a>
+  {%- if current_user.has_role("manager") %}
+  <a class="btn btn--sm" href="{{ url_for('inventory.edit_inventory_item', item_id=item.id) }}">Edit</a>
+  {%- endif %}
+{% endcall %}
+{% endblock %}
 
 {% block content %}
-<div class="header-section">
-    <h1> {{ item.name }}</h1>
-    <div class="header-actions">
-        <a href="{{ url_for('inventory.inventory_list') }}" class="btn btn-secondary">← Back to Inventory</a>
-        {% if current_user.has_role('operator') %}
-            <a href="{{ url_for('inventory.adjust_stock', item_id=item.id) }}" class="btn btn-primary">Adjust Stock</a>
-        {% endif %}
-        {% if current_user.has_role('manager') %}
-            <a href="{{ url_for('inventory.edit_inventory_item', item_id=item.id) }}" class="btn btn-warning">Edit Item</a>
-        {% endif %}
+{%- set low = item.is_low_stock() %}
+<div class="stack">
+
+  <dl class="readouts">
+    {{ ui.readout("In stock", item.stock_quantity, "reorder at " ~ item.minimum_stock, ("fault" if item.stock_quantity == 0 else "warn") if low else "ok") }}
+    {{ ui.readout("Unit price", "$%.2f"|format(item.unit_price or 0)) }}
+    {{ ui.readout("Stock value", "$%.2f"|format(item.total_value())) }}
+  </dl>
+
+  {%- if active_alert %}
+  <section class="card card--status is-warn" aria-labelledby="alert-title">
+    <h2 id="alert-title">Low stock</h2>
+    <p>{{ item.stock_quantity }} left, reorder level {{ item.minimum_stock }}. Alert raised {{ active_alert.alert_triggered.strftime("%Y-%m-%d %H:%M") }}.</p>
+    {%- if current_user.has_role("manager") %}
+    <form class="inline-form" method="post" action="{{ url_for('inventory.resolve_low_stock_alert', alert_id=active_alert.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn btn--sm" type="submit">Mark alert resolved</button>
+    </form>
+    {%- endif %}
+  </section>
+  {%- endif %}
+
+  <section class="card" aria-labelledby="adjust-title">
+    <h2 id="adjust-title">Change the stock</h2>
+    <form class="form form--wide" method="post" action="{{ url_for('inventory.adjust_stock', item_id=item.id) }}">
+      {{ adjust_form.hidden_tag() }}
+      <div class="field-row">
+        {{ ui.field(adjust_form.adjustment_type) }}
+        {{ ui.field(adjust_form.quantity, min=0, inputmode="numeric", help="For “Counted”, the number on the shelf.") }}
+      </div>
+      {{ ui.field(adjust_form.reason, placeholder="Optional") }}
+      <div class="form__actions"><button class="btn btn--primary" type="submit">Save change</button></div>
+    </form>
+  </section>
+
+  <section class="card" aria-labelledby="details-title">
+    <h2 id="details-title">Details</h2>
+    {%- if item.description %}<p class="prose">{{ item.description }}</p>{% endif %}
+    <dl class="kv">
+      <dt>Part number</dt><dd>{{ item.part_number or "—" }}</dd>
+      <dt>Supplier</dt><dd>{{ item.supplier or "—" }}</dd>
+      <dt>Added</dt><dd>{{ item.date_added.strftime("%Y-%m-%d") if item.date_added else "—" }}</dd>
+      <dt>Last restocked</dt><dd>{{ item.last_restocked.strftime("%Y-%m-%d") if item.last_restocked else "—" }}</dd>
+    </dl>
+    {%- if item.notes %}<h3>Notes</h3><p class="prose">{{ item.notes }}</p>{% endif %}
+  </section>
+
+  <section aria-labelledby="fits-title">
+    <h2 id="fits-title">Fits these machines</h2>
+    {%- if item.compatible_games %}
+    <ul class="rows">
+      {%- for game in item.compatible_games|sort(attribute="name") %}
+      <li><a class="row" href="{{ url_for('games.game_detail', game_id=game.id) }}">
+        <span class="row__main"><span class="row__title">{{ game.name }}</span><span class="row__meta">{{ game.location }}</span></span>
+        <span class="row__end">{{ ui.status(game.status) }}</span>
+      </a></li>
+      {%- endfor %}
+    </ul>
+    {%- else %}
+    {{ ui.empty("No machines listed", "Edit the part to say which machines it fits." if current_user.has_role("manager") else none) }}
+    {%- endif %}
+  </section>
+
+  {%- set mine = requests if current_user.has_role("manager") else requests|selectattr("requested_by_id", "equalto", current_user.id)|list %}
+  {%- if mine %}
+  <section aria-labelledby="req-title">
+    <h2 id="req-title">Requests for this part</h2>
+    <ul class="rows">
+      {%- for req in mine %}
+      <li><a class="row" href="{{ url_for('inventory.inventory_request_detail', request_id=req.id) }}">
+        <span class="row__main"><span class="row__title">× {{ req.quantity_requested }}</span><span class="row__meta">#{{ req.id }} · {{ req.requested_by.username }} · {{ req.date_requested.strftime("%Y-%m-%d") }}</span></span>
+        <span class="row__end">{{ ui.status(req.status) }}</span>
+      </a></li>
+      {%- endfor %}
+    </ul>
+  </section>
+  {%- endif %}
+
+  <section aria-labelledby="history-title">
+    <h2 id="history-title">Stock history</h2>
+    {%- if history %}
+    <div class="table-wrap">
+      <table class="table table--stack">
+        <thead><tr><th>When</th><th>What</th><th class="num">Change</th><th class="num">After</th><th>Reason</th><th>By</th></tr></thead>
+        <tbody>
+          {%- for h in history %}
+          <tr>
+            <td data-label="When">{{ h.timestamp.strftime("%Y-%m-%d %H:%M") }}</td>
+            <td data-label="What">{{ adjustments.get(h.change_type, h.change_type|title) }}</td>
+            <td data-label="Change" class="num {{ 'is-ok' if h.quantity_change > 0 else 'is-warn' if h.quantity_change < 0 else '' }}">{{ "%+d"|format(h.quantity_change) }}</td>
+            <td data-label="After" class="num">{{ h.new_quantity }}</td>
+            <td data-label="Reason">{{ h.reason or "—" }}</td>
+            <td data-label="By">{{ h.user.username if h.user else "—" }}</td>
+          </tr>
+          {%- endfor %}
+        </tbody>
+      </table>
     </div>
+    {%- else %}
+    {{ ui.empty("No stock changes yet") }}
+    {%- endif %}
+  </section>
+
+  {%- if current_user.has_role("admin") %}
+  <section class="card card--status is-fault" aria-labelledby="delete-title">
+    <h2 id="delete-title">Delete this part</h2>
+    <p class="dim">Removes the part and its stock history. A part used in a work order is kept for that order's parts cost; set its stock to 0 instead.</p>
+    {{ ui.danger_form(url_for("inventory.delete_inventory_item", item_id=item.id), "Delete part", "Delete “" ~ item.name ~ "” and its stock history? This cannot be undone.", small=false) }}
+  </section>
+  {%- endif %}
+
 </div>
-
-{% if item.is_low_stock() %}
-<div class="alert alert-warning">
-     <strong>Low Stock Alert:</strong> This item is at or below the minimum stock level.
-</div>
-{% endif %}
-
-<div class="detail-container">
-    <div class="detail-main">
-        <div class="info-card">
-            <h2>Item Details</h2>
-            
-            <div class="detail-grid">
-                <div class="detail-item">
-                    <label>Description</label>
-                    <div class="detail-value">{{ item.description or 'No description provided' }}</div>
-                </div>
-                
-                <div class="detail-item">
-                    <label>Part Number</label>
-                    <div class="detail-value">{{ item.part_number or 'N/A' }}</div>
-                </div>
-                
-                <div class="detail-item">
-                    <label>Supplier</label>
-                    <div class="detail-value">{{ item.supplier or 'N/A' }}</div>
-                </div>
-                
-                <div class="detail-item">
-                    <label>Date Added</label>
-                    <div class="detail-value">{{ item.date_added.strftime('%B %d, %Y') }}</div>
-                </div>
-                
-                {% if item.last_restocked %}
-                <div class="detail-item">
-                    <label>Last Restocked</label>
-                    <div class="detail-value">{{ item.last_restocked.strftime('%B %d, %Y') }}</div>
-                </div>
-                {% endif %}
-                
-                {% if item.notes %}
-                <div class="detail-item full-width">
-                    <label>Notes</label>
-                    <div class="detail-value">{{ item.notes }}</div>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-        
-        {% if item.compatible_games %}
-        <div class="info-card">
-            <h2>Compatible Games</h2>
-            <div class="game-list">
-                {% for game in item.compatible_games %}
-                <div class="game-item">
-                    <a href="{{ url_for('games.game_detail', game_id=game.id) }}">{{ game.name }}</a>
-                    <span class="game-location">({{ game.location }})</span>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-        {% endif %}
-        
-        <div class="info-card">
-            <h2>Stock History</h2>
-            {% if recent_history %}
-            <div class="table-responsive">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>Type</th>
-                            <th>Change</th>
-                            <th>Previous</th>
-                            <th>New</th>
-                            <th>Reason</th>
-                            <th>User</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for history in recent_history %}
-                        <tr>
-                            <td>{{ history.timestamp.strftime('%m/%d/%Y %H:%M') }}</td>
-                            <td>
-                                <span class="change-type change-{{ history.change_type }}">
-                                    {{ history.change_type.title() }}
-                                </span>
-                            </td>
-                            <td class="change-quantity {% if history.quantity_change > 0 %}positive{% else %}negative{% endif %}">
-                                {% if history.quantity_change > 0 %}+{% endif %}{{ history.quantity_change }}
-                            </td>
-                            <td>{{ history.previous_quantity }}</td>
-                            <td>{{ history.new_quantity }}</td>
-                            <td>{{ history.reason or 'No reason provided' }}</td>
-                            <td>{{ history.user.username }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% else %}
-            <p class="no-data">No stock history available.</p>
-            {% endif %}
-        </div>
-    </div>
-    
-    <div class="detail-sidebar">
-        <div class="stats-card">
-            <h3>Stock Information</h3>
-            
-            <div class="stat-item">
-                <label>Current Stock</label>
-                <div class="stat-value {% if item.is_low_stock() %}warning{% endif %}">
-                    {{ item.stock_quantity }}
-                </div>
-            </div>
-            
-            <div class="stat-item">
-                <label>Minimum Stock</label>
-                <div class="stat-value">{{ item.minimum_stock }}</div>
-            </div>
-            
-            <div class="stat-item">
-                <label>Unit Price</label>
-                <div class="stat-value">${{ "%.2f"|format(item.unit_price) }}</div>
-            </div>
-            
-            <div class="stat-item">
-                <label>Total Value</label>
-                <div class="stat-value">${{ "%.2f"|format(item.total_value()) }}</div>
-            </div>
-        </div>
-        
-        {% if active_alert %}
-        <div class="alert-card">
-            <h3> Active Low Stock Alert</h3>
-            <p>Triggered: {{ active_alert.alert_triggered.strftime('%m/%d/%Y %H:%M') }}</p>
-            {% if current_user.has_role('manager') %}
-            <form method="POST" action="{{ url_for('inventory.resolve_low_stock_alert', alert_id=active_alert.id) }}">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit" class="btn btn-sm btn-success">Mark as Resolved</button>
-            </form>
-            {% endif %}
-        </div>
-        {% endif %}
-    </div>
-</div>
-
-<style>
-.detail-container {
-    display: grid;
-    grid-template-columns: 1fr 300px;
-    gap: 24px;
-    margin-top: 20px;
-}
-
-.detail-main {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-}
-
-.detail-sidebar {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-}
-
-.info-card, .stats-card, .alert-card {
-    background: var(--card-bg);
-    border-radius: 8px;
-    padding: 20px;
-    border: 1px solid var(--border-color);
-}
-
-.info-card h2, .stats-card h3, .alert-card h3 {
-    margin: 0 0 16px 0;
-    color: var(--primary-color);
-}
-
-.detail-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 16px;
-}
-
-.detail-item.full-width {
-    grid-column: 1 / -1;
-}
-
-.detail-item label {
-    display: block;
-    font-weight: 600;
-    color: var(--text-secondary);
-    margin-bottom: 4px;
-    font-size: 0.9em;
-}
-
-.detail-value {
-    color: var(--text-color);
-}
-
-.game-list {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.game-item {
-    padding: 8px 12px;
-    background: var(--input-bg);
-    border-radius: 4px;
-    border: 1px solid var(--border-color);
-}
-
-.game-item a {
-    color: var(--primary-color);
-    text-decoration: none;
-    font-weight: 500;
-}
-
-.game-item a:hover {
-    text-decoration: underline;
-}
-
-.game-location {
-    color: var(--text-secondary);
-    font-size: 0.9em;
-    margin-left: 8px;
-}
-
-.stat-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 8px 0;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.stat-item:last-child {
-    border-bottom: none;
-}
-
-.stat-item label {
-    font-weight: 500;
-    color: var(--text-secondary);
-}
-
-.stat-value {
-    font-weight: bold;
-    font-size: 1.1em;
-}
-
-.stat-value.warning {
-    color: var(--warning-color);
-}
-
-.change-type {
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-size: 0.8em;
-    text-transform: uppercase;
-    font-weight: bold;
-}
-
-.change-added {
-    background-color: #d4edda;
-    color: #155724;
-}
-
-.change-removed, .change-used {
-    background-color: #f8d7da;
-    color: #721c24;
-}
-
-.change-adjusted {
-    background-color: #d1ecf1;
-    color: #0c5460;
-}
-
-.change-quantity.positive {
-    color: var(--success-color);
-    font-weight: bold;
-}
-
-.change-quantity.negative {
-    color: var(--error-color);
-    font-weight: bold;
-}
-
-.alert-card {
-    background: rgba(255, 193, 7, 0.1);
-    border-color: var(--warning-color);
-}
-
-.no-data {
-    text-align: center;
-    color: var(--text-secondary);
-    font-style: italic;
-    padding: 20px 0;
-}
-
-@media (max-width: 768px) {
-    .detail-container {
-        grid-template-columns: 1fr;
-    }
-    
-    .detail-grid {
-        grid-template-columns: 1fr;
-    }
-}
-</style>
 {% endblock %}

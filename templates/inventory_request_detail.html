@@ -1,363 +1,141 @@
-{% extends "base.html" %}
+{% extends "layout.html" %}
+{% import "ui.html" as ui %}
+{% set manager = current_user.has_role("manager") %}
+{% set closed = req.status in ("Received", "Rejected") %}
+{% block title %}Request #{{ req.id }}{% endblock %}
+
+{% block page_head %}
+{{ ui.page_head("#" ~ req.id ~ " · " ~ req.item_name ~ " × " ~ req.quantity_requested, back=url_for("inventory.inventory_requests_list"), back_label="Requests") }}
+{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-  <!-- Back Button -->
-  <div class="mb-3">
-    <a href="{{ url_for('inventory.inventory_requests_list') }}" style="color: #00ffff; text-decoration: none;">&larr; Back to Requests</a>
+<div class="stack">
+
+  <div class="cluster">
+    {{ ui.status(req.status) }}
+    {%- if req.urgency and req.urgency != "Normal" %}{{ ui.status(req.urgency) }}{% endif %}
+    {%- if not req.item_id and req.status != "Rejected" %}<span class="badge is-info">new part</span>{% endif %}
   </div>
 
-  <!-- Request Header Card -->
-  <div style="background: rgba(0, 20, 40, 0.6); border: 2px solid #9c27b0; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
-    <h2 style="color: #9c27b0; margin-bottom: 15px;">
-       Inventory Request #{{ request.id }}
-    </h2>
+  <section class="card" aria-labelledby="req-title">
+    <h2 id="req-title">Request</h2>
+    <dl class="kv">
+      <dt>Part</dt><dd>{% if req.item_id and req.item %}<a href="{{ url_for('inventory.inventory_detail', item_id=req.item_id) }}">{{ req.item.name }}</a> ({{ req.item.stock_quantity }} in stock){% else %}{{ req.item_name }}{% endif %}</dd>
+      <dt>Quantity</dt><dd class="num">{{ req.quantity_requested }}</dd>
+      <dt>Asked by</dt><dd>{{ req.requested_by.username }}</dd>
+      <dt>Asked on</dt><dd>{{ req.date_requested.strftime("%Y-%m-%d %H:%M") }}</dd>
+      {%- if req.date_fulfilled %}<dt>{{ "Received" if req.status == "Received" else "Closed" }}</dt><dd>{{ req.date_fulfilled.strftime("%Y-%m-%d %H:%M") }}</dd>{% endif %}
+      {%- if req.maintenance_id %}
+      <dt>For</dt><dd><a href="{{ url_for('maintenance.maintenance_detail', record_id=req.maintenance_id) }}">Work order #{{ req.maintenance_id }}</a>
+        {%- if req.maintenance_record and req.maintenance_record.game %} · {{ req.maintenance_record.game.name }}{% endif %}</dd>
+      {%- endif %}
+    </dl>
+    {%- if req.reason %}<h3>Why</h3><p class="prose">{{ req.reason }}</p>{% endif %}
+    {%- if req.notes %}<h3>Manager notes</h3><p class="prose">{{ req.notes }}</p>{% endif %}
+  </section>
 
-    <!-- Status Badge -->
-    <div style="margin-bottom: 15px;">
-      {% if request.status == 'Pending' %}
-        <span style="background: #ffaa00; color: #000; padding: 6px 12px; border-radius: 4px; font-size: 0.9em; font-weight: bold;">⏳ Pending</span>
-      {% elif request.status == 'Approved' %}
-        <span style="background: var(--neon-cyan); color: #000; padding: 6px 12px; border-radius: 4px; font-size: 0.9em; font-weight: bold;"> Approved</span>
-      {% elif request.status == 'Ordered' %}
-        <span style="background: var(--neon-purple); color: #fff; padding: 6px 12px; border-radius: 4px; font-size: 0.9em; font-weight: bold;"> Ordered</span>
-      {% elif request.status == 'Received' %}
-        <span style="background: var(--neon-green); color: #000; padding: 6px 12px; border-radius: 4px; font-size: 0.9em; font-weight: bold;"> Received</span>
-      {% elif request.status == 'Rejected' %}
-        <span style="background: #ff4444; color: #fff; padding: 6px 12px; border-radius: 4px; font-size: 0.9em; font-weight: bold;"> Rejected</span>
-      {% endif %}
-
-      {% if request.urgency == 'Urgent' %}
-        <span style="background: #ff4444; color: #fff; padding: 6px 12px; border-radius: 4px; font-size: 0.9em; font-weight: bold; margin-left: 10px;"> URGENT</span>
-      {% elif request.urgency == 'High' %}
-        <span style="background: #ffaa00; color: #000; padding: 6px 12px; border-radius: 4px; font-size: 0.9em; font-weight: bold; margin-left: 10px;">High Priority</span>
-      {% endif %}
-    </div>
-
-    <!-- Request Details Grid -->
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-top: 20px;">
-      <div>
-        <p style="color: #888; margin: 0; font-size: 0.9em;">Item Name</p>
-        <p style="color: #fff; margin: 5px 0 0 0; font-size: 1.1em; font-weight: bold;">{{ request.item_name }}</p>
-      </div>
-      
-      <div>
-        <p style="color: #888; margin: 0; font-size: 0.9em;">Quantity Requested</p>
-        <p style="color: #fff; margin: 5px 0 0 0; font-size: 1.1em; font-weight: bold;">{{ request.quantity_requested }}</p>
-      </div>
-
-      <div>
-        <p style="color: #888; margin: 0; font-size: 0.9em;">Requested By</p>
-        <p style="color: #fff; margin: 5px 0 0 0; font-size: 1.1em;">{{ request.requested_by.username }}</p>
-      </div>
-
-      <div>
-        <p style="color: #888; margin: 0; font-size: 0.9em;">Date Requested</p>
-        <p style="color: #fff; margin: 5px 0 0 0; font-size: 1.1em;">{{ request.date_requested.strftime('%Y-%m-%d %H:%M') }}</p>
-      </div>
-    </div>
-  </div>
-
-  <!-- Shipping & Tracking Info -->
-  {% if request.vendor or request.tracking_number or request.estimated_arrival or request.tracking_status %}
-  <div style="background: rgba(0, 20, 40, 0.6); border: 2px solid #00d9ff; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-      <h4 style="color: #00d9ff; margin: 0;"> Shipping & Tracking Information</h4>
-      {% if request.tracking_number and current_user.role in ['admin', 'manager'] and request.status not in ['Received', 'Rejected'] %}
-        <form method="POST" action="{{ url_for('inventory.update_request_tracking', request_id=request.id) }}" style="display: inline;">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-          <button type="submit" style="background: var(--neon-cyan); color: #000; padding: 8px 16px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.transform='scale(1.05)';" onmouseout="this.style.transform='scale(1)';">
-             Update Tracking
-          </button>
-        </form>
-      {% endif %}
-    </div>
-    
-    <!-- Tracking Status (if available) -->
-    {% if request.tracking_status %}
-    <div style="margin-bottom: 20px; padding: 15px; background: rgba(0, 217, 255, 0.1); border-left: 4px solid var(--neon-cyan); border-radius: 4px;">
-      <p style="color: #888; margin: 0; font-size: 0.9em;">Current Tracking Status</p>
-      <p style="color: var(--neon-cyan); margin: 5px 0 10px 0; font-size: 1.2em; font-weight: bold; text-transform: capitalize;">{{ request.tracking_status.replace('_', ' ') }}</p>
-      {% if request.carrier %}
-        <span style="color: #888; font-size: 0.9em;">Carrier: {{ request.carrier }}</span>
-      {% endif %}
-      {% if request.last_tracking_update %}
-        <span style="color: #666; font-size: 0.8em; margin-left: 15px;">Last updated: {{ request.last_tracking_update.strftime('%Y-%m-%d %H:%M') }}</span>
-      {% endif %}
-    </div>
-    {% endif %}
-    
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
-      {% if request.vendor %}
-      <div>
-        <p style="color: #888; margin: 0; font-size: 0.9em;">Vendor / Supplier</p>
-        <p style="color: #fff; margin: 5px 0 0 0; font-size: 1.1em;">{{ request.vendor }}</p>
-      </div>
-      {% endif %}
-
-      {% if request.tracking_number %}
-      <div>
-        <p style="color: #888; margin: 0; font-size: 0.9em;">Tracking Number</p>
-        <p style="color: var(--neon-cyan); margin: 5px 0 0 0; font-size: 1.1em; font-family: monospace;">{{ request.tracking_number }}</p>
-      </div>
-      {% endif %}
-
-      {% if request.estimated_arrival %}
-      <div>
-        <p style="color: #888; margin: 0; font-size: 0.9em;">Estimated Arrival</p>
-        <p style="color: #fff; margin: 5px 0 0 0; font-size: 1.1em;">{{ request.estimated_arrival.strftime('%Y-%m-%d') }}</p>
-      </div>
-      {% endif %}
-    </div>
-  </div>
-  {% endif %}
-
-  <!-- Work Order Link -->
-  {% if request.maintenance_id %}
-  <div style="background: rgba(0, 20, 40, 0.6); border: 2px solid #ff6400; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
-    <h4 style="color: #ff6400; margin-bottom: 10px;"> Linked Work Order</h4>
-    <p style="color: #fff;">
-      This request is linked to 
-      <a href="{{ url_for('maintenance.maintenance_detail', record_id=request.maintenance_id) }}" style="color: var(--neon-cyan); text-decoration: none; font-weight: bold;">
-        Work Order #{{ request.maintenance_id }}
-      </a>
-      {% if request.maintenance_record.game %}
-        for {{ request.maintenance_record.game.name }}
-      {% else %}
-        ({{ request.maintenance_record.work_order_type|upper }})
-      {% endif %}
-    </p>
-  </div>
-  {% endif %}
-
-  <!-- Reason / Notes -->
-  <div style="background: rgba(0, 20, 40, 0.6); border: 2px solid #666; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
-    <h4 style="color: #999; margin-bottom: 15px;"> Reason / Notes</h4>
-    
-    {% if request.reason %}
-    <div style="margin-bottom: 15px;">
-      <p style="color: #888; margin: 0; font-size: 0.9em;">Original Request Reason</p>
-      <p style="color: #fff; margin: 5px 0 0 0; white-space: pre-wrap;">{{ request.reason }}</p>
-    </div>
-    {% endif %}
-
-    {% if request.notes %}
-    <div>
-      <p style="color: #888; margin: 0; font-size: 0.9em;">Manager Notes</p>
-      <p style="color: #fff; margin: 5px 0 0 0; white-space: pre-wrap;">{{ request.notes }}</p>
-    </div>
-    {% endif %}
-
-    {% if not request.reason and not request.notes %}
-    <p style="color: #666; font-style: italic;">No notes available.</p>
-    {% endif %}
-  </div>
-
-  <!-- Audit History Timeline -->
-  <div style="background: rgba(0, 20, 40, 0.6); border: 2px solid var(--neon-green); border-radius: 8px; padding: 20px; margin-bottom: 20px;">
-    <h4 style="color: var(--neon-green); margin-bottom: 20px;"> Full Audit History</h4>
-    
-    {% if history %}
-    <div style="position: relative;">
-      <!-- Timeline Line -->
-      <div style="position: absolute; left: 20px; top: 0; bottom: 0; width: 2px; background: linear-gradient(180deg, var(--neon-green) 0%, var(--neon-cyan) 50%, var(--neon-purple) 100%);"></div>
-      
-      {% for entry in history %}
-      <div style="position: relative; padding-left: 50px; margin-bottom: 25px;">
-        <!-- Timeline Dot -->
-        <div style="position: absolute; left: 11px; width: 20px; height: 20px; border-radius: 50%; background: 
-          {% if entry.action == 'created' %}var(--neon-green)
-          {% elif entry.action == 'status_changed' %}var(--neon-cyan)
-          {% elif entry.action == 'tracking_updated' %}var(--neon-purple)
-          {% elif entry.action == 'vendor_updated' %}#ffaa00
-          {% elif entry.action == 'eta_updated' %}#ff6400
-          {% else %}#666
-          {% endif %}; border: 3px solid rgba(0, 20, 40, 0.9); box-shadow: 0 0 10px 
-          {% if entry.action == 'created' %}var(--neon-green)
-          {% elif entry.action == 'status_changed' %}var(--neon-cyan)
-          {% elif entry.action == 'tracking_updated' %}var(--neon-purple)
-          {% else %}#666
-          {% endif %};"></div>
-        
-        <!-- History Entry Card -->
-        <div style="background: rgba(0, 30, 50, 0.5); border-left: 3px solid 
-          {% if entry.action == 'created' %}var(--neon-green)
-          {% elif entry.action == 'status_changed' %}var(--neon-cyan)
-          {% elif entry.action == 'tracking_updated' %}var(--neon-purple)
-          {% elif entry.action == 'vendor_updated' %}#ffaa00
-          {% elif entry.action == 'eta_updated' %}#ff6400
-          {% else %}#666
-          {% endif %}; padding: 15px; border-radius: 4px;">
-          
-          <!-- Timestamp & User -->
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-            <span style="color: #888; font-size: 0.9em;">
-              {{ entry.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}
-            </span>
-            <span style="color: var(--neon-cyan); font-weight: bold;">
-              {{ entry.user.username }}
-            </span>
-          </div>
-
-          <!-- Action Description -->
-          <div style="color: #fff; font-size: 1em; margin-bottom: 5px;">
-            {% if entry.action == 'created' %}
-              <strong style="color: var(--neon-green);"> Request Created</strong>
-            {% elif entry.action == 'status_changed' %}
-              <strong style="color: var(--neon-cyan);"> Status Changed:</strong>
-              <span style="color: #ff6400;">{{ entry.old_value }}</span> → <span style="color: var(--neon-green);">{{ entry.new_value }}</span>
-            {% elif entry.action == 'tracking_updated' %}
-              <strong style="color: var(--neon-purple);"> Tracking Updated:</strong>
-              {% if entry.old_value %}
-                <span style="color: #888; text-decoration: line-through;">{{ entry.old_value }}</span> →
-              {% endif %}
-              <span style="color: var(--neon-green); font-family: monospace;">{{ entry.new_value }}</span>
-            {% elif entry.action == 'vendor_updated' %}
-              <strong style="color: #ffaa00;"> Vendor Updated:</strong>
-              {% if entry.old_value %}
-                <span style="color: #888; text-decoration: line-through;">{{ entry.old_value }}</span> →
-              {% endif %}
-              <span style="color: var(--neon-green);">{{ entry.new_value }}</span>
-            {% elif entry.action == 'eta_updated' %}
-              <strong style="color: #ff6400;"> ETA Updated:</strong>
-              {% if entry.old_value %}
-                <span style="color: #888; text-decoration: line-through;">{{ entry.old_value }}</span> →
-              {% endif %}
-              <span style="color: var(--neon-green);">{{ entry.new_value }}</span>
-            {% elif entry.action == 'notes_updated' %}
-              <strong style="color: #9c27b0;"> Notes Updated</strong>
-            {% else %}
-              <strong>{{ entry.action.replace('_', ' ').title() }}</strong>
-            {% endif %}
-          </div>
-
-          <!-- Additional Notes -->
-          {% if entry.notes %}
-          <div style="color: #aaa; font-size: 0.9em; font-style: italic; margin-top: 8px; padding-left: 10px; border-left: 2px solid #666;">
-            {{ entry.notes }}
-          </div>
-          {% endif %}
-        </div>
-      </div>
-      {% endfor %}
-    </div>
-    {% else %}
-    <p style="color: #666; font-style: italic;">No history available.</p>
-    {% endif %}
-  </div>
-
-  <!-- Action Buttons (for managers) -->
-  {% if current_user.role in ['admin', 'manager'] and request.status not in ['Received', 'Rejected'] %}
-  <div style="text-align: right; margin-top: 20px;">
-    <button onclick="openUpdateModal({{ request.id }}, '{{ request.item_name }}', {{ request.quantity_requested }}, '{{ request.notes|default('', true)|replace('\'', '\\\'')|replace('\n', ' ') }}', '{{ request.tracking_number|default('', true) }}', '{{ request.vendor|default('', true) }}', '{{ request.estimated_arrival.strftime('%Y-%m-%d') if request.estimated_arrival else '' }}', '{{ request.status }}')" 
-            class="btn" style="background: var(--neon-purple); color: #fff; padding: 12px 24px; font-size: 16px;">
-       Update Request
-    </button>
-  </div>
-
-  <!-- Update Modal (reuse from list page) -->
-  <div id="updateModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; overflow-y: auto;">
-    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--dark-card); padding: 30px; border-radius: 8px; border: 2px solid var(--neon-cyan); max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto;">
-      <h3 style="color: var(--neon-cyan); margin-bottom: 20px;"> Update Inventory Request</h3>
-      <p><strong style="color: var(--neon-cyan);">Item:</strong> <span id="modalItemName" style="color: #fff;"></span></p>
-      <p><strong style="color: var(--neon-cyan);">Quantity:</strong> <span id="modalQuantity" style="color: #fff;"></span></p>
-      
-      <form id="updateForm" method="POST">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-        
-        <div class="form-group">
-          <label for="modalStatus">Status *</label>
-          <select id="modalStatus" name="status" required>
-            <option value="Pending">⏳ Pending</option>
-            <option value="Approved"> Approved</option>
-            <option value="Ordered"> Ordered</option>
-            <option value="Received"> Received</option>
-            <option value="Rejected"> Rejected</option>
-          </select>
-        </div>
-        
-        <div class="form-group">
-          <label for="modalVendor">Vendor / Supplier</label>
-          <input type="text" id="modalVendor" name="vendor" placeholder="e.g., Amazon, Arcade Parts, etc.">
-        </div>
-        
-        <div class="form-group">
-          <label for="modalTracking">Tracking Number</label>
-          <input type="text" id="modalTracking" name="tracking_number" placeholder="Enter shipping tracking number">
-        </div>
-        
-        <div class="form-group">
-          <label for="modalEstimatedArrival">Estimated Arrival</label>
-          <input type="date" id="modalEstimatedArrival" name="estimated_arrival">
-        </div>
-        
-        <div class="form-group">
-          <label for="modalNotes">Notes</label>
-          <textarea id="modalNotes" name="notes" rows="3" placeholder="Add notes about this request..."></textarea>
-        </div>
-        
-        <div style="text-align: right; margin-top: 20px;">
-          <button type="button" onclick="closeUpdateModal()" class="btn" style="background: #6c757d; margin-right: 10px;">Cancel</button>
-          <button type="submit" class="btn btn-success"> Save Changes</button>
-        </div>
+  <section class="card" aria-labelledby="ship-title">
+    <div class="card__head">
+      <h2 id="ship-title">Shipment</h2>
+      {%- if manager and req.tracking_number and not closed %}
+      <form class="inline-form" method="post" action="{{ url_for('inventory.update_request_tracking', request_id=req.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn btn--sm" type="submit">Refresh tracking</button>
       </form>
+      {%- endif %}
     </div>
-  </div>
+    {%- if req.vendor or req.tracking_number or req.estimated_arrival or req.tracking_status %}
+    <dl class="kv">
+      {%- if req.vendor %}<dt>Vendor</dt><dd>{{ req.vendor }}</dd>{% endif %}
+      {%- if req.tracking_number %}<dt>Tracking</dt><dd class="num">{{ req.tracking_number }}{% if req.carrier %} · {{ req.carrier }}{% endif %}</dd>{% endif %}
+      {%- if req.estimated_arrival %}<dt>Due</dt><dd>{{ req.estimated_arrival.strftime("%Y-%m-%d") }}</dd>{% endif %}
+      {%- if req.tracking_status %}
+      <dt>Carrier says</dt><dd>{{ ui.chip(tracking_tone.get(req.tracking_status, "muted"), tracking_text.get(req.tracking_status, req.tracking_status|replace("_", " "))) }}
+        {%- if req.last_tracking_update %} <span class="dim">checked {{ req.last_tracking_update.strftime("%Y-%m-%d %H:%M") }}</span>{% endif %}</dd>
+      {%- endif %}
+      {%- if tracking and (tracking.public_url or "").startswith("https://") %}<dt>Carrier page</dt><dd><a href="{{ tracking.public_url }}" target="_blank" rel="noopener noreferrer">Open tracking page ↗</a></dd>{% endif %}
+    </dl>
+    {%- if tracking and tracking.tracking_details %}
+    <h3>Scans</h3>
+    <ol class="log">
+      {%- for scan in tracking.tracking_details %}
+      <li>
+        <div class="log__head"><b>{{ scan.status|replace("_", " ")|capitalize if scan.status else "Update" }}</b><span>{{ (scan.datetime or "")[:16]|replace("T", " ") }}</span>
+          {%- if scan.tracking_location and (scan.tracking_location.city or scan.tracking_location.state) %}<span>{{ [scan.tracking_location.city, scan.tracking_location.state]|select|join(", ") }}</span>{% endif %}</div>
+        {%- if scan.message %}<p>{{ scan.message }}</p>{% endif %}
+      </li>
+      {%- endfor %}
+    </ol>
+    {%- endif %}
+    {%- else %}
+    {{ ui.empty("No shipment yet", "A manager adds the vendor and tracking number once it is ordered." if not manager else "Add the vendor and tracking number below once it is ordered.") }}
+    {%- endif %}
+  </section>
 
-  <script>
-  function openUpdateModal(requestId, itemName, quantity, notes, tracking, vendor, estimatedArrival, status) {
-      document.getElementById('modalItemName').textContent = itemName;
-      document.getElementById('modalQuantity').textContent = quantity;
-      document.getElementById('modalNotes').value = notes || '';
-      document.getElementById('modalTracking').value = tracking || '';
-      document.getElementById('modalVendor').value = vendor || '';
-      document.getElementById('modalEstimatedArrival').value = estimatedArrival || '';
-      document.getElementById('modalStatus').value = status || 'Pending';
-      document.getElementById('updateForm').action = `/inventory/requests/${requestId}/update`;
-      document.getElementById('updateModal').style.display = 'block';
-  }
+  {%- if manager %}
+  <section class="card" aria-labelledby="update-title">
+    <h2 id="update-title">Update</h2>
+    <form class="form form--wide" method="post" action="{{ url_for('inventory.update_inventory_request', request_id=req.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="next" value="detail">
+      <div class="field-row">
+        <div class="field">
+          <label for="u-status">Status</label>
+          <select id="u-status" name="status">
+            {%- for s in statuses %}<option value="{{ s }}"{% if s == req.status %} selected{% endif %}>{{ s }}</option>{% endfor %}
+          </select>
+          {%- if req.status != "Received" %}<span class="field__help">Received puts {{ req.quantity_requested }} into stock{% if not req.item_id %}, as a new part{% endif %}.</span>{% endif %}
+        </div>
+        <div class="field">
+          <label for="u-eta">Due</label>
+          <input id="u-eta" name="estimated_arrival" type="date" value="{{ req.estimated_arrival.strftime('%Y-%m-%d') if req.estimated_arrival else '' }}">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="u-vendor">Vendor</label>
+          <input id="u-vendor" name="vendor" maxlength="200" value="{{ req.vendor or '' }}">
+        </div>
+        <div class="field">
+          <label for="u-tracking">Tracking number</label>
+          <input id="u-tracking" name="tracking_number" maxlength="200" value="{{ req.tracking_number or '' }}" autocomplete="off">
+        </div>
+      </div>
+      <div class="field">
+        <label for="u-notes">Notes</label>
+        <textarea id="u-notes" name="notes" rows="3">{{ req.notes or "" }}</textarea>
+      </div>
+      <div class="form__actions"><button class="btn btn--primary" type="submit">Save</button></div>
+    </form>
+  </section>
+  {%- endif %}
 
-  function closeUpdateModal() {
-      document.getElementById('updateModal').style.display = 'none';
-  }
-  </script>
-  {% endif %}
+  <section aria-labelledby="hist-title">
+    <h2 id="hist-title">History</h2>
+    {%- if history %}
+    <ol class="log">
+      {%- for entry in history %}
+      <li>
+        <div class="log__head"><b>{{ entry.user.username if entry.user else "—" }}</b><span>{{ entry.timestamp.strftime("%Y-%m-%d %H:%M") }}</span><span>{{ entry.action|replace("_", " ") }}</span></div>
+        {%- if entry.field_changed and (entry.old_value or entry.new_value) %}
+        <p>{{ entry.field_changed|replace("_", " ")|capitalize }}: {{ entry.old_value or "—" }} → {{ entry.new_value or "—" }}</p>
+        {%- endif %}
+        {%- if entry.notes %}<p class="prose">{{ entry.notes }}</p>{% endif %}
+      </li>
+      {%- endfor %}
+    </ol>
+    {%- else %}
+    {{ ui.empty("No history") }}
+    {%- endif %}
+  </section>
+
+  {%- if can_delete %}
+  <section class="card card--status is-fault" aria-labelledby="delete-title">
+    <h2 id="delete-title">{{ "Delete" if manager else "Withdraw" }} this request</h2>
+    <p class="dim">Removes the request and its history. Stock already received stays in stock.</p>
+    {{ ui.danger_form(url_for("inventory.delete_inventory_request", request_id=req.id), ("Delete" if manager else "Withdraw") ~ " request", ("Delete" if manager else "Withdraw") ~ " request #" ~ req.id ~ "?", small=false) }}
+  </section>
+  {%- endif %}
+
 </div>
-
-<style>
-.form-group {
-    margin-bottom: 20px;
-}
-
-.form-group label {
-    display: block;
-    margin-bottom: 8px;
-    font-weight: 700;
-    color: var(--neon-cyan);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
-
-.form-group input,
-.form-group select,
-.form-group textarea {
-    width: 100%;
-    padding: 12px;
-    border: 1px solid var(--neon-cyan);
-    border-radius: 4px;
-    background: var(--dark-card);
-    color: var(--text-primary);
-    font-family: 'Share Tech Mono', monospace;
-    transition: all 0.3s ease;
-    box-sizing: border-box;
-}
-
-.form-group input:focus,
-.form-group select:focus,
-.form-group textarea:focus {
-    outline: none;
-    border-color: var(--neon-pink);
-    box-shadow: 0 0 15px rgba(255, 0, 255, 0.5);
-}
-</style>
 {% endblock %}

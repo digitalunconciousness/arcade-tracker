@@ -1,110 +1,78 @@
-{% extends "base.html" %}
+{% extends "layout.html" %}
+{% import "ui.html" as ui %}
+{% block title %}Request a part{% endblock %}
+
+{% block page_head %}
+{{ ui.page_head("Request a part", sub="A manager approves and orders it.", back=url_for("inventory.inventory_requests_list"), back_label="Requests") }}
+{% endblock %}
+
+{% macro err(name) -%}
+{%- if errors.get(name) %}<span class="field__error" id="{{ name }}-error">{{ errors[name] }}</span>{% endif %}
+{%- endmacro %}
+{% macro invalid(name) -%}
+{%- if errors.get(name) %} aria-invalid="true" aria-describedby="{{ name }}-error"{% endif %}
+{%- endmacro %}
 
 {% block content %}
-<h1>Request Inventory Items</h1>
+{%- set chosen = values.get("item_id", "")|string %}
+{%- if values.get("item_type") == "new" and not chosen %}{% set chosen = "new" %}{% endif %}
+<form class="form" method="post" action="{{ url_for('inventory.request_inventory') }}" novalidate>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {%- if errors %}
+  <div class="banners" role="alert"><div class="banner is-fault"><div class="banner__body"><span class="banner__title">Nothing was sent</span><p>Fix the fields marked below.</p></div></div></div>
+  {%- endif %}
 
-<form method="POST">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-    
-    <div class="form-group">
-        <label>Request Type</label>
-        <select id="item_type" name="item_type" onchange="toggleItemFields()" required>
-            <option value="existing">Existing Item (More Stock)</option>
-            <option value="new">New Item (Not in Inventory)</option>
-        </select>
+  <div class="field{% if errors.item_id %} is-invalid{% endif %}">
+    <label for="item_id">Part <span class="field__req" aria-hidden="true">*</span><span class="visually-hidden"> (required)</span></label>
+    <select id="item_id" name="item_id"{{ invalid("item_id") }}>
+      <option value="new"{% if chosen in ("", "new") %} selected{% endif %}>A part we don’t stock (name it below)</option>
+      {%- for item in items %}
+      <option value="{{ item.id }}"{% if chosen == item.id|string %} selected{% endif %}>{{ item.name }} · {{ item.stock_quantity }} in stock</option>
+      {%- endfor %}
+    </select>
+    {{ err("item_id") }}
+  </div>
+
+  <div class="field{% if errors.item_name %} is-invalid{% endif %}">
+    <label for="item_name">Name of a new part</label>
+    <input id="item_name" name="item_name" maxlength="200" value="{{ values.get('item_name', '') }}" autocomplete="off"{{ invalid("item_name") }}>
+    <span class="field__help">Only for a part we don’t stock. Include a part number or a link if you have one.</span>
+    {{ err("item_name") }}
+  </div>
+
+  <div class="field-row">
+    <div class="field{% if errors.quantity %} is-invalid{% endif %}">
+      <label for="quantity">Quantity <span class="field__req" aria-hidden="true">*</span><span class="visually-hidden"> (required)</span></label>
+      <input id="quantity" name="quantity" type="number" min="1" inputmode="numeric" value="{{ values.get('quantity', '1') }}"{{ invalid("quantity") }}>
+      {{ err("quantity") }}
     </div>
-    
-    <div class="form-group" id="existing_item_group">
-        <label for="item_id">Select Item</label>
-        <select id="item_id" name="item_id" onchange="fillItemName()">
-            <option value="">-- Select Existing Item --</option>
-            {% for item in existing_items %}
-            <option value="{{ item.id }}" data-name="{{ item.name }}">
-                {{ item.name }} (Current Stock: {{ item.stock_quantity }})
-            </option>
-            {% endfor %}
-        </select>
+    <div class="field">
+      <label for="urgency">Urgency</label>
+      <select id="urgency" name="urgency">
+        {%- for u in urgencies %}<option value="{{ u }}"{% if values.get("urgency", "Normal") == u %} selected{% endif %}>{{ u }}</option>{% endfor %}
+      </select>
     </div>
-    
-    <div class="form-group">
-        <label for="item_name">Item Name *</label>
-        <input type="text" id="item_name" name="item_name" required placeholder="Enter item name">
-    </div>
-    
-    <div class="form-group">
-        <label for="quantity">Quantity Requested *</label>
-        <input type="number" id="quantity" name="quantity" min="1" required placeholder="How many do you need?">
-    </div>
-    
-    <div class="form-group">
-        <label for="urgency">Urgency</label>
-        <select id="urgency" name="urgency">
-            <option value="Low">Low - Can wait</option>
-            <option value="Normal" selected>Normal</option>
-            <option value="High">High - Needed soon</option>
-            <option value="Urgent">Urgent - Needed ASAP</option>
-        </select>
-    </div>
-    
-    <div class="form-group">
-        <label for="maintenance_id"> Link to Work Order (Optional)</label>
-        <select id="maintenance_id" name="maintenance_id">
-            <option value="">-- Not linked to a work order --</option>
-            {% for order in open_maintenance %}
-            <option value="{{ order.id }}" {% if preselected_maintenance_id == order.id %}selected{% endif %}>
-                #{{ order.id }} - {% if order.game %}{{ order.game.name }}{% else %}{{ order.work_order_type|upper }}{% endif %} ({{ order.status.replace('_', ' ') }})
-            </option>
-            {% endfor %}
-        </select>
-        <small style="color: #888; display: block; margin-top: 4px;">Link this request to a maintenance work order if these parts are needed for a specific repair.</small>
-    </div>
-    
-    <div class="form-group">
-        <label for="reason">Reason / Notes</label>
-        <textarea id="reason" name="reason" rows="3" placeholder="Why do you need this item?"></textarea>
-    </div>
-    
-    <div style="display: flex; gap: 10px; align-items: center; margin-top: 20px;">
-        <button type="submit" class="btn btn-success">Submit Request</button>
-        <a href="{{ url_for('inventory.inventory_list') }}" class="btn" style="background: #6c757d; color: white; text-decoration: none;">Cancel</a>
-    </div>
+  </div>
+
+  <div class="field{% if errors.maintenance_id %} is-invalid{% endif %}">
+    <label for="maintenance_id">For work order</label>
+    <select id="maintenance_id" name="maintenance_id"{{ invalid("maintenance_id") }}>
+      <option value="">None</option>
+      {%- for o in open_orders %}
+      <option value="{{ o.id }}"{% if values.get("maintenance_id", "")|string == o.id|string %} selected{% endif %}>#{{ o.id }} · {{ o.game.name if o.game else (o.location_description or "General") }} · {{ o.issue_description|truncate(50) }}</option>
+      {%- endfor %}
+    </select>
+    {{ err("maintenance_id") }}
+  </div>
+
+  <div class="field">
+    <label for="reason">Why</label>
+    <textarea id="reason" name="reason" rows="3">{{ values.get("reason", "") }}</textarea>
+  </div>
+
+  <div class="form__actions">
+    <button class="btn btn--primary" type="submit">Send request</button>
+    <a class="btn btn--ghost" href="{{ url_for('inventory.inventory_requests_list') }}">Cancel</a>
+  </div>
 </form>
-
-<script>
-function toggleItemFields() {
-    const itemType = document.getElementById('item_type').value;
-    const existingGroup = document.getElementById('existing_item_group');
-    const itemNameInput = document.getElementById('item_name');
-    const itemSelect = document.getElementById('item_id');
-    
-    if (itemType === 'existing') {
-        existingGroup.style.display = 'block';
-        itemNameInput.setAttribute('readonly', 'readonly');
-        itemNameInput.style.background = '#444';
-    } else {
-        existingGroup.style.display = 'none';
-        itemNameInput.removeAttribute('readonly');
-        itemNameInput.style.background = '';
-        itemNameInput.value = '';
-        itemSelect.value = '';
-    }
-}
-
-function fillItemName() {
-    const select = document.getElementById('item_id');
-    const itemName = document.getElementById('item_name');
-    const selectedOption = select.options[select.selectedIndex];
-    
-    if (selectedOption.value) {
-        itemName.value = selectedOption.getAttribute('data-name');
-    } else {
-        itemName.value = '';
-    }
-}
-
-// Initialize on page load
-document.addEventListener('DOMContentLoaded', function() {
-    toggleItemFields();
-});
-</script>
 {% endblock %}
