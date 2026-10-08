@@ -375,6 +375,13 @@ anything is changed.
   `item.min_stock`; the fields are `stock_quantity` and `minimum_stock`, and Jinja renders a missing
   attribute as empty. Found in the baseline screenshots.
 
+- **F-36 First-run setup is a 500.** `setup.html` renders `form.hidden_tag()` and form fields, but the
+  `/setup` view never passes a form, so `GET /setup` on an empty database crashes. A fresh install can
+  only get its first admin from `scripts/create_admin.py`.
+- **F-37 The PWA manifest names the real venue.** `static/manifest.json` carried the business's name in
+  a public repository. It is renamed to "Arcade Tracker" in the base-shell step; the old value remains in
+  git history.
+
 ---
 
 ## 13. Owner decisions (2026-10-08)
