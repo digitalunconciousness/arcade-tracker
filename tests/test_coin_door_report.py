@@ -256,13 +256,9 @@ def test_the_confirmation_reveals_no_record_id(client, machine):
 # --- CSRF, and why the token in the URL is the real authorisation -----------------------
 
 def test_the_form_carries_a_csrf_token(client, machine):
-    """The field has to be there even though nothing checks it today.
-
-    ``create_app`` sets ``WTF_CSRF_CHECK_DEFAULT = False`` app-wide and nothing calls
-    ``validate_csrf``, so CSRF is not enforced anywhere in this application --
-    ``SESSION_COOKIE_SAMESITE = "Lax"`` is what actually stops a cross-site form POST. If
-    that default is ever turned on, this form has to keep working, which is what the test
-    below proves.
+    """CSRF is enforced app-wide (since 2026-10-08), so the form must serve a token: a phone
+    that scanned the label GETs the form, which sets the session cookie and the token, and
+    POSTs both back. tests/characterization/test_csrf.py checks every form the same way.
     """
     body = client.get(f"/report/{machine['token']}").get_data(as_text=True)
     assert 'name="csrf_token"' in body
@@ -315,9 +311,8 @@ def _machine_in(application):
         return token
 
 
-def test_the_form_still_works_if_csrf_is_ever_enforced(strict_csrf_app):
-    """Forward compatibility, not current behaviour: turning WTF_CSRF_CHECK_DEFAULT on must
-    not be what breaks this page."""
+def test_the_form_works_with_csrf_enforced(strict_csrf_app):
+    """CSRF is on in production; a scanned label must still file a report."""
     import re
 
     from app.models import MaintenanceRecord
@@ -335,15 +330,16 @@ def test_the_form_still_works_if_csrf_is_ever_enforced(strict_csrf_app):
         assert MaintenanceRecord.query.count() == 1
 
 
-def test_under_enforcement_a_post_without_a_token_is_refused(strict_csrf_app):
+def test_under_enforcement_a_post_without_a_session_still_files(strict_csrf_app):
+    """The blueprint is CSRF-exempt by design (see app/routes/report.py)."""
     from app.models import MaintenanceRecord
 
     token = _machine_in(strict_csrf_app)
-    response = strict_csrf_app.test_client().post(
-        f"/report/{token}", data={"issue_description": "Right flipper is dead"})
-    assert response.status_code == 400, response.status_code
+    fresh = strict_csrf_app.test_client()
+    response = fresh.post(f"/report/{token}", data={"issue_description": "Coin door jammed"})
+    assert response.status_code in (200, 302), response.status_code
     with strict_csrf_app.app_context():
-        assert MaintenanceRecord.query.count() == 0
+        assert MaintenanceRecord.query.count() == 1
 
 
 # --- abuse ------------------------------------------------------------------------------

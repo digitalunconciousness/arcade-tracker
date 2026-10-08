@@ -10,7 +10,7 @@ import os
 import uuid
 
 from dotenv import load_dotenv
-from flask import Flask, Response
+from flask import Flask, Response, request
 
 from app.extensions import csrf, db, limiter, login_manager, migrate
 
@@ -40,6 +40,7 @@ def create_app() -> Flask:
     _init_extensions(app)
     _register_blueprints(app)
     _register_context_processors(app)
+    _register_error_handlers(app)
     _register_after_request(app)
 
     return app
@@ -78,7 +79,11 @@ def _configure_app(app: Flask) -> None:
     app.config["BASE_URL"] = os.environ.get("BASE_URL", "")
 
     # CSRF ---------------------------------------------------------
-    app.config["WTF_CSRF_CHECK_DEFAULT"] = False
+    # Enforced on every POST (Flask-WTF's default; it was switched off until 2026-10-08).
+    # The device API is exempt in app/routes/api_v1.py. Tokens live as long as the session
+    # rather than the default hour, so a form opened at the start of a shift still submits.
+    app.config["WTF_CSRF_CHECK_DEFAULT"] = True
+    app.config["WTF_CSRF_TIME_LIMIT"] = None
 
     # Session / Remember-me ----------------------------------------
     import datetime as dt
@@ -203,6 +208,17 @@ CSP = (
     "form-action 'self'; "
     "frame-ancestors 'self'"
 )
+
+
+def _register_error_handlers(app: Flask) -> None:
+    from flask import render_template
+    from flask_wtf.csrf import CSRFError
+
+    @app.errorhandler(CSRFError)
+    def csrf_error(error):  # noqa: ANN202
+        app.logger.warning("CSRF refused: %s %s (%s)", request.method, request.path,
+                           error.description)
+        return render_template("errors/csrf.html"), 400
 
 
 def _register_after_request(app: Flask) -> None:
