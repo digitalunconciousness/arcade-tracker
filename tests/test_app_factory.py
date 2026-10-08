@@ -19,6 +19,8 @@ EXPECTED_BLUEPRINTS = {
     # unauthenticated write endpoint here, and keeping it separate is what makes
     # "this cannot reach anything else" a thing you can read off the route table.
     "report",
+    # The design system's living style guide (admin only).
+    "styleguide",
 }
 
 

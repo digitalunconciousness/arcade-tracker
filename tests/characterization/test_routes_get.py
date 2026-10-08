@@ -97,6 +97,7 @@ PAGES = [
      "text/html"),
     ("/admin/storage", lambda f: "/admin/storage", "admin", 200, "500", "text/html"),
     ("/backup_management", lambda f: "/backup_management", "admin", 200, None, "text/html"),
+    ("/styleguide", lambda f: "/styleguide", "admin", 200, "Every component", "text/html"),
     # GATBOX rail history (Phase 1 data; restyle only)
     ("/rails/", lambda f: "/rails/", "readonly", 200, "Neon Raider", "text/html"),
     ("/rails/machine/<slug>", lambda f: "/rails/machine/neon-raider", "readonly", 200,
