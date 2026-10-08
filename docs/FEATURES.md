@@ -286,7 +286,8 @@ anything is changed.
 - **F-12 The 500 errors I can see:**
   - G5 with a bad or empty `date` field.
   - G4 with a non-numeric year.
-  - The PDF exports when a description contains `<` or `&` (ReportLab parses markup).
+  - The PDF exports when a description contains text that looks like a ReportLab tag, such as an
+    unclosed `<b>` or a `<br>`. Plain `<` and `&` are fine; checked by `test_flags.py`.
   - The skeeball DB init runs `sqlite_master`, which fails on PostgreSQL (the error is swallowed, and the
     lane is never linked).
 - **F-13 M3 mutates ORM objects** to strip newlines for its inline JavaScript. That's harmless today because
@@ -346,20 +347,43 @@ anything is changed.
 - **F-28 S3 is the stats page in your brief, but it shows local lane counters.** The Pi :5002 proxy feeds
   S8–S10, which S3's JavaScript polls.
 
+### Found while writing the characterization tests
+
+- **F-29 A rail session with partial figures is a 500.** `rails_session.html` formats `powered_min` and
+  `powered_max` whenever `powered_mean` is set, so a session that has a mean but no range crashes the page.
+- **F-30 User text inside inline JavaScript.** `inventory_request_detail.html` (and the newline-stripping
+  in M3, F-13) put item names and notes inside `onclick="…('{{ … }}')"`. Jinja's escaping is decoded back
+  by the HTML parser before the JavaScript runs, so a quote in an item name breaks the button, and a
+  crafted one runs script.
+- **F-31 What a page offers disagrees with what the route allows.**
+  - The nav shows "Add Game" only to managers, but G2 accepts operators.
+  - The machine page shows "Record Plays" and "Edit" only to managers, but G4 and G5 accept operators.
+  - "Rail History" is in the managers' nav only, but L1 accepts any signed-in user.
+  - "Add Maintenance" is shown to readonly users, who are then refused.
+
+  `test_visibility.py` pins today's behaviour as a snapshot. **Decision needed:** the redesign should show
+  each role exactly what its routes allow.
+- **F-32 Zero stock is rejected.** `DataRequired` on `stock_quantity` and `minimum_stock` treats 0 as
+  missing, so an item with no stock can't be added or edited down to 0.
+- **F-33 Fields that are never saved.** `InventoryItemForm` has category, location and image fields that
+  the views never save.
+- **F-34 "Download backup" can never work.** X8 checks `backups/<f>` relative to the working directory,
+  but `send_file` resolves a relative path against `app.root_path` (the `app/` package), so it raises and
+  returns a 500.
+
 ---
 
-## 13. Questions for you before I write the tests
+## 13. Owner decisions (2026-10-08)
 
-1. **Strike list:** which features above don't you use? Likely candidates:
-   - S5 and S6 plus the simulator APIs
-   - S23 and S27
-   - P5 (debug PDF)
-   - X5–X9 (SQLite backups) if `pg_dump` is how you really back up
-   - M9's S3 copy
-   - I14 EasyPost, if you don't use it
-2. **F-16:** should readonly users who scan a QR label see a read-only machine page? I'd make `/g/<code>`
-   land on a phone-first machine page that shows readonly users the status and history, and shows operators
-   and above the "report / work order" form. The `/g/<code>` URL and the barcodes don't change.
-3. **F-25:** is ngrok still in use, or only the Cloudflare tunnel?
-4. **F-11:** do you want in-app backups at all? If so, they'd need to be `pg_dump`-based (a separate,
-   later change).
+1. **Struck:** all of skeeball (S1–S27, the lane manager, GPIO, the revenue scheduler and the root-level
+   copies, F-3) and P5 (the debug PDF). Skeeball is retired in its own commit after the safety net is in;
+   `deploy/deploy.sh` then has to poll `/api/v1/health` instead of `/skeeball/api/health`. Everything else
+   stays and is covered by `tests/characterization/`.
+2. **Coin-door reporting stays as is:** anyone holding the coin-door key can file a work order with no
+   login through the label inside the door (R1, G17–G19). For F-16 (a readonly user scanning the outside
+   label), the default is a read-only machine page for readonly users and the work-order form for operators
+   and up. Same `/g/<barcode>` URL, same barcodes.
+3. **ngrok is retired.** Its leftovers (`scripts/setup_autostart.sh`'s ngrok unit) go in the cleanup.
+4. **Skeeball:** retire it (see 1).
+5. **In-app backups stay.** The path traversal (F-18) and the download (F-34) get fixed in Step 5.
+   PostgreSQL support (F-11) is a separate, later change.
