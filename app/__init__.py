@@ -139,6 +139,7 @@ def _register_blueprints(app: Flask) -> None:
         ("app.routes.api_v1", "api_v1_bp"),
         ("app.routes.rails", "rails_bp"),
         ("app.routes.report", "report_bp"),
+        ("app.routes.styleguide", "styleguide_bp"),
     ]
 
     import importlib
@@ -157,6 +158,10 @@ def _register_context_processors(app: Flask) -> None:
     """Register Jinja2 context processors for global template helpers."""
     from datetime import date as _date
     from flask import url_for as _url_for
+
+    from app.ui import register as register_ui_filters
+
+    register_ui_filters(app)
 
     @app.context_processor
     def utility_processor() -> dict:
