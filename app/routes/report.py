@@ -21,11 +21,19 @@ from datetime import datetime, timezone
 
 from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
 
-from app.extensions import db, limiter
+from app.extensions import csrf, db, limiter
 from app.models import Game, MaintenanceRecord
 from app.security.utils import log_security_event
 
 report_bp = Blueprint("report", __name__)
+
+# Exempt from the app-wide CSRF check (enforced since 2026-10-08), deliberately. The token in
+# the URL is the authorisation and it is a capability, not an ambient credential: a cross-site
+# POST can only reach this endpoint if it already knows the token, and anything that knows it
+# can post directly. Enforcing CSRF here would add nothing but a way to fail -- a QR scanner's
+# cookie-less in-app browser could no longer file a report. The per-token rate limit is the
+# control against abuse. tests/test_coin_door_report.py holds this design to account.
+csrf.exempt(report_bp)
 
 # What this application means by "still open", everywhere else too: a machine someone is
 # already working on is not a machine that needs reporting again.

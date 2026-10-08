@@ -72,6 +72,7 @@
                         View Item
                     </a>
                     <form method="POST" action="{{ url_for('inventory.resolve_low_stock_alert', alert_id=alert.id) }}" class="inline-form">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <button type="submit" class="btn btn-sm btn-success" 
                                 onclick="return confirm('Mark this alert as resolved?')">
                             Mark Resolved

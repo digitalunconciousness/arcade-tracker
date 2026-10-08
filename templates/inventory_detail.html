@@ -154,6 +154,7 @@
             <p>Triggered: {{ active_alert.alert_triggered.strftime('%m/%d/%Y %H:%M') }}</p>
             {% if current_user.has_role('manager') %}
             <form method="POST" action="{{ url_for('inventory.resolve_low_stock_alert', alert_id=active_alert.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="btn btn-sm btn-success">Mark as Resolved</button>
             </form>
             {% endif %}

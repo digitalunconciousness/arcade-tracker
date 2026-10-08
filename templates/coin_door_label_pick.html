@@ -52,8 +52,7 @@
                            printing cannot also carry a POST that retires a label. #}
                         {% if game.report_token %}
                         <button type="submit" class="btn btn-secondary"
-                                formmethod="post"
-                                formaction="{{ url_for('games.rotate_report_token', game_id=game.id) }}"
+                                form="retire-{{ game.id }}"
                                 onclick="return confirm('Retire the label in {{ game.name }}\'s coin door? It will stop working until you print and fit a new one.')">
                             Retire that label
                         </button>
@@ -64,5 +63,13 @@
             </tbody>
         </table>
     </form>
+    {# The retire buttons above belong to these forms (form="retire-N"): a POST needs its
+       own form to carry a CSRF token, and putting one in the GET print form would put the
+       token in the sheet's URL. #}
+    {% for game in games if game.report_token %}
+    <form id="retire-{{ game.id }}" method="post" action="{{ url_for('games.rotate_report_token', game_id=game.id) }}" hidden>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    </form>
+    {% endfor %}
 </div>
 {% endblock %}
