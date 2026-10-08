@@ -8,7 +8,8 @@ the page a scan lands on, these must hold:
 * someone signed out is sent to log in and then **back to the machine** they scanned, which
   is the whole point of scanning from a phone.
 
-What a readonly user sees after the redirect is F-16 (test_flags.py).
+Since the machine-page step (4.2) the redirect lands on ``/game/<id>``, which every role can
+read (F-16 fixed); it used to land on the operator-only work-order form.
 """
 from __future__ import annotations
 
@@ -21,13 +22,13 @@ def test_a_barcode_redirects_to_the_machine(client, floor):
     login(client, "operator")
     resp = client.get("/g/neon-raider")
     assert resp.status_code == 302
-    assert resp.headers["Location"] == f"/maintenance/game/{floor['raider']}"
+    assert resp.headers["Location"] == f"/game/{floor['raider']}"
 
 
 def test_a_numeric_id_still_resolves(client, floor):
     login(client, "operator")
     resp = client.get(f"/g/{floor['pinball']}")
-    assert resp.headers["Location"] == f"/maintenance/game/{floor['pinball']}"
+    assert resp.headers["Location"] == f"/game/{floor['pinball']}"
 
 
 def test_a_slug_wins_over_a_numeric_id(client, floor):
@@ -39,7 +40,7 @@ def test_a_slug_wins_over_a_numeric_id(client, floor):
     db.session.commit()
     login(client, "operator")
     resp = client.get(f"/g/{floor['raider']}")
-    assert resp.headers["Location"] == f"/maintenance/game/{floor['courier']}"
+    assert resp.headers["Location"] == f"/game/{floor['courier']}"
 
 
 def test_an_unknown_code_goes_back_to_the_scanner(client, floor):
@@ -59,7 +60,7 @@ def test_signed_out_scan_logs_in_and_returns_to_the_machine(client, floor):
                        data={"username": "test-operator", "password": PASSWORD})
     assert resp.headers["Location"] == "/g/neon-raider"
     resp = client.get("/g/neon-raider")
-    assert resp.headers["Location"] == f"/maintenance/game/{floor['raider']}"
+    assert resp.headers["Location"] == f"/game/{floor['raider']}"
 
 
 def test_labels_encode_the_g_path_with_the_barcode(client, floor, app):
@@ -73,3 +74,21 @@ def test_the_scan_page_submits_to_the_g_path(client, floor):
     login(client, "readonly")
     html = client.get("/scan").get_data(as_text=True)
     assert "/g/" in html
+
+
+def test_a_readonly_scan_lands_on_a_page_it_can_read(client, floor):
+    """F-16, fixed: readonly sees the machine, not 'permission denied'."""
+    login(client, "readonly")
+    resp = client.get("/g/neon-raider", follow_redirects=True)
+    body = resp.get_data(as_text=True)
+    assert resp.status_code == 200 and "Neon Raider" in body
+    assert "You do not have permission" not in body
+    assert "Joystick drifts left" in body, "the open work order is visible"
+    assert "Report a problem" not in body, "readonly cannot file one"
+
+
+def test_an_operator_scan_offers_the_report_form(client, floor):
+    login(client, "operator")
+    body = client.get("/g/neon-raider", follow_redirects=True).get_data(as_text=True)
+    assert "Report a problem" in body
+    assert f'action="/maintenance/game/{floor["raider"]}"' in body

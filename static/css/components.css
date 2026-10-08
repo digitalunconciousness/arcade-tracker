@@ -919,3 +919,31 @@ legend {
   margin-top: var(--sp-5);
   font-size: var(--fs-sm);
 }
+
+/* =========================================================================================
+   Machine page (/game/<id>, where a scanned label lands)
+   ========================================================================================= */
+.machine {
+  display: grid;
+  gap: var(--sp-5);
+}
+.machine__status {
+  margin-top: calc(-1 * var(--sp-2));
+}
+.machine__report {
+  border-color: var(--accent);
+}
+.machine__photo {
+  display: block;
+  max-height: 320px;
+  width: auto;
+  margin-bottom: var(--sp-3);
+  border-radius: var(--r);
+  border: 1px solid var(--border);
+}
+.row__title {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}

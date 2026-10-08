@@ -40,20 +40,6 @@ def test_cleanup_keeps_photos_a_work_order_still_uses(client, floor, sandbox):
     assert photo.exists()
 
 
-@flag("F-7", "game images are saved to uploads/ but linked from static/uploads/")
-def test_an_uploaded_game_image_can_be_displayed(client, floor, sandbox):
-    from app.models import Game
-
-    login(client, "operator")
-    client.post("/add_game", data={"name": "Image Test", "image": (io.BytesIO(png_bytes()),
-                                                                     "cab.png")},
-                content_type="multipart/form-data")
-    game = Game.query.filter_by(name="Image Test").one()
-    html = client.get(f"/game/{game.id}").get_data(as_text=True)
-    src = re.search(r'<img src="([^"]+%s)"' % re.escape(game.image_filename), html).group(1)
-    assert client.get(src).status_code == 200
-
-
 @flag("F-8", "an upload Pillow cannot read is still attached to the work order")
 def test_a_photo_that_is_not_an_image_is_not_attached(client, floor, sandbox):
     from app.models import MaintenanceRecord
@@ -133,14 +119,6 @@ def test_revenue_report_location_filter_can_show_warehouse_revenue(client, floor
     login(client, "manager")
     html = client.get("/revenue_reports?days=30&location=Warehouse").get_data(as_text=True)
     assert "Pixel Pinball" in html
-
-
-@flag("F-16", "a readonly user who scans a label is refused instead of seeing the machine")
-def test_a_readonly_scan_lands_on_a_page_it_can_read(client, floor):
-    login(client, "readonly")
-    resp = client.get("/g/neon-raider", follow_redirects=True)
-    assert "Neon Raider" in resp.get_data(as_text=True)
-    assert "You do not have permission" not in resp.get_data(as_text=True)
 
 
 @flag("F-17", "any signed-in user, readonly included, can retire a coin-door label")

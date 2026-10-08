@@ -114,6 +114,7 @@ PAGES = [
 ELSEWHERE = {
     "/g/<code>": "test_qr_path.py: a redirect, pinned on its own",
     "/download_backup/<filename>": "test_routes_post.py: needs a backup file on disk",
+    "/machine-images/<path:filename>": "test_machine_page.py: needs an uploaded image",
     "/login": "test_routes_post.py",
     "/logout": "test_routes_post.py",
     "/setup": "test_routes_post.py",

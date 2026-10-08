@@ -283,8 +283,8 @@ def test_a_session_with_no_window_has_no_verdict(signed_in, app, floor):
 def test_the_machine_page_links_to_the_history(signed_in, floor):
     body = signed_in.get(f"/game/{floor['widget']}").get_data(as_text=True)
     assert "/rails/machine/widget-wars" in body
-    assert "OVER-VOLTAGE" in body, "the panel shows the latest verdict"
-    assert "3 sessions metered" in body
+    assert "Over-voltage" in body, "the panel shows the latest verdict"
+    assert "3 sessions measured" in body
 
 
 def test_a_machine_with_no_sessions_gets_no_panel(signed_in, floor):
