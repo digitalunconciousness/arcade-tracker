@@ -11,7 +11,7 @@ regenerated on purpose and the diff of that JSON file is reviewed like code:
     UPDATE_SNAPSHOTS=1 python -m pytest tests/characterization/test_visibility.py
 
 Only same-site paths count, recorded as ``endpoint(arg=seeded name)``; query strings are
-dropped; ``/static`` and the retiring ``/skeeball`` are ignored.
+dropped; ``/static`` and the retired ``/skeeball`` are ignored.
 """
 from __future__ import annotations
 
@@ -65,7 +65,7 @@ def offered(app, html: str, floor: dict) -> list[str]:
     adapter = app.url_map.bind("localhost")
     found = set()
     for path in ATTR.findall(html):
-        if path.startswith(("/static", "/skeeball")):  # skeeball is being retired
+        if path.startswith(("/static", "/skeeball")):  # skeeball was retired 2026-10-08
             continue
         try:
             endpoint, args = adapter.match(path, method="GET")

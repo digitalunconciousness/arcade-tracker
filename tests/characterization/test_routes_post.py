@@ -103,7 +103,6 @@ def test_every_post_route_is_listed(app, floor):
     missing = sorted(
         r.endpoint for r in app.url_map.iter_rules()
         if "POST" in r.methods and r.endpoint not in covered | exempt
-        and not r.endpoint.startswith("skeeball.")
     )
     assert missing == []
 

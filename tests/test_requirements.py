@@ -60,29 +60,14 @@ def test_the_driver_matches_what_sqlalchemy_will_default_to():
         )
 
 
-def test_only_rpi_gpio_is_treated_as_pi_only():
-    """RPi.GPIO is Pi-only. gpiozero and pyserial are NOT, however much they look it.
-
-    A static grep for "import gpiozero" under app/ finds nothing, which is
-    misleading: app/routes/skeeball.py imports gpio_init, which does
-    `from gpiozero import Device` at module level and takes MockFactory from
-    gpiozero for mock mode. Dropping gpiozero from the server requirements made
-    every skeeball route 500 on a fresh virtualenv -- including
-    /skeeball/api/health. Only RPi.GPIO is genuinely absent off a Pi, and
-    gpio_init already wraps that import in try/except.
-    """
+def test_the_retired_skeeball_hardware_packages_are_gone():
+    """Skeeball was retired on 2026-10-08. Nothing left in the server imports gpiozero or
+    pyserial (gpio_init and the lane manager went to docs/history/skeeball/ with it), so
+    a server install has no reason to pull them in."""
     server = set(_pins("requirements.txt"))
-    pi_only = set(_pins("requirements-pi.txt"))
-
-    assert "rpi.gpio" not in server, "RPi.GPIO does not install or import off a Pi"
-    assert "rpi.gpio" in pi_only
-
-    for package in ("gpiozero", "pyserial"):
-        assert package in server, (
-            f"{package} is imported transitively by the skeeball routes; moving it "
-            "out of requirements.txt breaks them on a hardware-free server"
-        )
-        assert package not in pi_only, f"{package} must not be duplicated across both files"
+    for package in ("gpiozero", "pyserial", "rpi.gpio"):
+        assert package not in server, f"{package} belonged to the retired skeeball lanes"
+    assert not os.path.exists(os.path.join(REPO_ROOT, "requirements-pi.txt"))
 
 
 def test_segno_is_present_because_the_label_route_imports_it():

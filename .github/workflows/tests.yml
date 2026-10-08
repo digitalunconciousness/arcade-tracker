@@ -48,7 +48,7 @@ jobs:
         # Catches syntax errors in code no test imports. docs/history/ is retired
         # code kept for reference and is deliberately excluded.
         run: |
-          python -m compileall -q app skeeball run.py config.py scripts tests
+          python -m compileall -q app run.py scripts tests
       - name: Shell scripts parse
         run: |
           for f in deploy/*.sh run.sh; do
