@@ -134,33 +134,43 @@ def logout():
 
 @auth_bp.route("/setup", methods=["GET", "POST"])
 def setup():
-    """First-time setup — only works when no users exist."""
+    """First-time setup: create the first administrator. Only while no users exist.
+
+    The page used to render a template that needed a form this view never passed, so a
+    fresh install got a 500 here (F-36). It also took any password at all; the first
+    account is an admin, so it now meets the same strength rule as a password change.
+    """
     if User.query.count() > 0:
         flash("Setup has already been completed.", "info")
         return redirect(url_for("auth.login"))
 
+    username, errors = "", {}
     if request.method == "POST":
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "")
+        confirm = request.form.get("confirm", "")
 
-        if not username or not password:
-            flash("Username and password are required.", "error")
-            return render_template("setup.html")
+        if len(username) < 3:
+            errors["username"] = "Use at least 3 characters."
+        strong, why = check_password_strength(password)
+        if not strong:
+            errors["password"] = why
+        elif password != confirm:
+            errors["confirm"] = "The two passwords are different."
 
-        user = User(
-            username=username,
-            role="admin",
-            is_active=True,
-            must_change_password=False,
-        )
-        user.set_password(password)
-        db.session.add(user)
-        db.session.commit()
+        if not errors:
+            user = User(username=username, role="admin", is_active=True,
+                        must_change_password=False)
+            user.set_password(password)
+            db.session.add(user)
+            db.session.commit()
+            log_security_event("SETUP_ADMIN_CREATED", user_id=user.id,
+                               details=f"Username: {username}", level="warning")
+            flash("Administrator created. Sign in to continue.", "success")
+            return redirect(url_for("auth.login"))
 
-        flash("Admin account created successfully! Please log in.", "success")
-        return redirect(url_for("auth.login"))
-
-    return render_template("setup.html")
+    return render_template("setup.html", username=username, errors=errors), (
+        400 if errors else 200)
 
 
 @auth_bp.route("/profile", methods=["GET", "POST"])

@@ -61,7 +61,8 @@ def pages(ids: dict):
     from test_routes_get import PAGES
 
     out = [("auth.login", "/login", "anon"),
-           ("report.report_form", f"/report/{ids['report_token']}", "anon")]
+           ("report.report_form", f"/report/{ids['report_token']}", "anon"),
+           ("errors.404", "/no-such-page", "admin")]
     for _rule, build, _minimum, _status, _text, ctype in PAGES:
         if ctype == "text/html":
             out.append((None, build(ids), "admin"))

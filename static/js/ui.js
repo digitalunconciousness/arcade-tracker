@@ -1,5 +1,6 @@
 /* Arcade Tracker UI behaviour. No framework, no build step, no inline handlers.
  *
+ *   - registers the service worker (offline icons and CSS only; it never sees a page);
  *   - marks <html class="js"> so CSS can hide the phone menu only when this script runs
  *     (without it, the nav simply stays open);
  *   - the phone menu toggle;
@@ -10,6 +11,13 @@
 (function () {
   "use strict";
   document.documentElement.classList.add("js");
+
+  // Offline icons and stylesheets for the home-screen app (static/service-worker.js).
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", function () {
+      navigator.serviceWorker.register("/static/service-worker.js").catch(function () {});
+    });
+  }
 
   function onReady(fn) {
     if (document.readyState !== "loading") fn();

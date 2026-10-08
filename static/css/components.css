@@ -343,6 +343,11 @@
   border-radius: 50%;
   background: currentColor;
 }
+/* Inside a flex column (.stack) a chip or badge keeps its own width instead of stretching. */
+.chip,
+.badge {
+  align-self: flex-start;
+}
 .chip--plain::before {
   display: none;
 }
@@ -898,4 +903,19 @@ legend {
   a {
     color: #000;
   }
+}
+
+/* =========================================================================================
+   Sign-in and first-run pages: one narrow column, centred on a desk
+   ========================================================================================= */
+.auth {
+  max-width: 420px;
+  margin: var(--sp-5) auto 0;
+}
+.auth .form {
+  margin-top: var(--sp-4);
+}
+.auth__help {
+  margin-top: var(--sp-5);
+  font-size: var(--fs-sm);
 }

@@ -1,0 +1,18 @@
+{% extends "layout.html" %}
+{% import "ui.html" as ui %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="stack" style="max-width: 560px">
+  <p class="badge is-{{ tone }}">Error {{ code }}</p>
+  {{ ui.page_head(title) }}
+  <p>{{ text }}</p>
+  <div class="cluster">
+    {%- if current_user.is_authenticated %}
+    <a class="btn btn--primary" href="{{ url_for('dashboard.home') }}">Dashboard</a>
+    <a class="btn" href="{{ url_for('games.scan') }}">Scan a machine</a>
+    {%- else %}
+    <a class="btn btn--primary" href="{{ url_for('auth.login') }}">Sign in</a>
+    {%- endif %}
+  </div>
+</div>
+{% endblock %}

@@ -7,7 +7,11 @@ classes: ``ok``, ``warn``, ``fault``, ``info`` and ``muted`` (static/css/compone
 """
 from __future__ import annotations
 
-from flask import Flask
+import hashlib
+import os
+from functools import lru_cache
+
+from flask import Flask, current_app, url_for
 
 # Every status-like value the application stores, by what it means for the floor.
 TONES: dict[str, str] = {
@@ -69,6 +73,28 @@ def status_label(value: str | None) -> str:
     return LABELS.get(value, value.replace("_", " "))
 
 
+@lru_cache(maxsize=256)
+def _digest(path: str, mtime: float) -> str:
+    with open(path, "rb") as fh:
+        return hashlib.sha256(fh.read()).hexdigest()[:10]
+
+
+def asset(filename: str) -> str:
+    """A static URL that changes when the file does: ``/static/css/base.css?v=1a2b3c4d5e``.
+
+    The site is reached through a Cloudflare tunnel, whose edge caches CSS and JS; without a
+    version in the URL a phone can keep the old stylesheet long after a deploy. Keyed on the
+    file's content (cached per mtime), so an unchanged file keeps its URL across restarts.
+    """
+    path = os.path.join(current_app.static_folder, filename)
+    try:
+        version = _digest(path, os.path.getmtime(path))
+    except OSError:
+        return url_for("static", filename=filename)
+    return url_for("static", filename=filename, v=version)
+
+
 def register(app: Flask) -> None:
     app.add_template_filter(status_tone, "tone")
     app.add_template_filter(status_label, "status_label")
+    app.add_template_global(asset, "asset")

@@ -210,9 +210,33 @@ CSP = (
 )
 
 
+ERROR_PAGES = {
+    403: ("Not allowed", "Your account cannot open this page. If you need it, ask an admin "
+          "to change your role.", "warn"),
+    404: ("Nothing here", "That page or record does not exist. It may have been deleted, or the "
+          "link is mistyped. Machine labels still work: scan the code again.", "info"),
+    500: ("Something broke", "The tracker hit an error and nothing was saved. Try again; if it "
+          "keeps happening, tell an admin what you were doing.", "fault"),
+}
+
+
 def _register_error_handlers(app: Flask) -> None:
-    from flask import render_template
+    from flask import jsonify, render_template
     from flask_wtf.csrf import CSRFError
+
+    def page(code: int):
+        title, text, tone = ERROR_PAGES[code]
+        # Machine clients get JSON: /api/v1 is read by GATBOX, not a browser.
+        if request.path.startswith("/api/"):
+            return jsonify({"error": title.lower()}), code
+        try:
+            return render_template("errors/error.html", code=code, title=title, text=text,
+                                   tone=tone), code
+        except Exception:  # noqa: BLE001 -- the error page must not raise its own error
+            return f"{code} {title}", code
+
+    for code in ERROR_PAGES:
+        app.register_error_handler(code, lambda error, code=code: page(code))
 
     @app.errorhandler(CSRFError)
     def csrf_error(error):  # noqa: ANN202

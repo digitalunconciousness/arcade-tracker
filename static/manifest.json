@@ -1,11 +1,11 @@
 {
-  "name": "Up Down OKC Tracker",
+  "name": "Arcade Tracker",
   "short_name": "Arcade",
-  "description": "Professional arcade game management system",
+  "description": "Machines, work orders and parts for the arcade floor",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0f0f23",
-  "theme_color": "#00d9ff",
+  "background_color": "#150a28",
+  "theme_color": "#150a28",
   "orientation": "portrait-primary",
   "scope": "/",
   "icons": [
