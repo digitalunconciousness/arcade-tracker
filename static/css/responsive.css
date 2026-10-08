@@ -114,9 +114,7 @@ html, body {
     }
     
     /* Let tables scroll naturally - DON'T change display */
-    table,
-    .table,
-    .maintenance-table {
+    table, .table {
         width: 100%;
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
@@ -196,13 +194,8 @@ html, body {
    ================================================ */
 
 @media (max-width: 768px) {
-    .games-grid,
-    .card-grid {
-        grid-template-columns: 1fr !important;
-        gap: 15px !important;
-    }
     
-    .game-card,
+    
     .card {
         width: 100% !important;
         margin-bottom: 15px !important;
@@ -276,7 +269,6 @@ html, body {
 
 @media (max-width: 768px) {
     /* Make tables fit without scrolling */
-    .maintenance-table,
     table {
         min-width: 0 !important;
         width: 100% !important;
@@ -284,48 +276,28 @@ html, body {
     }
     
     /* Force proper table display */
-    .maintenance-table,
-    .maintenance-table thead,
-    .maintenance-table tbody,
-    .maintenance-table tr,
-    .maintenance-table th,
-    .maintenance-table td,
-    table,
-    table thead,
-    table tbody,
-    table tr,
-    table th,
-    table td {
+    table, table thead, table tbody, table tr, table th, table td {
         display: table !important;
     }
     
-    .maintenance-table thead,
     table thead {
         display: table-header-group !important;
     }
     
-    .maintenance-table tbody,
     table tbody {
         display: table-row-group !important;
     }
     
-    .maintenance-table tr,
     table tr {
         display: table-row !important;
     }
     
-    .maintenance-table th,
-    .maintenance-table td,
-    table th,
-    table td {
+    table th, table td {
         display: table-cell !important;
     }
     
     /* Compress table cells */
-    .maintenance-table th,
-    .maintenance-table td,
-    table th,
-    table td {
+    table th, table td {
         padding: 4px 2px !important;
         font-size: 10px !important;
         word-wrap: break-word;
@@ -333,61 +305,37 @@ html, body {
     }
     
     /* Hide checkbox column on mobile */
-    .checkbox-col,
-    .checkbox-cell {
-        display: none !important;
-    }
+    
     
     /* Specific column widths for games list */
-    .status-col { width: 15%; }
-    .game-col { width: 25%; }
-    .location-col { width: 12%; }
-    .plays-col { width: 10%; }
-    .revenue-col { width: 12%; }
-    .actions-col { width: 26%; }
+    
+    
+    
+    
+    
+    
     
     /* Hide emojis on mobile */
-    .status-indicator::before,
-    .maintenance-badge,
     .page-header h1::before {
         content: '' !important;
         display: none !important;
     }
     
     /* Remove emoji text content via filter */
-    .status-indicator {
-        font-size: 9px !important;
-        padding: 3px 6px !important;
-    }
+    
     
     /* Compact game names */
-    .game-name {
-        font-size: 10px !important;
-    }
     
-    .game-name strong {
-        display: block;
-        margin-bottom: 2px;
-    }
     
-    .game-name small,
+    
+    
     .text-muted {
         font-size: 8px !important;
         display: block;
     }
     
     /* Compact action buttons - same style for both tables */
-    .action-btn,
-    .btn-view,
-    .btn-plays,
-    .btn-fix,
-    .btn-edit,
-    .btn-delete,
-    table .btn,
-    table button,
-    td .btn,
-    td button,
-    td a.btn {
+    table .btn, table button, td .btn, td button, td a.btn {
         display: block !important;
         width: 100% !important;
         padding: 3px 4px !important;
@@ -399,15 +347,12 @@ html, body {
     }
     
     /* Remove emoji icons from button text */
-    .action-btn::before,
     .btn::before {
         display: none !important;
     }
     
     /* Hide bulk actions on mobile - too cramped */
-    .bulk-actions-bar {
-        display: none !important;
-    }
+    
     
     /* Make filter inputs stack */
     .filter-row {
@@ -445,10 +390,5 @@ html, body {
     }
     
     /* Make status text only (no emoji circle) */
-    .status-working::before,
-    .status-fixing::before,
-    .status-broken::before,
-    .status-retired::before {
-        content: '' !important;
-    }
+    
 }

@@ -947,3 +947,125 @@ legend {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+/* =========================================================================================
+   Dashboard
+   ========================================================================================= */
+.dash__grid {
+  display: grid;
+  gap: var(--sp-5);
+}
+@media (min-width: 900px) {
+  .dash__grid {
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+}
+.row a.row__title {
+  color: var(--text);
+  text-decoration: none;
+}
+.row a.row__title:hover {
+  text-decoration: underline;
+}
+
+/* =========================================================================================
+   Filters and bulk actions (machine list and other long lists)
+   ========================================================================================= */
+.filters {
+  display: grid;
+  gap: var(--sp-3);
+  grid-template-columns: 1fr 1fr;
+  align-items: end;
+  margin-bottom: var(--sp-4);
+  padding: var(--sp-3);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+}
+.filters__search {
+  grid-column: 1 / -1;
+}
+.filters__actions {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: var(--sp-2);
+}
+@media (min-width: 900px) {
+  .filters {
+    grid-template-columns: 2fr 1fr 1fr auto;
+  }
+  .filters__search,
+  .filters__actions {
+    grid-column: auto;
+  }
+}
+.bulkbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-2);
+}
+.bulkbar select {
+  width: auto;
+  flex: 1 1 200px;
+}
+.bulkbar__all {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-height: var(--tap);
+  margin-right: auto;
+  color: var(--text-dim);
+}
+.machines__name {
+  font: 600 var(--fs-base) / 1.2 var(--font-display);
+  letter-spacing: var(--track-display);
+  color: var(--text);
+}
+.machines__mfr {
+  display: block;
+  font-size: var(--fs-xs);
+}
+.machines td {
+  vertical-align: middle;
+}
+/* On a phone each machine is a compact card: [checkbox] name, then status, then one dim
+   line of location · plays · revenue. Long floors stay scannable. */
+@media (max-width: 699px) {
+  .table--stack.machines tr {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--sp-1) var(--sp-3);
+    padding: var(--sp-3);
+  }
+  .table--stack.machines td {
+    display: block;
+    width: auto;
+    padding: 0;
+  }
+  .table--stack.machines td::before {
+    display: none;
+  }
+  .machines td.machines__machine {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  .machines td.machines__status {
+    flex-basis: 100%;
+  }
+  .machines td.machines__meta {
+    font-size: var(--fs-sm);
+    color: var(--text-dim);
+    text-align: left;
+  }
+  .table--stack.machines td.machines__meta::before {
+    display: inline;
+    content: attr(data-label) " ";
+    font-size: var(--fs-xs);
+    text-transform: uppercase;
+    letter-spacing: var(--track-caps);
+  }
+}

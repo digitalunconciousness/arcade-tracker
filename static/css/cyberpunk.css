@@ -157,46 +157,6 @@ body {
     flex-shrink: 0;
 }
 
-.user-info {
-    color: var(--text-secondary);
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    padding: 6px 10px;
-    background: rgba(0, 255, 255, 0.1);
-    border: 1px solid rgba(0, 255, 255, 0.3);
-    border-radius: 4px;
-    white-space: nowrap;
-}
-
-.nav-admin {
-    color: var(--neon-green) !important;
-    border-color: var(--neon-green) !important;
-    font-size: 12px !important;
-    padding: 6px 12px !important;
-    margin: 0 !important;
-}
-
-.nav-admin:hover {
-    color: var(--neon-green) !important;
-    box-shadow: 0 0 15px rgba(0, 255, 0, 0.5) !important;
-    text-shadow: 0 0 10px var(--neon-green) !important;
-}
-
-.nav-logout {
-    color: var(--neon-orange) !important;
-    border-color: var(--neon-orange) !important;
-    font-size: 12px !important;
-    padding: 6px 12px !important;
-    margin: 0 !important;
-}
-
-.nav-logout:hover {
-    color: var(--neon-orange) !important;
-    box-shadow: 0 0 15px rgba(255, 128, 0, 0.5) !important;
-    text-shadow: 0 0 10px var(--neon-orange) !important;
-}
-
 @media (max-width: 768px) {
     .nav {
         flex-direction: column;
@@ -215,12 +175,7 @@ body {
         gap: 8px;
     }
     
-    .user-info {
-        order: 3;
-        width: 100%;
-        text-align: center;
-        margin-top: 5px;
-    }
+    
 }
 
 /* Buttons */
@@ -611,35 +566,6 @@ a.btn {
 }
 
 /* Over/Under indicator styles */
-.revenue-indicator {
-    display: inline-block;
-    padding: 5px 10px;
-    border-radius: 4px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
-
-.revenue-over {
-    background: rgba(0, 255, 0, 0.2);
-    color: var(--neon-green);
-    border: 1px solid var(--neon-green);
-    box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
-}
-
-.revenue-under {
-    background: rgba(255, 0, 0, 0.2);
-    color: #ff4444;
-    border: 1px solid #ff4444;
-    box-shadow: 0 0 10px rgba(255, 68, 68, 0.3);
-}
-
-.revenue-neutral {
-    background: rgba(255, 255, 0, 0.2);
-    color: var(--neon-orange);
-    border: 1px solid var(--neon-orange);
-    box-shadow: 0 0 10px rgba(255, 128, 0, 0.3);
-}
 
 /* Dropdown Navigation */
 .nav-dropdown {
@@ -726,25 +652,7 @@ a.btn {
     background: rgba(0, 255, 255, 0.05);
 }
 
-.logout-link {
-    color: var(--neon-orange) !important;
-}
-
-.logout-link:hover {
-    color: var(--neon-orange) !important;
-    background: rgba(255, 128, 0, 0.1) !important;
-}
-
 /* Admin dropdown styling */
-.nav-admin-link {
-    color: var(--neon-green) !important;
-}
-
-.nav-admin-link:hover {
-    color: var(--neon-green) !important;
-    border-color: var(--neon-green) !important;
-    box-shadow: 0 0 15px rgba(0, 255, 0, 0.5) !important;
-}
 
 /* Mobile responsive dropdowns */
 @media (max-width: 768px) {
