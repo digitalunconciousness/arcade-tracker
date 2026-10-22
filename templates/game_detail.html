@@ -9,8 +9,8 @@
     back=url_for("games.games_list"), back_label="Machines") %}
   {%- if current_user.has_role("operator") %}
   <a class="btn btn--sm" href="{{ url_for('games.edit_game', game_id=g.id) }}">Edit</a>
-  {%- endif %}
   <a class="btn btn--sm" href="{{ url_for('games.game_label', game_id=g.id) }}">QR label</a>
+  {%- endif %}
 {% endcall %}
 {% endblock %}
 
@@ -173,6 +173,32 @@
     </dl>
     <p style="margin-top: var(--sp-3)"><a href="{{ page.manual_url }}" target="_blank" rel="noopener noreferrer">Manuals on the Killer List of Videogames ↗</a></p>
   </section>
+
+  {%- if current_user.has_role("manager") %}
+  <section class="card" aria-labelledby="coindoor-title">
+    <div class="card__head">
+      <h2 id="coindoor-title">Coin-door label</h2>
+      {%- if g.report_label_stale %}{{ ui.chip("warn", "Needs a reprint") }}
+      {%- elif g.report_token %}{{ ui.chip("ok", "Printed") }}
+      {%- else %}{{ ui.chip("muted", "None yet") }}{% endif %}
+    </div>
+    <p class="dim">The code inside the coin door lets whoever opens it report a problem without logging in.</p>
+    <div class="cluster">
+      <form class="inline-form" method="post" action="{{ url_for('games.coin_door_label_sheet') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="ids" value="{{ g.id }}">
+        <button class="btn btn--sm" type="submit">{{ "Print a new one" if g.report_label_stale else ("Reprint" if g.report_token else "Print one") }}</button>
+      </form>
+      {%- if g.report_token and not g.report_label_stale %}
+      <form class="inline-form" method="post" action="{{ url_for('games.rotate_report_token', game_id=g.id) }}" data-confirm="Retire the label in this machine's coin door? It stops working at once, until you print and fit a new one." data-confirm-action="Retire label">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="next" value="machine">
+        <button class="btn btn--sm btn--danger" type="submit">Retire it</button>
+      </form>
+      {%- endif %}
+    </div>
+  </section>
+  {%- endif %}
 
   <section aria-labelledby="history-title">
     <h2 id="history-title">Work order history</h2>

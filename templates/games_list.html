@@ -8,6 +8,7 @@
   <a class="btn btn--sm" href="{{ url_for('games.scan') }}">Scan</a>
   {%- if current_user.has_role("operator") %}
   <a class="btn btn--sm btn--primary" href="{{ url_for('games.add_game') }}">Add machine</a>
+  <a class="btn btn--sm" href="{{ url_for('games.label_sheet_pick') }}">Labels</a>
   {%- endif %}
   {%- if manager %}
   <a class="btn btn--sm" href="{{ url_for('games.import_games') }}">Import roster</a>

@@ -26,6 +26,9 @@ class Dashboard:
     recent_records: list[PlayRecord]
     low_stock: list[LowStockAlert]
     worst_performers: list[tuple[Game, float]]
+    # Machines whose coin-door label was retired and not yet replaced: the old label still
+    # scans and leads nowhere, so nothing else on the floor would say so.
+    stale_labels: list[Game]
 
 
 def _per_day(game: Game) -> float:
@@ -76,4 +79,5 @@ def build_dashboard() -> Dashboard:
         recent_records=recent,
         low_stock=low,
         worst_performers=worst,
+        stale_labels=[g for g in games if g.report_label_stale],
     )

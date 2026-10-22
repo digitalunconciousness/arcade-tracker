@@ -14,6 +14,12 @@
 
 {% block content %}
 <div class="stack dash">
+  {%- if current_user.has_role("manager") and d.stale_labels %}
+  <div class="banners" role="status"><div class="banner is-warn"><div class="banner__body">
+    <span class="banner__title">{{ d.stale_labels|length }} coin-door label{{ "" if d.stale_labels|length == 1 else "s" }} retired, not yet replaced</span>
+    <p>{{ d.stale_labels|map(attribute="name")|join(", ") }} can't be reported from the coin door until a new label is fitted. <a href="{{ url_for('games.coin_door_label_pick') }}">Coin-door labels</a></p>
+  </div></div></div>
+  {%- endif %}
 
   <dl class="readouts">
     {{ ui.readout("Open work orders", d.open_order_count, tone=("fault" if d.open_order_count else "ok")) }}

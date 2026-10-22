@@ -23,6 +23,7 @@ from werkzeug.utils import secure_filename
 
 from app.extensions import db
 from app.models import Game, MaintenanceRecord, PlayRecord, RailSession
+from app.services.labels import FORMATS
 from app.utils.decorators import requires_role
 from app.utils.helpers import (
     allowed_file,
@@ -677,18 +678,19 @@ def resolve_barcode(code):
 
 
 def _picked_games():
-    """The machines a label-sheet link asks for, or ``None`` after flashing why not.
+    """The machines a label-sheet request asks for, or ``None`` after flashing why not.
 
     Shared by both sheets. The picker submits one "ids" field per checkbox
-    (?ids=1&ids=2) while a hand-written link or one built from a reprint list is more
-    naturally ?ids=1,2,3. Both are accepted because the first version of this read only the
+    (ids=1&ids=2) while a hand-written link or one built from a reprint list is more
+    naturally ids=1,2,3. Both are accepted because the first version of this read only the
     first value and silently printed one label when asked for twenty-nine -- which is a fixed
-    bug and not something to re-type beside a second sheet.
+    bug and not something to re-type beside a second sheet. Read from the query string or,
+    for the coin-door print button, the posted form.
     """
-    parts = [part for value in request.args.getlist("ids")
+    parts = [part for value in request.values.getlist("ids")
              for part in value.split(",") if part.strip()]
     query = Game.query
-    if request.args.get("ids") is not None:
+    if "ids" in request.values:
         try:
             ids = [int(part) for part in parts]
         except ValueError:
@@ -701,16 +703,58 @@ def _picked_games():
     return query.order_by(Game.name).all()
 
 
+def _base_url() -> str:
+    return (current_app.config.get("BASE_URL") or request.host_url).rstrip("/")
+
+
 def _label_url(game) -> str:
     """What a label's QR encodes. One definition, so the sheet and the single label
     can never disagree -- a label that encodes a different URL from its neighbour is
     not something you find out until you scan it."""
-    base = (current_app.config.get("BASE_URL") or request.host_url).rstrip("/")
-    return f"{base}/g/{game.barcode}"
+    return f"{_base_url()}/g/{game.barcode}"
+
+
+def _report_label_url(game) -> str:
+    """What a coin-door label's QR encodes: that machine's report form.
+
+    Deliberately not `_label_url` with a query string added. `_label_url` builds the *public*
+    label -- it goes where a tech or the bench scanner can read it, and the slug inside it is
+    meant to be guessable. A report token in that URL would print a credential on the outside
+    of a cabinet, where any customer could photograph it.
+    """
+    return f"{_base_url()}/report/{game.report_token}"
+
+
+def _qr(url: str) -> str:
+    import segno
+
+    # One scale everywhere: the printed size comes from static/css/labels.css, and the
+    # sheet and the single label must produce byte-identical images for the same URL.
+    return segno.make(url, error="m").svg_data_uri(scale=4, border=2)
+
+
+def _sheet_context(labels: list, kind: str, games: list | None = None) -> dict:
+    """What every sheet page needs: the format, its pages, and any address problem.
+
+    *games* is the selection the format links and the print button carry (by default the
+    machines on the labels)."""
+    from app.services.labels import address_problem, label_format, pages
+
+    fmt = label_format(request.args.get("format"))
+    example = labels[0]["url"] if labels else _base_url()
+    return {
+        "labels": labels, "kind": kind, "fmt": fmt, "formats": FORMATS.values(),
+        "pages": pages(labels, fmt), "example_url": example,
+        "address_problem": address_problem(example),
+        "base_url_set": bool(current_app.config.get("BASE_URL")),
+        "ids": ",".join(str(g.id) for g in (games if games is not None
+                                            else [label["game"] for label in labels])),
+    }
 
 
 @games_bp.route("/labels")
 @login_required
+@requires_role("operator")
 def label_sheet_pick():
     """Choose which machines go on a label sheet.
 
@@ -723,79 +767,68 @@ def label_sheet_pick():
         "label_sheet_pick.html",
         games=games,
         without_barcode=[g for g in games if not g.barcode],
+        formats=FORMATS.values(),
     )
 
 
 @games_bp.route("/labels/sheet")
 @login_required
+@requires_role("operator")
 def label_sheet():
-    """A printable sheet of QR labels, three to a row.
+    """A printable sheet of public QR labels.
 
     Unlike the single-label page this never backfills a missing barcode. Minting an
     identifier is a decision, and a decision taken 29 at a time behind a print button
     is not one anybody reviewed -- so machines without one are listed and skipped.
     """
-    import segno
-
     selected = _picked_games()
     if selected is None:
         return redirect(url_for("games.label_sheet_pick"))
     skipped = [g for g in selected if not g.barcode]
-    labels = [
-        {"game": g, "url": _label_url(g),
-         "qr": segno.make(_label_url(g), error="m").svg_data_uri(scale=4, border=2)}
-        for g in selected if g.barcode
-    ]
+    labels = [{"game": g, "url": _label_url(g), "qr": _qr(_label_url(g))}
+              for g in selected if g.barcode]
     if not labels:
         flash("None of those machines has an ID yet, so there is nothing to print. "
               "Give each one its roster slug first.", "error")
         return redirect(url_for("games.label_sheet_pick"))
-
-    return render_template("label_sheet.html", labels=labels, skipped=skipped)
-
-
-def _report_label_url(game) -> str:
-    """What a coin-door label's QR encodes: that machine's report form.
-
-    Deliberately not `_label_url` with a query string added. `_label_url` builds the *public*
-    label -- it goes where a tech or the bench scanner can read it, and the slug inside it is
-    meant to be guessable. A report token in that URL would print a credential on the outside
-    of a cabinet, where any customer could photograph it.
-    """
-    base = (current_app.config.get("BASE_URL") or request.host_url).rstrip("/")
-    return f"{base}/report/{game.report_token}"
+    return render_template("label_sheet.html", skipped=skipped,
+                           **_sheet_context(labels, "public"))
 
 
 @games_bp.route("/labels/coindoor")
 @login_required
+@requires_role("manager")
 def coin_door_label_pick():
-    """Choose which machines get a coin-door report label."""
+    """Choose which machines get a coin-door report label. Managers only (F-17): each label
+    is a key that files work orders without a login."""
     games = Game.query.order_by(Game.name).all()
+    locations = sorted({g.location for g in games if g.location})
     return render_template(
         "coin_door_label_pick.html",
         games=games,
+        locations=locations,
         stale=[g for g in games if g.report_label_stale],
+        formats=FORMATS.values(),
     )
 
 
-@games_bp.route("/labels/coindoor/sheet")
+@games_bp.route("/labels/coindoor/sheet", methods=["GET", "POST"])
 @login_required
+@requires_role("manager")
 def coin_door_label_sheet():
     """A printable sheet of coin-door labels. These go *inside* the door.
 
-    This one mints a token for a machine that has none, which is the opposite of what
-    `label_sheet` does about a missing barcode -- and the difference is the point. A barcode
-    is an identifier of record, shared with GATBOX and the roster, so inventing twenty-nine
-    of them behind a print button is a decision nobody reviewed. A report token is an
-    internal secret whose whole existence is the label: refusing to mint one would leave no
-    way to ever print a first label. Minting is idempotent, so a reprint keeps the token the
-    label already inside a door is carrying.
+    POST is the print button: it mints a token for any selected machine that has none and
+    clears the reprint flag, then redirects to the sheet. GET only shows labels, so opening,
+    refreshing or prefetching the sheet changes nothing (F-14).
 
-    The count of new tokens is shown, because minting ninety-eight secrets is still a
-    decision and the page should admit to it.
+    Minting here is the opposite of what `label_sheet` does about a missing barcode, and the
+    difference is the point. A barcode is an identifier of record, shared with GATBOX and the
+    roster, so inventing twenty-nine of them behind a print button is a decision nobody
+    reviewed. A report token is an internal secret whose whole existence is the label:
+    refusing to mint one would leave no way to ever print a first label. Minting is
+    idempotent, so a reprint keeps the token the label already inside a door is carrying.
     """
-    import segno
-
     selected = _picked_games()
     if selected is None:
         return redirect(url_for("games.coin_door_label_pick"))
@@ -803,25 +836,39 @@ def coin_door_label_sheet():
         flash("No machines selected.", "error")
         return redirect(url_for("games.coin_door_label_pick"))
 
-    fresh = [g for g in selected if not g.report_token]
-    for game in selected:
-        game.mint_report_token()
-        # The label about to come out of the printer is the current one.
-        game.report_label_stale = False
-    db.session.commit()
+    if request.method == "POST":
+        if "ids" not in request.form:
+            # A POST must name its machines: minting a code for every machine on the floor
+            # is not what an empty or truncated form should do.
+            flash("No machines selected.", "error")
+            return redirect(url_for("games.coin_door_label_pick"))
+        fresh = [g for g in selected if not g.report_token]
+        for game in selected:
+            game.mint_report_token()
+            # The label about to come out of the printer is the current one.
+            game.report_label_stale = False
+        db.session.commit()
+        if fresh:
+            # Minting secrets is still a decision, so the page admits to it.
+            flash(f"Made {len(fresh)} new coin-door code{'' if len(fresh) == 1 else 's'} "
+                  f"for {', '.join(g.name for g in fresh[:5])}"
+                  f"{' and more' if len(fresh) > 5 else ''}.", "info")
+        return redirect(url_for("games.coin_door_label_sheet",
+                                ids=",".join(str(g.id) for g in selected),
+                                format=request.form.get("format") or None))
 
-    labels = [
-        {"game": g, "url": _report_label_url(g),
-         "qr": segno.make(_report_label_url(g), error="m").svg_data_uri(scale=4, border=2)}
-        for g in selected
-    ]
-    return render_template("coin_door_label_sheet.html", labels=labels, fresh=len(fresh))
+    unprinted = [g for g in selected if not g.report_token]
+    labels = [{"game": g, "url": _report_label_url(g), "qr": _qr(_report_label_url(g))}
+              for g in selected if g.report_token]
+    return render_template("coin_door_label_sheet.html", unprinted=unprinted,
+                           **_sheet_context(labels, "coindoor", selected))
 
 
 @games_bp.route("/game/<int:game_id>/report-token/rotate", methods=["POST"])
 @login_required
+@requires_role("manager")
 def rotate_report_token(game_id):
-    """Retire a machine's coin-door token.
+    """Retire a machine's coin-door token. Managers only (F-17).
 
     The remedy when a label has been photographed, or has gone out of the door on the back of
     somebody's phone. POST only: a link that invalidates a physical label must not be
@@ -831,21 +878,22 @@ def rotate_report_token(game_id):
     door and still scans -- it just leads nowhere now, and nothing else on the floor would
     tell anyone that.
     """
-    game = Game.query.get_or_404(game_id)
+    game = db.get_or_404(Game, game_id)
     game.rotate_report_token()
     db.session.commit()
     flash(f"{game.name}: the label in that coin door no longer works. Print a new one and "
           "swap it, or the machine cannot be reported.", "warning")
+    if request.form.get("next") == "machine":
+        return redirect(url_for("games.game_detail", game_id=game.id))
     return redirect(url_for("games.coin_door_label_pick"))
 
 
 @games_bp.route("/game/<int:game_id>/label")
 @login_required
+@requires_role("operator")
 def game_label(game_id):
-    """Printable QR label for a game, encoding a link to its maintenance page."""
-    import segno
-
-    game = Game.query.get_or_404(game_id)
+    """Printable QR label for a game, encoding a link to its machine page."""
+    game = db.get_or_404(Game, game_id)
 
     # Backfill a barcode for any row that somehow lacks one. Adding a machine
     # always assigns one and the roster mapping gave every existing machine its
@@ -864,12 +912,7 @@ def game_label(game_id):
             "warning",
         )
 
-    label_url = _label_url(game)
-    qr_data_uri = segno.make(label_url, error="m").svg_data_uri(scale=6, border=2)
-
-    return render_template(
-        "game_label.html",
-        game=game,
-        label_url=label_url,
-        qr_data_uri=qr_data_uri,
-    )
+    url = _label_url(game)
+    return render_template("label_sheet.html", skipped=[], single=game,
+                           **_sheet_context([{"game": game, "url": url, "qr": _qr(url)}],
+                                            "public"))

@@ -1,0 +1,173 @@
+/* Printed labels: the public QR sheet, the coin-door sheet and the single label.
+ *
+ * Loaded only by those pages. A format is a .sheet--<key> block here plus an entry in
+ * app/services/labels.py FORMATS. Sizes are in inches because the paper is; on screen the
+ * sheet is shown at print size inside a scrolling preview.
+ *
+ * The browser must print at 100% scale with margins "None" (or "Default" where @page is
+ * honoured, which Chrome and Firefox do). The page says so above the preview.
+ */
+
+.sheet-preview {
+  overflow-x: auto;
+  padding: var(--sp-3);
+  background: var(--surface-inset);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+}
+.sheet {
+  box-sizing: border-box;
+  margin: 0 auto var(--sp-4);
+  background: #fff;
+  color: #000;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+}
+.sheet:last-child {
+  margin-bottom: 0;
+}
+
+.label-card {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.03in;
+  overflow: hidden;
+  text-align: center;
+  color: #000;
+  break-inside: avoid;
+}
+.label-qr {
+  display: block;
+  flex: none;
+}
+.label-text {
+  min-width: 0;
+}
+.label-name {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font: 600 11pt / 1.1 var(--font-display);
+}
+.label-meta {
+  font: 7.5pt / 1.2 var(--font-body);
+  overflow-wrap: anywhere;
+}
+.label-note {
+  font: 600 6.5pt / 1.2 var(--font-display);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* Plain paper: US Letter, 3 × 4 squares of 2.5 in, cut along the dashed lines. ----------- */
+.sheet--paper {
+  page: letter-sheet;
+  width: 8.5in;
+  height: 11in;
+  padding: 0.5in;
+  display: grid;
+  grid-template-columns: repeat(3, 2.5in);
+  grid-auto-rows: 2.5in;
+  align-content: start;
+}
+.sheet--paper .label-card {
+  padding: 0.12in;
+  border: 1px dashed #666;
+}
+.sheet--paper .label-qr {
+  width: 1.55in;
+  height: 1.55in;
+}
+
+/* Avery 22806: 2 × 2 in squares, 3 across and 4 down on US Letter. Top margin and
+   horizontal pitch from the published cross-reference (0.6 in, 2.625 in); the vertical
+   pitch is taken as symmetric (2.6 in). Test-print on plain paper first. ---------------- */
+.sheet--avery-22806 {
+  page: letter-sheet;
+  width: 8.5in;
+  height: 11in;
+  padding: 0.6in 0.625in;
+  display: grid;
+  grid-template-columns: repeat(3, 2in);
+  grid-auto-rows: 2in;
+  column-gap: 0.625in;
+  row-gap: 0.6in;
+  align-content: start;
+}
+.sheet--avery-22806 .label-card {
+  padding: 0.12in;
+}
+.sheet--avery-22806 .label-qr {
+  width: 1.3in;
+  height: 1.3in;
+}
+.sheet--avery-22806 .label-name {
+  font-size: 9.5pt;
+}
+@media screen {
+  /* Where the stickers are, so the preview reads as a sheet; never printed. */
+  .sheet--avery-22806 .label-card {
+    outline: 1px dotted #aaa;
+  }
+}
+
+/* Label printer: one 2.25 × 1.25 in label per page (DYMO 30334), QR beside the text. ---- */
+.sheet--dymo-30334 {
+  page: dymo-30334;
+  width: 2.25in;
+  height: 1.25in;
+  padding: 0.07in;
+  display: flex;
+}
+.sheet--dymo-30334 .label-card {
+  flex-direction: row;
+  justify-content: flex-start;
+  gap: 0.08in;
+  width: 100%;
+  text-align: left;
+}
+.sheet--dymo-30334 .label-qr {
+  width: 1.08in;
+  height: 1.08in;
+}
+.sheet--dymo-30334 .label-name {
+  font-size: 9pt;
+  -webkit-line-clamp: 3;
+}
+.sheet--dymo-30334 .label-meta,
+.sheet--dymo-30334 .label-note {
+  font-size: 6pt;
+}
+
+@page letter-sheet {
+  size: letter;
+  margin: 0;
+}
+@page dymo-30334 {
+  size: 2.25in 1.25in;
+  margin: 0;
+}
+
+@media print {
+  .page-head,
+  .label-notes {
+    display: none !important;
+  }
+  .sheet-preview {
+    overflow: visible;
+    padding: 0;
+    background: none;
+    border: 0;
+  }
+  .sheet {
+    margin: 0;
+    box-shadow: none;
+    break-after: page;
+  }
+  .sheet:last-child {
+    break-after: auto;
+  }
+}

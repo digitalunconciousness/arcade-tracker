@@ -78,19 +78,6 @@ def test_revenue_report_location_filter_can_show_warehouse_revenue(client, floor
     assert "Pixel Pinball" in html
 
 
-@flag("F-17", "any signed-in user, readonly included, can retire a coin-door label")
-def test_readonly_cannot_rotate_a_report_token(client, floor):
-    from app.extensions import db
-    from app.models import Game
-
-    g = fresh(Game, floor["raider"])
-    g.mint_report_token()
-    db.session.commit()
-    token = g.report_token
-    login(client, "readonly")
-    client.post(f"/game/{floor['raider']}/report-token/rotate")
-    assert fresh(Game, floor["raider"]).report_token == token
-
 
 @flag("F-18", "delete_backup joins a form value onto backups/ with no traversal check")
 def test_delete_backup_cannot_leave_the_backup_folder(client, floor, sandbox):

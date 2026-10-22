@@ -65,7 +65,7 @@ def test_signed_out_scan_logs_in_and_returns_to_the_machine(client, floor):
 
 def test_labels_encode_the_g_path_with_the_barcode(client, floor, app):
     app.config["BASE_URL"] = "https://tracker.example"
-    login(client, "readonly")
+    login(client, "operator")  # printing labels is operator work since 4.7a
     html = client.get(f"/game/{floor['raider']}/label").get_data(as_text=True)
     assert "https://tracker.example/g/neon-raider" in html
 

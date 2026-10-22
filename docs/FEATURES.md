@@ -294,8 +294,8 @@ anything is changed.
   the request never commits, but it's one autoflush away from rewriting machine names.
 - **F-14 Writes on GET:**
   - `/` and `/reports` commit the monthly rankings.
-  - G14 mints a barcode.
-  - G18 mints report tokens.
+  - G14 mints a barcode (operator and up since 4.7a; it says so when it does).
+  - G18 mints report tokens. *Fixed in 4.7a: only the print button (a POST) mints; opening the sheet changes nothing.*
   - S7, an unauthenticated GET, starts threads and creates a Game row.
 - **F-15 The P2 location filter can only return nothing.** The query is already Floor-only, so any other
   location gives an empty result.
@@ -305,7 +305,7 @@ anything is changed.
 - **F-16 `/g/<code>` requires operator.** *Fixed in 4.2: it lands on the machine page.* It redirects to M1, which is operator-only, so a **readonly**
   user who scans a QR label gets "permission denied" on the dashboard. Decide what readonly should see on the
   machine page.
-- **F-17 Any signed-in user, readonly included, can:** reboot the skeeball Pi (S27), drive its GPIO (S14),
+- **F-17 Any signed-in user, readonly included, can:** *Fixed in 4.7a for the coin-door labels: printing and retiring them is manager and up, and public labels are operator and up. The skeeball items went with skeeball.* reboot the skeeball Pi (S27), drive its GPIO (S14),
   switch GPIO mode, write revenue (S25, S26), reset lanes, rotate coin-door tokens (G19), and mint tokens by
   printing (G18).
 - **F-18 Path traversal in backups.** *The photo half is fixed in 4.4 (only an order's own photo can be deleted); the backup half is the admin step.* X7 and X9 join a form value onto `backups/` with no check, so
@@ -408,3 +408,13 @@ anything is changed.
 4. **Skeeball:** retired on 2026-10-08 (see 1 and `docs/history/skeeball/README.md`).
 5. **In-app backups stay.** The path traversal (F-18) and the download (F-34) get fixed in Step 5.
    PostgreSQL support (F-11) is a separate, later change.
+
+### Decisions of 2026-10-22 (Step 4.7)
+
+6. **Coin-door labels are a manager's to hand out.** Printing them (which mints the code) and
+   retiring them is manager and up; printing public labels is operator and up (F-17).
+7. **Three print formats:** plain US Letter paper (12 to a page, cut out), Avery 22806 (2 in
+   squares, 12 to a sheet) and a label printer (one 2¼ × 1¼ in label per page). Another
+   format is one entry in `app/services/labels.py` and one block in `static/css/labels.css`.
+8. **On PostgreSQL the backups page says so** and turns Create and Restore off until in-app
+   PostgreSQL backups exist (F-11).

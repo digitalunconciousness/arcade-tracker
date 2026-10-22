@@ -71,8 +71,9 @@ POSTS = [
     (lambda f: "/create_backup", "admin"),
     (lambda f: "/restore_backup", "admin"),
     (lambda f: "/delete_backup", "admin"),
-    # Only a session is required today (F-17): a readonly user can rotate a token.
-    (lambda f: f"/game/{f['raider']}/report-token/rotate", "readonly"),
+    # Coin-door labels are keys: printing (which mints) and retiring them is managers' (F-17).
+    (lambda f: f"/game/{f['raider']}/report-token/rotate", "manager"),
+    (lambda f: "/labels/coindoor/sheet", "manager"),
 ]
 BELOW = {"readonly": "anon", "operator": "readonly", "manager": "operator", "admin": "manager"}
 
@@ -355,7 +356,7 @@ class TestGames:
         g.mint_report_token()
         db.session.commit()
         old = g.report_token
-        login(client, "operator")
+        login(client, "manager")
         client.post(f"/game/{floor['raider']}/report-token/rotate")
         g = fresh(Game, floor["raider"])
         assert g.report_token != old and g.report_label_stale is True

@@ -1,75 +1,79 @@
-{% extends "base.html" %}
-
+{% extends "layout.html" %}
+{% import "ui.html" as ui %}
 {% block title %}Coin-door labels{% endblock %}
 
+{% block page_head %}
+{% call ui.page_head("Coin-door labels", sub="Report-a-problem codes for inside each coin door", back=url_for("games.games_list"), back_label="Machines") %}
+  <a class="btn btn--sm" href="{{ url_for('games.label_sheet_pick') }}">Machine labels</a>
+{% endcall %}
+{% endblock %}
+
 {% block content %}
-<div class="container">
-    <div class="page-header">
-        <h1>Coin-door labels</h1>
-    </div>
+{%- set default_loc = "Floor" if "Floor" in locations else none %}
+<div class="stack">
 
-    <div style="border: 2px solid #c00; padding: 12px; margin-bottom: 16px;">
-        <strong>These labels go inside the coin door.</strong>
-        Each one is a key: whoever can read the QR can file a maintenance request for that
-        machine without logging in. That is the point — but it also means a label stuck on the
-        outside of a cabinet, or photographed, is a credential handed out. The public labels
-        under <em>Label sheet</em> are the ones that go where people can see them.
-    </div>
+  <div class="banners" role="note"><div class="banner is-warn"><div class="banner__body">
+    <span class="banner__title">These labels go inside the coin door</span>
+    <p>Each one is a key: whoever scans it can file a work order for that machine without logging in. A label on the outside of a cabinet, or photographed, is a key handed out. The machine labels are the ones for the outside.</p>
+  </div></div></div>
 
-    {% if stale %}
-    <div style="border: 2px solid #c80; padding: 12px; margin-bottom: 16px;">
-        <strong>{{ stale|length }} machine{{ '' if stale|length == 1 else 's' }} need a
-        reprint:</strong> the token was rotated, so the label currently in the door is dead.
-        <ul style="margin: 8px 0 0;">
-            {% for game in stale %}<li>{{ game.name }}</li>{% endfor %}
-        </ul>
-        <p style="margin: 8px 0 0;">
-            <a href="{{ url_for('games.coin_door_label_sheet', ids=stale|map(attribute='id')|join(',')) }}"
-               class="btn btn-primary">Print just those {{ stale|length }}</a>
-        </p>
-    </div>
-    {% endif %}
-
-    <form method="get" action="{{ url_for('games.coin_door_label_sheet') }}">
-        <p>
-            <button type="submit" class="btn btn-primary">Print the selected labels</button>
-            <a href="{{ url_for('games.label_sheet_pick') }}" class="btn btn-secondary">Public labels instead</a>
-        </p>
-        <table class="table">
-            <thead><tr><th></th><th>Machine</th><th>Coin-door label</th><th></th></tr></thead>
-            <tbody>
-            {% for game in games %}
-                <tr>
-                    <td><input type="checkbox" name="ids" value="{{ game.id }}" checked></td>
-                    <td>{{ game.name }}</td>
-                    <td>
-                        {% if game.report_label_stale %}needs a reprint
-                        {% elif game.report_token %}printed
-                        {% else %}none yet{% endif %}
-                    </td>
-                    <td>
-                        {# Its own form, outside the one wrapping this table: a GET form for
-                           printing cannot also carry a POST that retires a label. #}
-                        {% if game.report_token %}
-                        <button type="submit" class="btn btn-secondary"
-                                form="retire-{{ game.id }}"
-                                onclick="return confirm('Retire the label in {{ game.name }}\'s coin door? It will stop working until you print and fit a new one.')">
-                            Retire that label
-                        </button>
-                        {% endif %}
-                    </td>
-                </tr>
-            {% endfor %}
-            </tbody>
-        </table>
+  {%- if stale %}
+  <section class="card card--status is-warn" aria-labelledby="stale-title">
+    <h2 id="stale-title">{{ stale|length }} label{{ "" if stale|length == 1 else "s" }} retired, not yet replaced</h2>
+    <p>The label in {{ "this door" if stale|length == 1 else "these doors" }} no longer works: {{ stale|map(attribute="name")|join(", ") }}.</p>
+    <form class="inline-form" method="post" action="{{ url_for('games.coin_door_label_sheet') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="ids" value="{{ stale|map(attribute='id')|join(',') }}">
+      <button class="btn btn--primary" type="submit">Print just {{ "that one" if stale|length == 1 else "those " ~ stale|length }}</button>
     </form>
-    {# The retire buttons above belong to these forms (form="retire-N"): a POST needs its
-       own form to carry a CSRF token, and putting one in the GET print form would put the
-       token in the sheet's URL. #}
-    {% for game in games if game.report_token %}
-    <form id="retire-{{ game.id }}" method="post" action="{{ url_for('games.rotate_report_token', game_id=game.id) }}" hidden>
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    </form>
-    {% endfor %}
+  </section>
+  {%- endif %}
+
+  <form id="print-form" class="filters" method="post" action="{{ url_for('games.coin_door_label_sheet') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {#- Always sent, so unticking everything selects nothing rather than every machine. #}
+    <input type="hidden" name="ids" value="">
+    <div class="field">
+      <label for="format">Print on</label>
+      <select id="format" name="format">
+        {%- for f in formats %}<option value="{{ f.key }}">{{ f.name }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="field field--check">
+      <input id="all" type="checkbox" data-select-all="ids"{% if not default_loc %} checked{% endif %}>
+      <label for="all">All machines · <span data-selected-count="ids">{{ games|selectattr("location", "equalto", default_loc)|list|length if default_loc else games|length }} selected</span></label>
+    </div>
+    <div class="filters__actions">
+      <button class="btn btn--primary" type="submit">Print the selected labels</button>
+    </div>
+  </form>
+  {%- if default_loc %}<p class="dim">Machines on the {{ default_loc }} are ticked. Tick others to add them.</p>{% endif %}
+
+  {%- if games %}
+  <ul class="rows" aria-label="Machines">
+    {%- for game in games %}
+    <li class="row">
+      <span class="row__main">
+        <span class="field--check">
+          <input class="pick" id="g{{ game.id }}" type="checkbox" name="ids" value="{{ game.id }}" form="print-form"{% if not default_loc or game.location == default_loc %} checked{% endif %}>
+          <label class="row__title" for="g{{ game.id }}">{{ game.name }}</label>
+        </span>
+        <span class="row__meta">{{ game.location or "No location" }}</span>
+      </span>
+      <span class="row__end cluster">
+        {%- if game.report_label_stale %}{{ ui.chip("warn", "Needs a reprint") }}
+        {%- elif game.report_token %}{{ ui.chip("ok", "Printed") }}
+        {%- else %}{{ ui.chip("muted", "None yet") }}{% endif %}
+        {%- if game.report_token and not game.report_label_stale %}
+        {{ ui.danger_form(url_for("games.rotate_report_token", game_id=game.id), "Retire", "Retire the label in " ~ game.name ~ "'s coin door? It stops working at once, until you print and fit a new one.", "Retire label") }}
+        {%- endif %}
+      </span>
+    </li>
+    {%- endfor %}
+  </ul>
+  {%- else %}
+  {{ ui.empty("No machines yet", "Add machines first; each one can then get a coin-door label.") }}
+  {%- endif %}
+
 </div>
 {% endblock %}

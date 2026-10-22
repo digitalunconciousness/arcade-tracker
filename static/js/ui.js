@@ -7,7 +7,8 @@
  *   - dismissible banners;
  *   - select-all checkboxes (data-select-all="name") with a live count;
  *   - <form data-confirm="Question?" data-confirm-action="Delete">: a styled confirm dialog
- *     before submitting, falling back to window.confirm where <dialog> is missing.
+ *     before submitting, falling back to window.confirm where <dialog> is missing;
+ *   - <button data-print>: opens the print dialog (label sheets).
  */
 (function () {
   "use strict";
@@ -73,6 +74,11 @@
       } else if (t.matches("input[type=checkbox][name]")) {
         if (document.querySelector('[data-select-all="' + t.name + '"]')) syncCount(t.name);
       }
+    });
+
+    // --- print buttons ------------------------------------------------------------------
+    document.addEventListener("click", function (e) {
+      if (e.target.closest("[data-print]")) window.print();
     });
 
     // --- confirm before submitting a destructive form --------------------------------

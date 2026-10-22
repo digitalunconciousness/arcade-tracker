@@ -1166,3 +1166,26 @@ legend {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+
+/* =========================================================================================
+   Coin-door report form (templates/coin_door_report.html): one column, one hand, no nav
+   ========================================================================================= */
+.report-page {
+  display: grid;
+  gap: var(--sp-3);
+  max-width: 34rem;
+  margin: 0 auto;
+}
+.report-page h1 {
+  margin: 0;
+}
+.report-page__kicker {
+  margin: 0;
+  font: 600 var(--fs-sm) / 1.2 var(--font-display);
+  letter-spacing: var(--track-caps);
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.report-page textarea {
+  min-height: 9rem;
+}
