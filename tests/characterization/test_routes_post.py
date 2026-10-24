@@ -74,6 +74,7 @@ POSTS = [
     # Coin-door labels are keys: printing (which mints) and retiring them is managers' (F-17).
     (lambda f: f"/game/{f['raider']}/report-token/rotate", "manager"),
     (lambda f: "/labels/coindoor/sheet", "manager"),
+    (lambda f: "/logout", "readonly"),
 ]
 BELOW = {"readonly": "anon", "operator": "readonly", "manager": "operator", "admin": "manager"}
 
@@ -142,7 +143,7 @@ class TestAuth:
         resp = client.post("/login?next=/games",
                            data={"username": "test-manager", "password": PASSWORD})
         assert resp.headers["Location"] == "/games"
-        client.get("/logout")
+        client.post("/logout")
         resp = client.post("/login?next=https://evil.example/",
                            data={"username": "test-manager", "password": PASSWORD})
         assert resp.headers["Location"] == "/"
@@ -156,9 +157,12 @@ class TestAuth:
         resp = client.post("/login", data={"username": "test-operator", "password": PASSWORD})
         assert resp.headers["Location"] == "/change_password"
 
-    def test_logout_is_a_get_and_ends_the_session(self, client, floor):
+    def test_logout_is_a_post_and_ends_the_session(self, client, floor):
+        """F-21: a GET only asks, so a link or a prefetch cannot sign anyone out."""
         login(client, "manager")
-        resp = client.get("/logout")
+        assert client.get("/logout").status_code == 200
+        assert client.get("/games").status_code == 200
+        resp = client.post("/logout")
         assert resp.headers["Location"] == "/login"
         assert "/login" in client.get("/games").headers["Location"]
 
@@ -207,7 +211,7 @@ class TestAuth:
         resp = client.post("/change_password", data={
             "current_password": "wrong", "new_password": "N3w-Synthetic-pw!",
             "confirm_password": "N3w-Synthetic-pw!"})
-        assert "Current password is incorrect" in resp.get_data(as_text=True)
+        assert "That isn&#39;t your current password." in resp.get_data(as_text=True)
         resp = client.post("/change_password", data={
             "current_password": PASSWORD, "new_password": "N3w-Synthetic-pw!",
             "confirm_password": "N3w-Synthetic-pw!"})
@@ -223,9 +227,9 @@ class TestAuth:
             content_type="multipart/form-data")
         assert resp.headers["Location"] == "/profile"
         name = fresh(User, floor["users"]["operator"]).profile_picture
-        assert name and name.startswith("profile_") and name.endswith(".png")
+        assert name and name.startswith("profile_") and name.endswith(".jpg")  # F-8, 4.7b
         with open(sandbox / "static" / "profile_pics" / name, "rb") as fh:
-            assert fh.read(3) == b"\xff\xd8\xff"  # JPEG bytes under a .png name (F-8)
+            assert fh.read(3) == b"\xff\xd8\xff"
 
 
 # ---------------------------------------------------------------------------------------
@@ -662,11 +666,15 @@ class TestAdmin:
         assert fresh(User, floor["users"]["admin"]) is not None
 
     @pytest.mark.parametrize(("data", "created"), [
-        ({"username": "new-tech", "password": "longenough", "role": "operator"}, True),
-        ({"username": "ab", "password": "longenough", "role": "operator"}, False),
-        ({"username": "new-tech", "password": "short", "role": "operator"}, False),
-        ({"username": "TEST-OPERATOR", "password": "longenough", "role": "operator"}, False),
-        ({"username": "new-tech", "password": "longenough", "role": "root"}, False),
+        ({"username": "new-tech", "password": "Long-enough-1", "role": "operator"}, True),
+        # Blank: a one-time password is made and shown once (4.7b).
+        ({"username": "new-tech", "password": "", "role": "operator"}, True),
+        ({"username": "ab", "password": "Long-enough-1", "role": "operator"}, False),
+        ({"username": "new-tech", "password": "Sh0rt", "role": "operator"}, False),
+        # The same strength rule as a password change since 4.7b (6 characters was enough).
+        ({"username": "new-tech", "password": "longenough", "role": "operator"}, False),
+        ({"username": "TEST-OPERATOR", "password": "Long-enough-1", "role": "operator"}, False),
+        ({"username": "new-tech", "password": "Long-enough-1", "role": "root"}, False),
     ])
     def test_create_user_validation(self, client, floor, data, created):
         from app.models import User

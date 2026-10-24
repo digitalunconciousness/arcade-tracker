@@ -72,7 +72,7 @@ def test_an_item_can_be_added_and_counted_down_to_zero(client, floor):
     client.post("/inventory/add", data={"name": "Back-ordered lamp", "stock_quantity": "0",
                                         "minimum_stock": "0"})
     assert InventoryItem.query.filter_by(name="Back-ordered lamp").count() == 1
-    client.get("/logout")
+    client.post("/logout")
     login(client, "operator")
     client.post(f"/inventory/{floor['belt']}/adjust_stock",
                 data={"adjustment_type": "adjusted", "quantity": "0"})
@@ -180,7 +180,7 @@ def test_operators_see_no_manager_actions(client, floor):
 def test_only_admins_see_delete_part(client, floor):
     login(client, "manager")
     assert f"/inventory/{floor['belt']}/delete" not in page(client, f"/inventory/{floor['belt']}")
-    client.get("/logout")
+    client.post("/logout")
     login(client, "admin")
     assert f"/inventory/{floor['belt']}/delete" in page(client, f"/inventory/{floor['belt']}")
 

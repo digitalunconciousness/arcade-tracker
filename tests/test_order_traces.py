@@ -23,7 +23,7 @@ def signed_in(app, client):
     from app.models import User
 
     with app.app_context():
-        user = User(username="tester", role="manager")
+        user = User(username="tester", role="manager", must_change_password=False)
         user.set_password("not-a-real-password")
         db.session.add(user)
         db.session.commit()

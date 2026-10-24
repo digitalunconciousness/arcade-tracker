@@ -1,0 +1,15 @@
+{% extends "layout.html" %}
+{% block title %}Log out{% endblock %}
+{% block content %}
+<div class="auth">
+  <h1>Log out?</h1>
+  <p class="dim">You are signed in as {{ current_user.username }}.</p>
+  <form class="form" method="post" action="{{ url_for('auth.logout') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="form__actions">
+      <button class="btn btn--primary btn--block" type="submit">Log out</button>
+      <a class="btn btn--ghost btn--block" href="{{ url_for('dashboard.home') }}">Stay signed in</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -1,148 +1,45 @@
-{% extends "base.html" %}
-{% block title %}Create User - Arcade Tracker{% endblock %}
+{% extends "layout.html" %}
+{% import "ui.html" as ui %}
+{% block title %}Add a user{% endblock %}
+
+{% block page_head %}
+{{ ui.page_head("Add a user", back=url_for("admin.manage_users"), back_label="Users") }}
+{% endblock %}
 
 {% block content %}
-<div class="background-animated">
-    <div class="glass-container">
-        <h2 class="glow-title"> Create New User</h2>
+<form class="form" method="post" novalidate>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {%- if errors %}
+  <div class="banners" role="alert"><div class="banner is-fault"><div class="banner__body"><span class="banner__title">Nobody was added</span><p>Fix the fields marked below.</p></div></div></div>
+  {%- endif %}
 
-        <form method="POST" action="{{ url_for('admin.create_user') }}" class="neon-form">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="field{% if errors.username %} is-invalid{% endif %}">
+    <label for="username">Username <span class="field__req" aria-hidden="true">*</span><span class="visually-hidden"> (required)</span></label>
+    <input id="username" name="username" value="{{ values.get('username', '') }}" maxlength="80" autocomplete="off" autocapitalize="none" spellcheck="false"{% if errors.username %} aria-invalid="true" aria-describedby="username-error"{% endif %}>
+    {%- if errors.username %}<span class="field__error" id="username-error">{{ errors.username }}</span>{% endif %}
+  </div>
 
-            <div class="form-group">
-                <label for="username">Username</label>
-                <input type="text" id="username" name="username" required minlength="3" 
-                       class="form-input" placeholder="Enter username">
-            </div>
-
-            <div class="form-group">
-                <label for="password">Password</label>
-                <input type="password" id="password" name="password" required minlength="6" 
-                       class="form-input" placeholder="Enter password (min 6 characters)">
-            </div>
-
-            <div class="form-group">
-                <label for="role">Role</label>
-                <select id="role" name="role" required class="form-input">
-                    <option value="readonly">Read Only</option>
-                    <option value="operator">Operator</option>
-                    <option value="manager">Manager</option>
-                    <option value="admin">Admin</option>
-                </select>
-            </div>
-
-            <div class="form-buttons">
-                <button type="submit" class="btn-neon-submit">Create User</button>
-                <a href="{{ url_for('admin.manage_users') }}" class="btn-neon-cancel">Cancel</a>
-            </div>
-        </form>
+  <fieldset class="stack{% if errors.role %} is-invalid{% endif %}">
+    <legend>Role</legend>
+    {%- for r in roles %}
+    <div class="field field--check">
+      <input id="role-{{ r }}" type="radio" name="role" value="{{ r }}"{% if values.get("role") == r %} checked{% endif %}>
+      <label for="role-{{ r }}">{{ role_text[r] }}</label>
     </div>
-</div>
+    {%- endfor %}
+    {%- if errors.role %}<span class="field__error">{{ errors.role }}</span>{% endif %}
+  </fieldset>
 
-<style>
-.background-animated {
-    min-height: 100vh;
-    background: linear-gradient(-45deg, #000010, #001030, #002050, #000820);
-    background-size: 400% 400%;
-    animation: backgroundShift 20s ease infinite;
-    padding: 40px 20px;
-}
-@keyframes backgroundShift {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
-}
+  <div class="field{% if errors.password %} is-invalid{% endif %}">
+    <label for="password">Password</label>
+    <input id="password" name="password" type="password" autocomplete="new-password" aria-describedby="password-help{% if errors.password %} password-error{% endif %}"{% if errors.password %} aria-invalid="true"{% endif %}>
+    <span class="field__help" id="password-help">Leave it blank and a one-time password is made and shown to you once. Either way, they choose their own at first sign-in. A password you type needs 8 characters with upper case, lower case and a number.</span>
+    {%- if errors.password %}<span class="field__error" id="password-error">{{ errors.password }}</span>{% endif %}
+  </div>
 
-.glass-container {
-    max-width: 600px;
-    margin: 0 auto;
-    background: rgba(0, 30, 60, 0.5);
-    border: 2px solid #00ffff;
-    border-radius: 12px;
-    padding: 30px;
-    backdrop-filter: blur(12px);
-    box-shadow: 0 0 25px rgba(0, 255, 255, 0.3);
-}
-
-.glow-title {
-    text-align: center;
-    color: #00ffff;
-    margin-bottom: 25px;
-    text-shadow: 0 0 15px rgba(0,255,255,0.6);
-}
-
-.neon-form {
-    color: #fff;
-}
-
-.form-group {
-    margin-bottom: 20px;
-}
-
-.form-group label {
-    display: block;
-    color: #00ffff;
-    margin-bottom: 8px;
-    font-weight: bold;
-}
-
-.form-input {
-    width: 100%;
-    padding: 10px 12px;
-    background: rgba(0, 20, 40, 0.6);
-    border: 1px solid rgba(0, 255, 255, 0.4);
-    border-radius: 6px;
-    color: #fff;
-    font-size: 1em;
-    transition: all 0.3s ease;
-}
-
-.form-input:focus {
-    outline: none;
-    border-color: #00ffff;
-    box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
-}
-
-.form-buttons {
-    display: flex;
-    gap: 15px;
-    margin-top: 30px;
-    justify-content: center;
-}
-
-.btn-neon-submit {
-    border: 2px solid #00ffff;
-    color: #00ffff;
-    background: transparent;
-    border-radius: 8px;
-    padding: 10px 30px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    font-weight: bold;
-    font-size: 1em;
-}
-.btn-neon-submit:hover {
-    background: #00ffff;
-    color: #000;
-    box-shadow: 0 0 20px rgba(0, 255, 255, 0.9);
-}
-
-.btn-neon-cancel {
-    border: 2px solid #ff6666;
-    color: #ff6666;
-    background: transparent;
-    border-radius: 8px;
-    padding: 10px 30px;
-    text-decoration: none;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    font-weight: bold;
-    display: inline-block;
-}
-.btn-neon-cancel:hover {
-    background: #ff6666;
-    color: #fff;
-    box-shadow: 0 0 20px rgba(255, 102, 102, 0.9);
-}
-</style>
+  <div class="form__actions">
+    <button class="btn btn--primary" type="submit">Add user</button>
+    <a class="btn btn--ghost" href="{{ url_for('admin.manage_users') }}">Cancel</a>
+  </div>
+</form>
 {% endblock %}

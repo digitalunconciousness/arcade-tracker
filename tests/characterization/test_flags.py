@@ -88,15 +88,6 @@ def test_delete_backup_cannot_leave_the_backup_folder(client, floor, sandbox):
     assert victim.exists()
 
 
-@flag("F-19", "a password reset sets every account to the same published password")
-def test_a_password_reset_does_not_use_a_fixed_password(client, floor):
-    from app.models import User
-
-    login(client, "admin")
-    client.post("/admin/users", data={"action": "reset_password",
-                                      "user_id": floor["users"]["readonly"]})
-    assert not fresh(User, floor["users"]["readonly"]).check_password("Arcade123!")
-
 
 @flag("F-29", "a rail session with a mean but no min/max is a 500 on its page")
 def test_a_rail_session_with_partial_figures_renders(client, floor):

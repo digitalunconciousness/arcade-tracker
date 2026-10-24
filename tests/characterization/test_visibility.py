@@ -93,7 +93,7 @@ def _capture(client, floor) -> dict:
         for role in ROLES:
             if LEVEL[role] < LEVEL[minimum]:
                 continue
-            client.get("/logout")
+            client.post("/logout")
             login(client, role)
             resp = client.get(build(floor))
             assert resp.status_code == 200, (rule, role)
