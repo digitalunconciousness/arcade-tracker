@@ -1,234 +1,79 @@
-{% extends "base.html" %}
-{% block title %}Backup Management - Arcade Tracker{% endblock %}
+{% extends "layout.html" %}
+{% import "ui.html" as ui %}
+{% block title %}Backups{% endblock %}
+
+{% block page_head %}
+{% call ui.page_head("Backups", sub="Database: " ~ {"postgresql": "PostgreSQL", "sqlite": "SQLite"}.get(kind, kind), back=url_for("admin.manage_users"), back_label="Users") %}
+  {%- if available %}
+  <form class="inline-form" method="post" action="{{ url_for('admin.create_backup') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button class="btn btn--sm btn--primary" type="submit">Back up now</button>
+  </form>
+  {%- endif %}
+{% endcall %}
+{% endblock %}
 
 {% block content %}
-<div class="background-animated">
-    <div class="glass-container">
-        <h2 class="glow-title"> Backup Management</h2>
+<div class="stack">
 
-        <!-- Create Backup -->
-        <div class="actions">
-            <form method="POST" action="{{ url_for('admin.create_backup') }}">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit" class="btn-glow cyan">
-                    <i class="fas fa-save"></i> Create Backup
-                </button>
-            </form>
-        </div>
+  {%- if not available %}
+  <section class="card card--status is-info" aria-labelledby="pg-title">
+    <h2 id="pg-title">Backups run outside the app</h2>
+    <p>This tracker runs on PostgreSQL. The buttons that used to be here copied a SQLite file that production doesn't use, so they're off until in-app PostgreSQL backups exist.</p>
+    <ul>
+      <li><code>deploy/deploy.sh</code> takes a full dump before every deploy and keeps the newest 14 in <code>{{ deploy_dir }}</code> on the tracker's server.</li>
+      <li>To restore one, follow "Rollback" in <code>deploy/RUNBOOK.md</code>. It's a server-side job on purpose: a restore replaces everything.</li>
+      <li>For a backup right now, on the server, with <code>.env</code> loaded: <code>pg_dump --clean --if-exists --no-owner --no-privileges "$DATABASE_URL" | gzip -9 &gt; {{ deploy_dir }}/manual-$(date -u +%Y%m%dT%H%M%SZ).sql.gz</code></li>
+    </ul>
+  </section>
 
-        <!-- Backups Table -->
-        <table class="neon-table">
-            <thead>
-                <tr>
-                    <th>Filename</th>
-                    <th>Date Created</th>
-                    <th>Size</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for backup in backups %}
-                <tr>
-                    <td>{{ backup.filename }}</td>
-                    <td>{{ backup.date_created }}</td>
-                    <td>{{ backup.size }} MB</td>
-                    <td>
-                        <!-- Restore -->
-                        <form method="POST" action="{{ url_for('admin.restore_backup') }}" class="inline-form" onsubmit="return showRestoreOverlay('{{ backup.filename }}')">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <input type="hidden" name="backup_file" value="{{ backup.filename }}">
-                            <button type="submit" class="btn-glow magenta">
-                                <i class="fas fa-undo"></i> Restore
-                            </button>
-                        </form>
+  <section aria-labelledby="dumps-title">
+    <h2 id="dumps-title">Deploy dumps</h2>
+    {%- if deploy_dumps is none %}
+    {{ ui.empty("Can't list them from here", "The folder is readable by root only, which is how it should be. On the server: ls -lh " ~ deploy_dir) }}
+    {%- elif deploy_dumps %}
+    <ul class="rows">
+      {%- for b in deploy_dumps %}
+      <li class="row">
+        <span class="row__main"><span class="row__title num">{{ b.name }}</span><span class="row__meta">{{ b.created.strftime("%Y-%m-%d %H:%M") }} UTC · {{ "%.1f"|format(b.size / 1048576) }} MB</span></span>
+        <span class="row__end">{{ ui.chip("ok" if b.age_days < 8 else "warn", (b.age_days ~ " day" ~ ("" if b.age_days == 1 else "s") ~ " old") if b.age_days else "today") }}</span>
+      </li>
+      {%- endfor %}
+    </ul>
+    {%- else %}
+    {{ ui.empty("No dumps found in " ~ deploy_dir, "The first deploy/deploy.sh run makes one.") }}
+    {%- endif %}
+  </section>
 
-                        <!-- Delete -->
-                        <form method="POST" action="{{ url_for('admin.delete_backup') }}" class="inline-form" onsubmit="return confirm('Delete backup {{ backup.filename }}?')">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <input type="hidden" name="backup_file" value="{{ backup.filename }}">
-                            <button type="submit" class="btn-glow danger">
-                                <i class="fas fa-trash"></i> Delete
-                            </button>
-                        </form>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+  {%- else %}
+  <section aria-labelledby="list-title">
+    <h2 id="list-title">Backups</h2>
+    {%- if backups %}
+    <ul class="rows">
+      {%- for b in backups %}
+      <li class="row">
+        <span class="row__main"><span class="row__title num">{{ b.name }}</span><span class="row__meta">{{ b.created.strftime("%Y-%m-%d %H:%M") }} · {{ "%.1f"|format(b.size / 1048576) }} MB · {{ b.age_days }} day{{ "" if b.age_days == 1 else "s" }} old</span></span>
+        <span class="row__end cluster">
+          <a class="btn btn--sm" href="{{ url_for('admin.download_backup', filename=b.name) }}">Download</a>
+          <form class="inline-form" method="post" action="{{ url_for('admin.restore_backup') }}" data-confirm="Restore {{ b.name }}? Everything entered since it was made is replaced." data-confirm-action="Restore">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="backup_file" value="{{ b.name }}">
+            <button class="btn btn--sm btn--ghost" type="submit">Restore</button>
+          </form>
+          <form class="inline-form" method="post" action="{{ url_for('admin.delete_backup') }}" data-confirm="Delete {{ b.name }}? This cannot be undone." data-confirm-action="Delete">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="backup_file" value="{{ b.name }}">
+            <button class="btn btn--sm btn--danger" type="submit">Delete</button>
+          </form>
+        </span>
+      </li>
+      {%- endfor %}
+    </ul>
+    {%- else %}
+    {{ ui.empty("No backups yet", "Back up now makes the first one.") }}
+    {%- endif %}
+  </section>
+  {%- endif %}
 
-    <!-- Neon Overlay -->
-    <div id="restoreOverlay" class="restore-overlay">
-        <div class="overlay-content">
-            <div class="spinner"></div>
-            <h3 class="overlay-text">Restoring Backup...</h3>
-        </div>
-    </div>
 </div>
-
-<!-- Overlay Script -->
-<script>
-function showRestoreOverlay(filename) {
-    if (!confirm(`Restore from ${filename}?`)) {
-        return false;
-    }
-    const overlay = document.getElementById('restoreOverlay');
-    overlay.style.display = 'flex';
-    setTimeout(() => {
-        overlay.classList.add('active');
-    }, 50);
-    return true;
-}
-</script>
-
-<style>
-/* ===== BACKGROUND ===== */
-.background-animated {
-    min-height: 100vh;
-    background: linear-gradient(-45deg, #000010, #001030, #002050, #000820);
-    background-size: 400% 400%;
-    animation: backgroundShift 20s ease infinite;
-    padding: 40px 20px;
-}
-@keyframes backgroundShift {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
-}
-
-/* ===== GLASS CONTAINER ===== */
-.glass-container {
-    max-width: 900px;
-    margin: 0 auto;
-    background: rgba(0, 30, 60, 0.5);
-    border: 2px solid #00ffff;
-    border-radius: 12px;
-    padding: 30px;
-    backdrop-filter: blur(12px);
-    box-shadow: 0 0 25px rgba(0, 255, 255, 0.3);
-}
-
-/* ===== TITLE ===== */
-.glow-title {
-    text-align: center;
-    color: #00ffff;
-    margin-bottom: 25px;
-    text-shadow: 0 0 15px rgba(0,255,255,0.6);
-    animation: glowShift 3s infinite alternate;
-}
-@keyframes glowShift {
-    0% { color: #00ffff; text-shadow: 0 0 10px #00ffff; }
-    100% { color: #ff00ff; text-shadow: 0 0 20px #ff00ff; }
-}
-
-/* ===== ACTIONS ===== */
-.actions {
-    text-align: center;
-    margin-bottom: 20px;
-}
-
-/* ===== BUTTONS ===== */
-.btn-glow {
-    border: none;
-    border-radius: 6px;
-    padding: 10px 20px;
-    font-weight: bold;
-    text-transform: uppercase;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    color: #000;
-}
-.btn-glow.cyan {
-    background: linear-gradient(45deg, #00ffff, #00aaff);
-    box-shadow: 0 0 15px rgba(0, 255, 255, 0.6);
-}
-.btn-glow.cyan:hover {
-    box-shadow: 0 0 25px rgba(0, 255, 255, 0.8);
-    transform: translateY(-2px);
-}
-.btn-glow.magenta {
-    background: linear-gradient(45deg, #ff00ff, #cc00cc);
-    box-shadow: 0 0 15px rgba(255, 0, 255, 0.6);
-}
-.btn-glow.magenta:hover {
-    box-shadow: 0 0 25px rgba(255, 0, 255, 0.8);
-    transform: translateY(-2px);
-}
-.btn-glow.danger {
-    background: linear-gradient(45deg, #ff4444, #cc0000);
-    box-shadow: 0 0 15px rgba(255, 50, 50, 0.6);
-}
-.btn-glow.danger:hover {
-    box-shadow: 0 0 25px rgba(255, 50, 50, 0.8);
-    transform: translateY(-2px);
-}
-
-/* ===== TABLE ===== */
-.neon-table {
-    width: 100%;
-    border-collapse: collapse;
-    color: #fff;
-}
-.neon-table th, .neon-table td {
-    border: 1px solid rgba(0, 255, 255, 0.3);
-    padding: 10px 14px;
-}
-.neon-table th {
-    color: #00ffff;
-    border-bottom: 2px solid #00ffff;
-    text-transform: uppercase;
-    font-weight: bold;
-}
-.neon-table tr:nth-child(even) {
-    background: rgba(255, 255, 255, 0.05);
-}
-.inline-form {
-    display: inline-block;
-}
-
-/* ===== RESTORE OVERLAY ===== */
-.restore-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 20, 0.8);
-    display: none;
-    align-items: center;
-    justify-content: center;
-    z-index: 9999;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-.restore-overlay.active {
-    display: flex;
-    opacity: 1;
-}
-.overlay-content {
-    text-align: center;
-}
-.spinner {
-    border: 4px solid rgba(255, 255, 255, 0.2);
-    border-top: 4px solid #00ffff;
-    border-radius: 50%;
-    width: 60px;
-    height: 60px;
-    animation: spin 1s linear infinite;
-    margin: 0 auto 20px;
-}
-@keyframes spin {
-    to { transform: rotate(360deg); }
-}
-.overlay-text {
-    color: #00ffff;
-    text-shadow: 0 0 20px rgba(0, 255, 255, 0.8);
-    font-size: 1.3em;
-    animation: fadePulse 2s infinite alternate;
-}
-@keyframes fadePulse {
-    0% { opacity: 0.8; color: #00ffff; }
-    100% { opacity: 1; color: #ff00ff; }
-}
-</style>
 {% endblock %}

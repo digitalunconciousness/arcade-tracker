@@ -67,7 +67,8 @@ POSTS = [
     (lambda f: f"/inventory/requests/{f['request']}/update_tracking", "manager"),
     (lambda f: "/admin/users", "admin"),
     (lambda f: "/admin/create_user", "admin"),
-    (lambda f: "/admin/cleanup_photos", "manager"),
+    # Admin since 4.7c, like the storage page it is on (managers had no page offering it).
+    (lambda f: "/admin/cleanup_photos", "admin"),
     (lambda f: "/create_backup", "admin"),
     (lambda f: "/restore_backup", "admin"),
     (lambda f: "/delete_backup", "admin"),
@@ -693,7 +694,7 @@ class TestAdmin:
         new.write_bytes(b"x")
         two_years = time.time() - 2 * 365 * 86400
         os.utime(old, (two_years, two_years))
-        login(client, "manager")
+        login(client, "admin")
         client.post("/admin/cleanup_photos")
         assert not old.exists() and new.exists()
 
@@ -714,7 +715,7 @@ class TestAdmin:
         assert len(made) == 1
         name = made[0].name
         assert name in client.get("/backup_management").get_data(as_text=True)
-        # Downloading it is broken today (F-34): test_flags.py.
+        assert client.get(f"/download_backup/{name}").status_code == 200  # F-34, 4.7c
         client.post("/delete_backup", data={"backup_file": name})
         assert not made[0].exists()
 

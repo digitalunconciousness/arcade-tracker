@@ -1225,3 +1225,20 @@ legend {
   border: 1px dashed var(--border-control);
   border-radius: var(--r);
 }
+
+/* Storage meter (native <meter>: the browser picks the colour band from low/high) */
+.meter {
+  display: block;
+  width: 100%;
+  height: 14px;
+  border-radius: var(--r-pill);
+  background: var(--surface-inset);
+}
+.meter::-webkit-meter-bar {
+  background: var(--surface-inset);
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+}
+.meter::-moz-meter-bar {
+  border-radius: var(--r-pill);
+}

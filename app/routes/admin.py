@@ -1,10 +1,8 @@
 """Admin blueprint — user management, storage, backups."""
 
 import os
+import subprocess
 import sys
-import glob as glob_mod
-
-from datetime import datetime
 
 from flask import (
     Blueprint,
@@ -19,14 +17,11 @@ from flask import (
 from flask_login import current_user, login_required
 
 from app.extensions import db
-from app.models import MaintenanceRecord, User
+from app.models import User
 from app.security.utils import log_security_event
 from app.utils.decorators import requires_role
-from app.utils.helpers import cleanup_old_photos, get_directory_size
 
 admin_bp = Blueprint("admin", __name__)
-
-MAX_TOTAL_STORAGE_MB = 500
 
 
 def _users_page(revealed=None, status=200):
@@ -132,101 +127,75 @@ def create_user():
 @login_required
 @requires_role("admin")
 def storage_admin():
-    """Storage management dashboard."""
-    upload_dir = os.path.join(current_app.root_path, "..", "static", "maintenance_photos")
-    upload_dir = os.path.normpath(upload_dir)
+    """Photo storage: how much, how many, and what a cleanup would remove."""
+    from app.services.storage import PHOTO_MAX_AGE_DAYS, photo_stats
 
-    current_size_mb = get_directory_size(upload_dir)
-    file_count = len(os.listdir(upload_dir)) if os.path.exists(upload_dir) else 0
-
-    total_records = MaintenanceRecord.query.count()
-    records_with_photos = MaintenanceRecord.query.filter(
-        MaintenanceRecord.photos.isnot(None)
-    ).count()
-
-    stats = {
-        "current_size_mb": current_size_mb,
-        "max_size_mb": MAX_TOTAL_STORAGE_MB,
-        "usage_percent": (current_size_mb / MAX_TOTAL_STORAGE_MB) * 100,
-        "file_count": file_count,
-        "total_records": total_records,
-        "records_with_photos": records_with_photos,
-    }
-
-    return render_template("storage_admin.html", stats=stats)
+    return render_template("storage_admin.html", stats=photo_stats(current_app.static_folder),
+                           max_age_days=PHOTO_MAX_AGE_DAYS)
 
 
 @admin_bp.route("/admin/cleanup_photos", methods=["POST"])
 @login_required
-@requires_role("manager")
+@requires_role("admin")
 def admin_cleanup_photos():
-    """Clean up old/orphaned photos."""
-    try:
-        removed_count = cleanup_old_photos(max_age_days=365)
-        upload_dir = os.path.join(current_app.root_path, "..", "static", "maintenance_photos")
-        upload_dir = os.path.normpath(upload_dir)
-        current_size_mb = get_directory_size(upload_dir)
-        flash(
-            f"Cleanup complete: {removed_count} photos removed. Current storage: {current_size_mb:.1f}MB",
-            "success",
-        )
-    except Exception as e:
-        flash(f"Cleanup failed: {str(e)}", "error")
+    """Delete photos older than a year that no work order shows (F-6). Admin, like the page
+    it is on (it was manager, with no page of theirs offering it)."""
+    from app.services.storage import cleanup_photos
 
-    return redirect(request.referrer or url_for("dashboard.home"))
+    removed = cleanup_photos(current_app.static_folder)
+    log_security_event("PHOTO_CLEANUP", user_id=current_user.id,
+                       details=f"Removed {removed} unused photo file(s)")
+    flash(f"Removed {removed} unused photo{'' if removed == 1 else 's'}.", "success")
+    return redirect(url_for("admin.storage_admin"))
 
 
 @admin_bp.route("/backup_management")
 @login_required
 @requires_role("admin")
 def backup_management():
-    """Database backup and restore management interface."""
-    backup_dir = "backups"
-    backups = []
+    from app.services import storage
 
-    if os.path.exists(backup_dir):
-        backup_files = glob_mod.glob(os.path.join(backup_dir, "arcade_backup_*.db"))
-        for backup_file in backup_files:
-            file_size = os.path.getsize(backup_file)
-            file_time = datetime.fromtimestamp(os.path.getmtime(backup_file))
-            days_ago = (datetime.now() - file_time).days
-            backups.append(
-                {
-                    "filename": os.path.basename(backup_file),
-                    "filepath": backup_file,
-                    "size": file_size,
-                    "created": file_time,
-                    "days_ago": days_ago,
-                }
-            )
+    available = storage.in_app_backups_available()
+    return render_template(
+        "backup_management.html",
+        available=available,
+        kind=storage.database_kind(),
+        backups=storage.list_backups(storage.backup_dir()) if available else [],
+        deploy_dir=storage.deploy_dump_dir(),
+        deploy_dumps=storage.list_backups(storage.deploy_dump_dir(),
+                                          storage.DEPLOY_DUMP_NAME),
+    )
 
-    backups.sort(key=lambda x: x["created"], reverse=True)
-    return render_template("backup_management.html", backups=backups)
+
+def _run_script(*args) -> subprocess.CompletedProcess:
+    return subprocess.run([sys.executable, *args], capture_output=True, text=True,
+                          cwd=os.getcwd(), timeout=300)
+
+
+def _unavailable():
+    flash("In-app backups only work on a SQLite database. This one is PostgreSQL: "
+          "deploy/deploy.sh takes a dump before every deploy.", "error")
+    return redirect(url_for("admin.backup_management"))
 
 
 @admin_bp.route("/create_backup", methods=["POST"])
 @login_required
 @requires_role("admin")
 def create_backup():
-    """Create a new database backup."""
-    import subprocess
+    from app.services.storage import in_app_backups_available
 
+    if not in_app_backups_available():
+        return _unavailable()
     try:
-        script_path = os.path.join("scripts", "backup_database.py")
-        result = subprocess.run(
-            [sys.executable, script_path, "backup"],
-            capture_output=True,
-            text=True,
-            cwd=os.getcwd(),
-        )
-
+        result = _run_script(os.path.join("scripts", "backup_database.py"), "backup")
+    except (OSError, subprocess.TimeoutExpired) as e:
+        flash(f"The backup did not run: {e}", "error")
+    else:
         if result.returncode == 0:
-            flash("Database backup created successfully!", "success")
+            log_security_event("BACKUP_CREATED", user_id=current_user.id)
+            flash("Backup created.", "success")
         else:
-            flash(f"Backup failed: {result.stderr}", "error")
-    except Exception as e:
-        flash(f"Error creating backup: {str(e)}", "error")
-
+            flash(f"Backup failed: {result.stderr.strip()[-300:]}", "error")
     return redirect(url_for("admin.backup_management"))
 
 
@@ -234,35 +203,26 @@ def create_backup():
 @login_required
 @requires_role("admin")
 def restore_backup():
-    """Restore database from backup."""
-    import subprocess
+    from app.services.storage import backup_path, in_app_backups_available
 
-    backup_file = request.form.get("backup_file")
-    if not backup_file:
-        flash("No backup file specified", "error")
+    if not in_app_backups_available():
+        return _unavailable()
+    path = backup_path(request.form.get("backup_file"))
+    if path is None:
+        flash("That backup doesn't exist.", "error")
         return redirect(url_for("admin.backup_management"))
-
-    backup_path = os.path.join("backups", backup_file)
-    if not os.path.exists(backup_path):
-        flash("Backup file not found", "error")
-        return redirect(url_for("admin.backup_management"))
-
     try:
-        script_path = os.path.join("scripts", "restore_database.py")
-        result = subprocess.run(
-            [sys.executable, script_path, "--backup-file", backup_path],
-            capture_output=True,
-            text=True,
-            cwd=os.getcwd(),
-        )
-
+        result = _run_script(os.path.join("scripts", "restore_database.py"),
+                             "--backup-file", path)
+    except (OSError, subprocess.TimeoutExpired) as e:
+        flash(f"The restore did not run: {e}", "error")
+    else:
         if result.returncode == 0:
-            flash("Database restored successfully! Please restart the application.", "success")
+            log_security_event("BACKUP_RESTORED", user_id=current_user.id,
+                               details=os.path.basename(path), level="warning")
+            flash("Database restored. Restart the application.", "success")
         else:
-            flash(f"Restore failed: {result.stderr}", "error")
-    except Exception as e:
-        flash(f"Error restoring backup: {str(e)}", "error")
-
+            flash(f"Restore failed: {result.stderr.strip()[-300:]}", "error")
     return redirect(url_for("admin.backup_management"))
 
 
@@ -270,32 +230,30 @@ def restore_backup():
 @login_required
 @requires_role("admin")
 def download_backup(filename):
-    """Download a backup file."""
-    backup_path = os.path.join("backups", filename)
+    from app.services.storage import backup_path
 
-    if not os.path.exists(backup_path) or not filename.startswith("arcade_backup_"):
-        flash("Backup file not found", "error")
+    path = backup_path(filename)
+    if path is None:
+        flash("Backup file not found.", "error")
         return redirect(url_for("admin.backup_management"))
-
-    return send_file(backup_path, as_attachment=True, download_name=filename)
+    log_security_event("BACKUP_DOWNLOADED", user_id=current_user.id, details=filename,
+                       level="warning")
+    return send_file(path, as_attachment=True, download_name=filename)
 
 
 @admin_bp.route("/delete_backup", methods=["POST"])
 @login_required
 @requires_role("admin")
 def delete_backup():
-    """Delete a backup file."""
-    backup_dir = "backups"
-    backup_file = request.form.get("backup_file")
-    if not backup_file:
-        flash("No backup file specified.", "danger")
-        return redirect(url_for("admin.backup_management"))
+    from app.services.storage import backup_path
 
-    backup_path = os.path.join(backup_dir, backup_file)
-    if os.path.exists(backup_path):
-        os.remove(backup_path)
-        flash(f"Backup {backup_file} deleted successfully.", "success")
+    name = request.form.get("backup_file")
+    path = backup_path(name)
+    if path is None:
+        flash("Backup file not found.", "error")
     else:
-        flash("Backup file not found.", "warning")
-
+        os.remove(path)
+        log_security_event("BACKUP_DELETED", user_id=current_user.id, details=name,
+                           level="warning")
+        flash(f"Deleted {name}.", "success")
     return redirect(url_for("admin.backup_management"))

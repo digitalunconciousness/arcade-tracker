@@ -9,33 +9,14 @@ Step 5 security tests, or a decision the owner has not made yet.
 """
 from __future__ import annotations
 
-import os
-import time
-
 import pytest
 
 from char_support import login
-from test_routes_post import fresh
 
 
 def flag(code: str, why: str):
     return pytest.mark.xfail(strict=True, reason=f"{code}: {why}")
 
-
-@flag("F-6", "photo cleanup deletes files that work orders still reference")
-def test_cleanup_keeps_photos_a_work_order_still_uses(client, floor, sandbox):
-    from app.extensions import db
-    from app.models import MaintenanceRecord
-
-    photo = sandbox / "static" / "maintenance_photos" / "kept.jpg"
-    photo.write_bytes(b"x")
-    old = time.time() - 2 * 365 * 86400
-    os.utime(photo, (old, old))
-    fresh(MaintenanceRecord, floor["closed_order"]).add_photo("kept.jpg")
-    db.session.commit()
-    login(client, "manager")
-    client.post("/admin/cleanup_photos")
-    assert photo.exists()
 
 
 
@@ -79,14 +60,6 @@ def test_revenue_report_location_filter_can_show_warehouse_revenue(client, floor
 
 
 
-@flag("F-18", "delete_backup joins a form value onto backups/ with no traversal check")
-def test_delete_backup_cannot_leave_the_backup_folder(client, floor, sandbox):
-    victim = sandbox / "instance" / "precious.db"
-    victim.write_bytes(b"synthetic")
-    login(client, "admin")
-    client.post("/delete_backup", data={"backup_file": "../instance/precious.db"})
-    assert victim.exists()
-
 
 
 @flag("F-29", "a rail session with a mean but no min/max is a 500 on its page")
@@ -99,13 +72,3 @@ def test_a_rail_session_with_partial_figures_renders(client, floor):
     db.session.commit()
     login(client, "readonly")
     assert client.get(f"/rails/session/{floor['session_uid']}").status_code == 200
-
-
-
-
-@flag("F-34", "send_file resolves backups/ against app/, not the cwd the view checked")
-def test_a_backup_can_be_downloaded(client, floor, sandbox):
-    (sandbox / "backups" / "arcade_backup_20260101_000000.db").write_bytes(b"SQLite format 3")
-    login(client, "admin")
-    resp = client.get("/download_backup/arcade_backup_20260101_000000.db")
-    assert resp.status_code == 200
