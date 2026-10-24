@@ -1,15 +1,13 @@
 """Games blueprint — CRUD operations, play recording, bulk updates, export."""
 
-import io
-import os
-import json
-import uuid
 import datetime as dt
-from datetime import datetime, date
+import io
+import json
+import os
+from datetime import date, datetime
 
 from flask import (
     Blueprint,
-    abort,
     current_app,
     flash,
     make_response,
@@ -18,15 +16,13 @@ from flask import (
     request,
     url_for,
 )
-from flask_login import login_required
-from werkzeug.utils import secure_filename
+from flask_login import current_user, login_required
 
 from app.extensions import db
-from app.models import Game, MaintenanceRecord, PlayRecord, RailSession
+from app.models import Game, PlayRecord
 from app.services.labels import FORMATS
 from app.utils.decorators import requires_role
 from app.utils.helpers import (
-    allowed_file,
     generate_unique_barcode,
     import_games_from_roster,
 )
@@ -51,109 +47,59 @@ def games_list():
     )
 
 
+def _form_page(game, values, errors, status=200):
+    from app.services.machine_edit import COUNTER_STATUSES, LOCATIONS, STATUSES
+    from app.ui import status_label
+
+    return render_template(
+        "game_form.html", game=game, values=values, errors=errors,
+        location_options=[(x, x) for x in LOCATIONS],
+        status_options=[(x, status_label(x)) for x in STATUSES],
+        counter_options=list(COUNTER_STATUSES.items()),
+        can_set_baseline=game is None or not _has_plays(game),
+    ), status
+
+
+def _has_plays(game) -> bool:
+    from app.services.machine_edit import has_play_history
+
+    return has_play_history(game)
+
+
 @games_bp.route("/add_game", methods=["GET", "POST"])
 @login_required
 @requires_role("operator")
 def add_game():
-    if request.method == "POST":
-        name = request.form["name"]
-        manufacturer = request.form.get("manufacturer", "")
-        year = request.form.get("year")
-        genre = request.form.get("genre", "")
-        location = request.form.get("location", "Warehouse")
-        status = request.form.get("status", "Working")
-        coins_per_play_str = request.form.get("coins_per_play", "0.25")
-        if coins_per_play_str and coins_per_play_str.strip():
-            coins_per_play = float(coins_per_play_str)
-        else:
-            coins_per_play = 0.25
-        counter_status = request.form.get("counter_status", "Working")
-        counter_notes = request.form.get("counter_notes", "")
-        notes = request.form.get("notes", "")
+    from app.services.machine_edit import (
+        apply_machine_values,
+        parse_machine_form,
+        save_machine_image,
+        set_baseline,
+    )
 
-        # Convert year to int if provided
-        if year and year.strip():
-            try:
-                year = int(year)
-            except ValueError:
-                year = None
-        else:
-            year = None
+    if request.method == "GET":
+        return _form_page(None, {"location": "Warehouse", "status": "Working",
+                                 "coins_per_play": 0.25, "counter_status": "Working"}, {})
+    values, errors = parse_machine_form(request.form)
+    image, problem = save_machine_image(request.files.get("image"),
+                                        current_app.config["UPLOAD_FOLDER"])
+    if problem:
+        errors["image"] = problem
+    if errors:
+        return _form_page(None, values, errors, 400)
 
-        # Handle image upload
-        image_filename = None
-        if "image" in request.files:
-            file = request.files["image"]
-            if file and file.filename != "" and allowed_file(file.filename):
-                filename = secure_filename(file.filename)
-                name_part, ext = os.path.splitext(filename)
-                filename = f"{name_part}_{uuid.uuid4().hex[:8]}{ext}"
-
-                os.makedirs(current_app.config["UPLOAD_FOLDER"], exist_ok=True)
-
-                filepath = os.path.join(
-                    current_app.config["UPLOAD_FOLDER"], filename
-                )
-                file.save(filepath)
-                image_filename = filename
-
-        # Assign a stable barcode/QR slug from the name
-        taken_barcodes = {b for (b,) in db.session.query(Game.barcode).all() if b}
-        barcode = generate_unique_barcode(name, taken_barcodes)
-
-        game = Game(
-            name=name,
-            barcode=barcode,
-            manufacturer=manufacturer,
-            year=year,
-            genre=genre,
-            location=location,
-            status=status,
-            coins_per_play=coins_per_play,
-            counter_status=counter_status,
-            counter_notes=counter_notes,
-            notes=notes,
-            image_filename=image_filename,
-        )
-
-        db.session.add(game)
-        db.session.commit()
-
-        # Handle initial coin count if provided and counter is working
-        initial_coin_count = request.form.get("initial_coin_count")
-        if (
-            initial_coin_count
-            and initial_coin_count.strip()
-            and counter_status == "Working"
-        ):
-            try:
-                coin_count = int(initial_coin_count)
-                if coin_count > 0:
-                    initial_record = PlayRecord(
-                        game_id=game.id,
-                        coin_count=coin_count,
-                        plays_count=0,
-                        revenue=0.0,
-                        date_recorded=date.today(),
-                        notes="Initial baseline coin count",
-                    )
-                    db.session.add(initial_record)
-                    db.session.commit()
-            except (ValueError, TypeError):
-                pass
-
-        success_msg = f'Game "{game.name}" added successfully!'
-        if initial_coin_count and initial_coin_count.strip():
-            try:
-                coin_count = int(initial_coin_count)
-                if coin_count > 0:
-                    success_msg += f" (Baseline: {coin_count} coins)"
-            except (ValueError, TypeError):
-                pass
-        flash(success_msg, "success")
-        return redirect(url_for("games.games_list"))
-
-    return render_template("add_game.html")
+    taken = {b for (b,) in db.session.query(Game.barcode).all() if b}
+    game = Game(barcode=generate_unique_barcode(values["name"], taken), image_filename=image)
+    apply_machine_values(game, values)
+    db.session.add(game)
+    db.session.flush()
+    message = f'Added "{game.name}".'
+    if values["initial_coin_count"] is not None and game.counter_status == "Working":
+        set_baseline(game, values["initial_coin_count"], "Initial baseline coin count")
+        message += f" Starting meter reading: {values['initial_coin_count']:,}."
+    db.session.commit()
+    flash(message, "success")
+    return redirect(url_for("games.game_detail", game_id=game.id))
 
 
 @games_bp.route("/game/<int:game_id>")
@@ -192,202 +138,72 @@ def game_image(filename):
 @login_required
 @requires_role("operator")
 def edit_game(game_id):
-    game = Game.query.get_or_404(game_id)
-
-    # Check if game has any play records beyond baseline
-    all_records = PlayRecord.query.filter_by(game_id=game_id).all()
-    has_play_records = len(all_records) > 1 or (
-        len(all_records) == 1 and all_records[0].plays_count > 0
+    from app.services.machine_edit import (
+        GAME_FIELDS,
+        apply_machine_values,
+        has_play_history,
+        parse_machine_form,
+        save_machine_image,
+        set_baseline,
     )
 
-    if request.method == "POST":
-        game.name = request.form["name"]
-        game.manufacturer = request.form.get("manufacturer", "")
-        year = request.form.get("year")
-        game.year = int(year) if year and year.strip() else None
-        game.genre = request.form.get("genre", "")
-        game.location = request.form.get("location", "Warehouse")
-        game.floor_position = request.form.get("floor_position", "")
-        game.warehouse_section = request.form.get("warehouse_section", "")
-        game.status = request.form.get("status", "Working")
-        coins_per_play_str = request.form.get("coins_per_play", "0.25")
-        if coins_per_play_str and coins_per_play_str.strip():
-            game.coins_per_play = float(coins_per_play_str)
-        else:
-            game.coins_per_play = 0.25
-        game.counter_status = request.form.get("counter_status", "Working")
-        game.counter_notes = request.form.get("counter_notes", "")
-        game.notes = request.form.get("notes", "")
+    game = db.get_or_404(Game, game_id)
+    if request.method == "GET":
+        return _form_page(game, {k: getattr(game, k) for k in GAME_FIELDS}, {})
 
-        # Handle new image upload
-        if "image" in request.files:
-            file = request.files["image"]
-            if file and file.filename != "" and allowed_file(file.filename):
-                filename = secure_filename(file.filename)
-                name_part, ext = os.path.splitext(filename)
-                filename = f"{name_part}_{uuid.uuid4().hex[:8]}{ext}"
+    values, errors = parse_machine_form(request.form)
+    image, problem = save_machine_image(request.files.get("image"),
+                                        current_app.config["UPLOAD_FOLDER"])
+    if problem:
+        errors["image"] = problem
+    if errors:
+        return _form_page(game, values, errors, 400)
 
-                os.makedirs(current_app.config["UPLOAD_FOLDER"], exist_ok=True)
-
-                filepath = os.path.join(
-                    current_app.config["UPLOAD_FOLDER"], filename
-                )
-                file.save(filepath)
-
-                # Remove old image if it exists
-                if game.image_filename:
-                    old_path = os.path.join(
-                        current_app.config["UPLOAD_FOLDER"],
-                        game.image_filename,
-                    )
-                    if os.path.exists(old_path):
-                        os.remove(old_path)
-
-                game.image_filename = filename
-
-        # Handle initial coin count if provided and no actual play records exist
-        if not has_play_records:
-            initial_coin_count = request.form.get("initial_coin_count")
-            if initial_coin_count and initial_coin_count.strip():
-                try:
-                    coin_count = int(initial_coin_count)
-                    if coin_count >= 0:
-                        existing_baseline = None
-                        if (
-                            len(all_records) == 1
-                            and all_records[0].plays_count == 0
-                        ):
-                            existing_baseline = all_records[0]
-
-                        if existing_baseline:
-                            existing_baseline.coin_count = coin_count
-                            existing_baseline.date_recorded = date.today()
-                            existing_baseline.notes = (
-                                "Updated baseline coin count (via edit)"
-                            )
-                        else:
-                            initial_record = PlayRecord(
-                                game_id=game_id,
-                                coin_count=coin_count,
-                                plays_count=0,
-                                revenue=0.0,
-                                date_recorded=date.today(),
-                                notes="Initial baseline coin count (added via edit)",
-                            )
-                            db.session.add(initial_record)
-                except (ValueError, TypeError):
-                    pass
-
-        db.session.commit()
-
-        success_msg = f'Game "{game.name}" updated successfully!'
-        if not has_play_records:
-            initial_coin_count = request.form.get("initial_coin_count")
-            if initial_coin_count and initial_coin_count.strip():
-                try:
-                    coin_count = int(initial_coin_count)
-                    if coin_count >= 0:
-                        action = (
-                            "Updated"
-                            if (
-                                len(all_records) == 1
-                                and all_records[0].plays_count == 0
-                            )
-                            else "Set"
-                        )
-                        success_msg += (
-                            f" ({action} baseline: {coin_count} coins)"
-                        )
-                except (ValueError, TypeError):
-                    pass
-
-        flash(success_msg, "success")
-        return redirect(url_for("games.game_detail", game_id=game_id))
-
-    return render_template(
-        "edit_game.html", game=game, has_play_records=has_play_records
-    )
+    apply_machine_values(game, values)
+    message = f'Saved "{game.name}".'
+    if image:
+        old = game.image_filename
+        game.image_filename = image
+        if old and os.path.basename(old) == old:
+            try:
+                os.remove(os.path.join(current_app.config["UPLOAD_FOLDER"], old))
+            except OSError:
+                pass
+    if values["initial_coin_count"] is not None and not has_play_history(game):
+        action = set_baseline(game, values["initial_coin_count"],
+                              "Baseline coin count (set via edit)")
+        message += f" {action} the starting meter reading: {values['initial_coin_count']:,}."
+    db.session.commit()
+    flash(message, "success")
+    return redirect(url_for("games.game_detail", game_id=game.id))
 
 
 @games_bp.route("/record_plays/<int:game_id>", methods=["GET", "POST"])
 @login_required
 @requires_role("operator")
 def record_plays(game_id):
-    game = Game.query.get_or_404(game_id)
+    from app.services.machine_edit import last_coin_count, parse_reading, record_reading
 
-    # Check if counter is working
+    game = db.get_or_404(Game, game_id)
     if game.counter_status != "Working":
-        flash(
-            f'Cannot record plays for "{game.name}" - Counter status: '
-            f'{game.counter_status.replace("_", " ")}',
-            "error",
-        )
-        return redirect(url_for("games.game_detail", game_id=game_id))
+        state = game.counter_status.replace("_", " ").lower()
+        flash(f"Plays can't be recorded for \"{game.name}\": its counter is {state}.",
+              "error")
+        return redirect(url_for("games.game_detail", game_id=game.id))
 
-    # Get the most recent coin count for this game
-    last_record = (
-        PlayRecord.query.filter_by(game_id=game_id)
-        .order_by(PlayRecord.date_recorded.desc())
-        .first()
-    )
-    last_coin_count = last_record.coin_count if last_record else 0
-
-    if request.method == "POST":
-        try:
-            current_coin_count = int(request.form["coin_count"])
-        except (ValueError, KeyError):
-            flash("Error: Invalid coin count value", "error")
-            return render_template(
-                "record_plays.html", game=game, last_coin_count=last_coin_count
-            )
-        record_date = datetime.strptime(
-            request.form["date"], "%Y-%m-%d"
-        ).date()
-        notes = request.form.get("notes", "")
-
-        # Validate coin count is not less than previous
-        if current_coin_count < last_coin_count:
-            flash(
-                f"Error: Coin count ({current_coin_count}) cannot be less than "
-                f"the previous reading ({last_coin_count})",
-                "error",
-            )
-            return render_template(
-                "record_plays.html", game=game, last_coin_count=last_coin_count
-            )
-
-        # Calculate plays from difference
-        new_plays = current_coin_count - last_coin_count
-
-        # Calculate revenue
-        revenue = new_plays * game.coins_per_play
-
-        # Create play record
-        play_record = PlayRecord(
-            game_id=game_id,
-            coin_count=current_coin_count,
-            plays_count=new_plays,
-            revenue=revenue,
-            date_recorded=record_date,
-            notes=notes,
-        )
-        db.session.add(play_record)
-
-        # Update totals
-        game.total_plays += new_plays
-        game.total_revenue += revenue
-        db.session.commit()
-
-        flash(
-            f'Recorded {new_plays} plays (${revenue:.2f}) for "{game.name}" '
-            f"- Coin count: {current_coin_count}",
-            "success",
-        )
-        return redirect(url_for("games.game_detail", game_id=game_id))
-
-    return render_template(
-        "record_plays.html", game=game, last_coin_count=last_coin_count
-    )
+    last = last_coin_count(game)
+    if request.method == "GET":
+        return render_template("record_plays.html", game=game, last_coin_count=last,
+                               values={}, errors={})
+    reading, errors = parse_reading(request.form, last)
+    if errors:
+        return render_template("record_plays.html", game=game, last_coin_count=last,
+                               values=request.form, errors=errors), 400
+    record = record_reading(game, reading, last)
+    db.session.commit()
+    flash(f'Recorded {record.plays_count:,} plays (${record.revenue:.2f}) for "{game.name}". '
+          f"Meter: {record.coin_count:,}.", "success")
+    return redirect(url_for("games.game_detail", game_id=game.id))
 
 
 @games_bp.route("/delete_play_record/<int:record_id>", methods=["POST"])
@@ -463,34 +279,19 @@ def add_baseline(game_id):
 @login_required
 @requires_role("admin")
 def delete_game(game_id):
-    """Delete a game and all associated records."""
-    game = Game.query.get_or_404(game_id)
+    """Delete a machine with its play records and work orders (F-10: nothing left dangling)."""
+    from app.security.utils import log_security_event
+    from app.services.machine_edit import delete_machine
 
-    try:
-        PlayRecord.query.filter_by(game_id=game_id).delete()
-        MaintenanceRecord.query.filter_by(game_id=game_id).delete()
-
-        # Delete the game image if it exists
-        if game.image_filename:
-            image_path = os.path.join(
-                current_app.config["UPLOAD_FOLDER"], game.image_filename
-            )
-            if os.path.exists(image_path):
-                os.remove(image_path)
-
-        game_name = game.name
-        db.session.delete(game)
-        db.session.commit()
-
-        flash(
-            f'Game "{game_name}" and all associated records have been '
-            f"deleted successfully.",
-            "success",
-        )
-    except Exception as e:
-        db.session.rollback()
-        flash(f"Error deleting game: {str(e)}", "error")
-
+    game = db.get_or_404(Game, game_id)
+    name = game.name
+    counts = delete_machine(game, current_app.config["UPLOAD_FOLDER"],
+                            current_app.static_folder)
+    db.session.commit()
+    log_security_event("MACHINE_DELETED", user_id=current_user.id,
+                       details=f"{name} (id={game_id}): {counts}", level="warning")
+    flash(f'Deleted "{name}" with {counts["orders"]} work order(s) and {counts["plays"]} '
+          "play record(s).", "success")
     return redirect(url_for("games.games_list"))
 
 
@@ -654,7 +455,16 @@ def import_games():
 @games_bp.route("/scan")
 @login_required
 def scan():
-    """Kiosk page: a focused input a USB HID barcode scanner types into."""
+    """Kiosk page: a focused input a USB HID barcode scanner types into.
+
+    The form submits here (GET ?code=); a bare code or a whole label URL both land on that
+    machine's /g/ address. No script needed, so it works on any browser at the bench.
+    """
+    raw = (request.args.get("code") or "").strip()
+    if raw:
+        code = raw.rstrip("/").rsplit("/", 1)[-1]
+        if code:
+            return redirect(url_for("games.resolve_barcode", code=code))
     return render_template("scan.html")
 
 

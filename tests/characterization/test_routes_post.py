@@ -246,8 +246,9 @@ class TestGames:
             "name": "Neon Raider", "manufacturer": "Clone Co", "year": "1990",
             "location": "Floor", "status": "Working", "coins_per_play": "0.75",
             "counter_status": "Working", "initial_coin_count": "500"})
-        assert resp.headers["Location"] == "/games"
         game = Game.query.filter_by(manufacturer="Clone Co").one()
+        # Since 4.8a it lands on the new machine's page (where its label is printed).
+        assert resp.headers["Location"] == f"/game/{game.id}"
         assert game.barcode == "neon-raider-2"  # the first Neon Raider owns the plain slug
         base = PlayRecord.query.filter_by(game_id=game.id).one()
         assert (base.coin_count, base.plays_count, base.revenue) == (500, 0, 0.0)
@@ -281,8 +282,8 @@ class TestGames:
         login(client, "operator")
         resp = client.post(f"/record_plays/{floor['raider']}",
                            data={"coin_count": "120", "date": "2026-10-01"})
-        assert resp.status_code == 200
-        assert "cannot be less than" in resp.get_data(as_text=True)
+        assert resp.status_code == 400  # shown again with the error on the field, 4.8a
+        assert "can&#39;t go backwards" in resp.get_data(as_text=True)
         assert PlayRecord.query.filter_by(game_id=floor["raider"]).count() == 2
 
     def test_record_plays_is_refused_when_the_counter_is_broken(self, client, floor):

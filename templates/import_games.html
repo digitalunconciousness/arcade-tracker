@@ -1,34 +1,22 @@
-{% extends "base.html" %}
+{% extends "layout.html" %}
+{% import "ui.html" as ui %}
+{% block title %}Import the roster{% endblock %}
 
-{% block title %}Import Games{% endblock %}
+{% block page_head %}
+{{ ui.page_head("Import the roster", sub="Add machines from a barcade-roster JSON file", back=url_for("games.games_list"), back_label="Machines") }}
+{% endblock %}
 
 {% block content %}
-<div class="container">
-    <div class="page-header">
-        <h1>Import Games from JSON</h1>
-        <a href="{{ url_for('games.games_list') }}" class="btn btn-secondary">Back to Games</a>
+<div class="stack">
+  <p>The file needs <code>video_games</code>, <code>pinball</code> or <code>retired</code> lists. Machines are matched by name, so importing the same file again adds nothing twice; only new machines are added.</p>
+  <form class="form" method="post" enctype="multipart/form-data" action="{{ url_for('games.import_games') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="field">
+      <label for="file">Roster file <span class="field__req" aria-hidden="true">*</span><span class="visually-hidden"> (required)</span></label>
+      <input id="file" name="file" type="file" accept=".json,application/json" required>
     </div>
-
-    <div class="filters" style="max-width: 640px;">
-        <p style="margin-bottom: 16px;">
-            Upload a barcade-roster JSON file (with <code>video_games</code>,
-            <code>pinball</code>, and/or <code>retired</code> arrays). Games are matched
-            by name, so re-uploading the same file will <strong>not</strong> create
-            duplicates &mdash; only new machines are added.
-        </p>
-
-        <form method="POST" action="{{ url_for('games.import_games') }}" enctype="multipart/form-data">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-            <div class="filter-row">
-                <input type="file" name="file" accept=".json,application/json" required class="form-control">
-                <button type="submit" class="btn btn-primary">Import</button>
-            </div>
-        </form>
-
-        <p style="margin-top: 16px; opacity: 0.8; font-size: 0.9em;">
-            Imported machines default to <strong>Floor</strong> (retired entries go to
-            Warehouse), and each gets a stable QR/label code generated from its name.
-        </p>
-    </div>
+    <div class="form__actions"><button class="btn btn--primary" type="submit">Import</button></div>
+  </form>
+  <p class="dim">New machines go on the Floor (retired ones to the Warehouse), and each gets a label ID made from its name.</p>
 </div>
 {% endblock %}

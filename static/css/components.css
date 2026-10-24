@@ -1242,3 +1242,10 @@ legend {
 .meter::-moz-meter-bar {
   border-radius: var(--r-pill);
 }
+
+/* Scan page: one big box a USB scanner types into */
+.scan__box {
+  min-height: 56px;
+  font-size: var(--fs-lg);
+  letter-spacing: 0.04em;
+}

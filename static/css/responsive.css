@@ -23,20 +23,7 @@ html, body {
         width: 100% !important;
         max-width: 100% !important;
     }
-    
-    .page-header {
-        padding: 15px 0 !important;
-        margin-bottom: 15px !important;
-    }
-    
-    .page-header h1 {
-        font-size: 24px !important;
-        margin-bottom: 10px !important;
-    }
-    
-    .page-header p {
-        font-size: 14px !important;
-    }
+
 }
 
 /* ================================================
@@ -105,8 +92,7 @@ html, body {
    ================================================ */
 
 @media (max-width: 968px) {
-    
-    
+
     /* Let tables scroll naturally - DON'T change display */
     table, .table {
         width: 100%;
@@ -126,14 +112,7 @@ html, body {
    ================================================ */
 
 @media (max-width: 768px) {
-    input[type="text"],
-    input[type="password"],
-    input[type="email"],
-    input[type="number"],
-    input[type="date"],
-    select,
-    textarea,
-    .form-control {
+    input[type="text"], input[type="password"], input[type="email"], input[type="number"], input[type="date"], select, textarea {
         font-size: 16px !important;
         width: 100% !important;
     }
@@ -149,11 +128,7 @@ html, body {
     }
     
     /* Full width buttons - EXCEPT table buttons */
-    .btn:not(table .btn):not(.table .btn):not(td .btn),
-    .btn-primary:not(table .btn-primary):not(td .btn-primary),
-    .btn-secondary:not(table .btn-secondary):not(td .btn-secondary),
-    button[type="submit"]:not(table button):not(td button),
-    input[type="submit"]:not(table input):not(td input) {
+    .btn:not(table .btn):not(.table .btn):not(td .btn), button[type="submit"]:not(table button):not(td button), input[type="submit"]:not(table input):not(td input) {
         width: 100% !important;
         margin-bottom: 10px !important;
         padding: 12px !important;
@@ -188,8 +163,7 @@ html, body {
    ================================================ */
 
 @media (max-width: 768px) {
-    
-    
+
     .card {
         width: 100% !important;
         margin-bottom: 15px !important;
@@ -201,8 +175,7 @@ html, body {
    ================================================ */
 
 @media (max-width: 768px) {
-    
-    
+
     #installPrompt {
         bottom: 85px !important;
         width: 90% !important;
@@ -293,32 +266,15 @@ html, body {
     }
     
     /* Hide checkbox column on mobile */
-    
-    
+
     /* Specific column widths for games list */
-    
-    
-    
-    
-    
-    
-    
+
     /* Hide emojis on mobile */
-    .page-header h1::before {
-        content: '' !important;
-        display: none !important;
-    }
-    
+
     /* Remove emoji text content via filter */
-    
-    
+
     /* Compact game names */
-    
-    
-    
-    
-    
-    
+
     /* Compact action buttons - same style for both tables */
     table .btn, table button, td .btn, td button, td a.btn {
         display: block !important;
@@ -337,35 +293,11 @@ html, body {
     }
     
     /* Hide bulk actions on mobile - too cramped */
-    
-    
+
     /* Make filter inputs stack */
-    .filter-row {
-        flex-direction: column !important;
-        gap: 8px !important;
-    }
-    
-    .filter-row .form-control,
-    .filter-row .btn-secondary {
-        width: 100% !important;
-    }
-    
+
     /* Compact page header */
-    .page-header {
-        flex-direction: column !important;
-        align-items: flex-start !important;
-        gap: 10px !important;
-    }
-    
-    .page-header h1 {
-        font-size: 20px !important;
-    }
-    
-    .btn-primary {
-        width: 100% !important;
-        padding: 10px !important;
-    }
-    
+
     /* Tab buttons for maintenance orders */
     button[onclick^="showTab"] {
         width: 100% !important;

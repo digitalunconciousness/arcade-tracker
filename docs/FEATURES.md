@@ -281,12 +281,15 @@ anything is changed.
 - **F-10 Deleting a game orphans rows.** G8 uses bulk `query.delete()`, which skips the ORM cascades, so the
   work logs, session tags, part usage and requests of those orders are left orphaned or hit FK errors on
   PostgreSQL. Deleting a user with history (X1) likely fails the same way. *The user half is fixed in
-  4.7b: a user with work on record can be deactivated, not deleted.*
+  4.7b: a user with work on record can be deactivated, not deleted. The machine half is fixed in 4.8a:
+  deleting a machine removes its orders with their logs, tags and part usage, unlinks their requests,
+  and keeps the rail sessions with no machine.*
 - **F-11 The backups page can't back up production.** *Since 4.7c the page says so on PostgreSQL, turns
   Create and Restore off, and lists the deploy dumps; in-app PostgreSQL backups are still to come.* X5–X9 are SQLite-only (`arcade.db`), but production
   is PostgreSQL (`deploy/RUNBOOK.md` uses `pg_dump`). The page shows nothing useful and "Create backup" fails
   or backs up a stale file. `scripts/daily_backup.sh` has the same problem.
-- **F-12 The 500 errors I can see:** *The work-order PDFs escape user text since 4.4.*
+- **F-12 The 500 errors I can see:** *The work-order PDFs escape user text since 4.4; G4 and G5 explain bad
+  years, dates and readings on the form since 4.8a.*
   - G5 with a bad or empty `date` field.
   - G4 with a non-numeric year.
   - The PDF exports when a description contains text that looks like a ReportLab tag, such as an
@@ -335,7 +338,8 @@ anything is changed.
   user, and there is no IP rate limit on `/login`. Info-level security events (`LOGIN_SUCCESS`,
   `LOGIN_FAILED`) are dropped because the app logger stays at WARNING (see F-2 for why).
 - **F-24 Uploads are checked by extension only.** Pillow re-encoding is the real check, but its failure is
-  ignored (F-8). There's no size check per file, only the 50 MB request cap.
+  ignored (F-8). There's no size check per file, only the 50 MB request cap. *Since 4.8a machine photos are
+  re-encoded as JPEG and a file Pillow can't read is refused.*
 
 ### Unreachable or unclear
 

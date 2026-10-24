@@ -21,29 +21,7 @@ def flag(code: str, why: str):
 
 
 
-@flag("F-10", "deleting a game bulk-deletes its orders and orphans their work logs")
-def test_deleting_a_game_leaves_no_orphaned_work_logs(client, floor, sandbox):
-    from app.models import WorkLog
 
-    login(client, "admin")
-    client.post(f"/delete_game/{floor['raider']}")
-    assert WorkLog.query.filter_by(maintenance_id=floor["open_order"]).count() == 0
-
-
-@flag("F-12", "a missing or malformed date on record_plays is a 500")
-def test_record_plays_with_a_bad_date_explains_itself(client, floor):
-    login(client, "operator")
-    resp = client.post(f"/record_plays/{floor['raider']}",
-                       data={"coin_count": "150", "date": "yesterday"})
-    assert resp.status_code in (200, 302)
-
-
-@flag("F-12", "a non-numeric year on edit_game is a 500")
-def test_edit_game_with_a_bad_year_explains_itself(client, floor, sandbox):
-    login(client, "operator")
-    resp = client.post(f"/edit_game/{floor['raider']}", data={"name": "Neon Raider",
-                                                             "year": "eighty-seven"})
-    assert resp.status_code in (200, 302)
 
 
 @flag("F-15", "the location filter is ANDed with Floor-only, so any other location is empty")

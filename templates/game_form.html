@@ -1,0 +1,107 @@
+{% extends "layout.html" %}
+{% import "ui.html" as ui %}
+{% block title %}{{ "Edit " ~ game.name if game else "Add a machine" }}{% endblock %}
+
+{% block page_head %}
+{% if game %}
+{{ ui.page_head("Edit " ~ game.name, back=url_for("games.game_detail", game_id=game.id), back_label=game.name) }}
+{% else %}
+{{ ui.page_head("Add a machine", back=url_for("games.games_list"), back_label="Machines") }}
+{% endif %}
+{% endblock %}
+
+{#- Small helpers: a text-like input and a select, each with its error. -#}
+{% macro err(name) -%}
+{%- if errors.get(name) %}<span class="field__error" id="{{ name }}-error">{{ errors[name] }}</span>{% endif %}
+{%- endmacro %}
+{% macro inv(name) -%}
+{%- if errors.get(name) %} aria-invalid="true" aria-describedby="{{ name }}-error"{% endif %}
+{%- endmacro %}
+{% macro text(name, label, placeholder="", type="text", help=none) -%}
+{%- set v = values.get(name) %}
+<div class="field{% if errors.get(name) %} is-invalid{% endif %}">
+  <label for="{{ name }}">{{ label }}</label>
+  <input id="{{ name }}" name="{{ name }}" type="{{ type }}" value="{{ v if v is not none else '' }}"{% if placeholder %} placeholder="{{ placeholder }}"{% endif %}{% if type == "number" %} inputmode="decimal"{% endif %}{{ inv(name) }}>
+  {%- if help %}<span class="field__help">{{ help }}</span>{% endif %}
+  {{ err(name) }}
+</div>
+{%- endmacro %}
+{% macro choose(name, label, options) -%}
+<div class="field{% if errors.get(name) %} is-invalid{% endif %}">
+  <label for="{{ name }}">{{ label }}</label>
+  <select id="{{ name }}" name="{{ name }}"{{ inv(name) }}>
+    {%- for value, shown in options %}<option value="{{ value }}"{% if values.get(name) == value %} selected{% endif %}>{{ shown }}</option>{% endfor %}
+  </select>
+  {{ err(name) }}
+</div>
+{%- endmacro %}
+{% macro area(name, label, placeholder="") -%}
+<div class="field">
+  <label for="{{ name }}">{{ label }}</label>
+  <textarea id="{{ name }}" name="{{ name }}" rows="3"{% if placeholder %} placeholder="{{ placeholder }}"{% endif %}>{{ values.get(name) or "" }}</textarea>
+</div>
+{%- endmacro %}
+
+{% block content %}
+<form class="form" method="post" enctype="multipart/form-data" novalidate>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {%- if errors %}
+  <div class="banners" role="alert"><div class="banner is-fault"><div class="banner__body"><span class="banner__title">Nothing was saved</span><p>Fix the fields marked below.</p></div></div></div>
+  {%- endif %}
+
+  <fieldset class="stack">
+    <legend>The machine</legend>
+    <div class="field{% if errors.name %} is-invalid{% endif %}">
+      <label for="name">Name <span class="field__req" aria-hidden="true">*</span><span class="visually-hidden"> (required)</span></label>
+      <input id="name" name="name" maxlength="100" value="{{ values.get('name') or '' }}" autocomplete="off"{{ inv("name") }}>
+      {%- if not game %}<span class="field__help">Its label ID is made from the name and never changes, so printed labels keep working.</span>{% endif %}
+      {{ err("name") }}
+    </div>
+    <div class="field-row">
+      {{ text("manufacturer", "Manufacturer", "e.g. Namco") }}
+      {{ text("year", "Year", "e.g. 1981", "number") }}
+      {{ text("genre", "Genre", "e.g. Maze") }}
+    </div>
+  </fieldset>
+
+  <fieldset class="stack">
+    <legend>Where it is, and how it's doing</legend>
+    <div class="field-row">
+      {{ choose("location", "Location", location_options) }}
+      {{ choose("status", "Status", status_options) }}
+    </div>
+    <div class="field-row">
+      {{ text("floor_position", "Spot on the floor", "e.g. by the bar") }}
+      {{ text("warehouse_section", "Warehouse section", "e.g. Bay 3") }}
+    </div>
+  </fieldset>
+
+  <fieldset class="stack">
+    <legend>Coins</legend>
+    <div class="field-row">
+      {{ text("coins_per_play", "Price per play ($)", "0.25", "number") }}
+      {{ choose("counter_status", "Coin counter", counter_options) }}
+    </div>
+    {%- if can_set_baseline %}
+    {{ text("initial_coin_count", "Coin meter reading now", "e.g. 104233", "number", "Optional. The starting point for counting plays; only while the machine has no plays recorded.") }}
+    {%- endif %}
+    {{ area("counter_notes", "Counter notes") }}
+  </fieldset>
+
+  <fieldset class="stack">
+    <legend>Photo and notes</legend>
+    <div class="field{% if errors.image %} is-invalid{% endif %}">
+      <label for="image">{{ "Replace the photo" if game and game.image_filename else "Cabinet photo" }}</label>
+      <input id="image" name="image" type="file" accept="image/png,image/jpeg,image/gif"{{ inv("image") }}>
+      <span class="field__help">PNG, JPG or GIF. Saved as a resized JPEG.</span>
+      {{ err("image") }}
+    </div>
+    {{ area("notes", "Notes") }}
+  </fieldset>
+
+  <div class="form__actions">
+    <button class="btn btn--primary" type="submit">{{ "Save machine" if game else "Add machine" }}</button>
+    <a class="btn btn--ghost" href="{{ url_for('games.game_detail', game_id=game.id) if game else url_for('games.games_list') }}">Cancel</a>
+  </div>
+</form>
+{% endblock %}
