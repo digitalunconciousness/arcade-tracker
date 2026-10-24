@@ -72,3 +72,65 @@ def test_the_hub_reaches_every_report_without_script(client, floor):
     assert 'action="/revenue_reports"' in html and 'action="/maintenance_reports"' in html
     assert 'formaction="/export_maintenance_report"' in html
     assert 'href="/graphs"' in html
+
+
+# --- graphs and the maintenance report (4.8c, part 2) ---------------------------------------
+
+def test_a_machine_name_with_an_apostrophe_reaches_the_chart_intact(client, floor):
+    """The page used to build JS strings from names; an apostrophe ended the string."""
+    import json
+
+    from app.extensions import db
+    from app.models import Game
+
+    game = db.session.get(Game, floor["raider"])
+    game.name = "Rock 'n' Roller"
+    db.session.commit()
+    login(client, "manager")
+    html = client.get("/graphs").get_data(as_text=True)
+    island = re.search(r'<script type="application/json" id="top-data">(.*?)</script>', html, re.DOTALL)
+    assert "Rock 'n' Roller" in json.loads(island.group(1))["labels"]
+
+
+def test_status_slices_keep_the_colour_of_their_chips(client, floor):
+    import json
+
+    login(client, "manager")
+    html = client.get("/graphs").get_data(as_text=True)
+    data = json.loads(re.search(
+        r'<script type="application/json" id="status-data">(.*?)</script>', html, re.DOTALL).group(1))
+    assert len(data["labels"]) == len(data["values"]) == len(data["tones"])
+    assert set(data["tones"]) <= {"ok", "warn", "fault", "info", "muted"}
+
+
+@pytest.mark.parametrize(("view", "shown", "hidden"), [
+    ("open", "Joystick drifts left", "Coin mech jammed"),
+    ("closed", "Coin mech jammed", "Joystick drifts left"),
+])
+def test_the_maintenance_tabs_are_links(client, floor, view, shown, hidden):
+    login(client, "manager")
+    html = client.get(f"/maintenance_reports?days=30&view={view}").get_data(as_text=True)
+    assert shown in html and hidden not in html
+    assert f'view={view}" aria-current="page"' in html
+
+
+def test_an_unknown_view_falls_back_to_the_summary(client, floor):
+    login(client, "manager")
+    assert client.get("/maintenance_reports?view=%3Cx%3E").status_code == 200
+
+
+def test_the_report_tables_sort_without_inline_handlers(client, floor):
+    login(client, "manager")
+    html = client.get("/maintenance_reports?view=all").get_data(as_text=True)
+    assert "data-sortable" in html and 'data-sort="num"' in html
+
+
+@pytest.mark.parametrize("path", ["/graphs", "/maintenance_reports",
+                                  "/maintenance_reports?view=all"])
+def test_graphs_and_maintenance_run_no_inline_script(client, floor, path):
+    login(client, "manager")
+    html = client.get(path).get_data(as_text=True)
+    inline = [m for m in re.findall(r"<script(?![^>]*\bsrc=)([^>]*)>", html)
+              if 'type="application/json"' not in m]
+    assert not inline
+    assert not re.search(r"\son[a-z]+=", html)

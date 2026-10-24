@@ -793,6 +793,37 @@ legend {
 /* =========================================================================================
    Tabs (links between filtered views; no JS needed)
    ========================================================================================= */
+/* Sortable table headings (static/js/ui.js). The button inherits the heading's look. */
+.table th .sort {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  display: inline-flex;
+  gap: 0.3em;
+  cursor: pointer;
+}
+.table th .sort::after {
+  content: "↕";
+  opacity: 0.5;
+}
+.table th[aria-sort="ascending"] .sort::after {
+  content: "↑";
+  opacity: 1;
+}
+.table th[aria-sort="descending"] .sort::after {
+  content: "↓";
+  opacity: 1;
+}
+.table th .sort:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
 .tabs {
   display: flex;
   gap: var(--sp-1);
@@ -900,7 +931,7 @@ legend {
 }
 /* Two panels side by side when there is room; unlike .grid, they share the width. */
 .grid--pair {
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
 }
 
 /* A short ranked list: the reports page's best and lowest earners. */

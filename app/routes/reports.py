@@ -26,6 +26,7 @@ from app.models import (
 )
 from app.services.rankings import update_monthly_rankings_if_due
 from app.services.revenue import location_options, scope_label, scoped, series
+from app.ui import status_label, status_tone
 from app.utils.decorators import requires_role
 
 reports_bp = Blueprint("reports", __name__)
@@ -237,6 +238,15 @@ def graphs():
         top_performers=top_performers,
         status_distribution=status_distribution,
         location_distribution=location_distribution,
+        # JSON islands, so a machine name with an apostrophe can't break the script.
+        daily_chart=series(daily_revenue),
+        top_chart={"labels": [p["game"].name for p in top_performers[:8]],
+                   "values": [round(p["daily_revenue"], 2) for p in top_performers[:8]]},
+        status_chart={"labels": [status_label(k) for k in status_distribution],
+                      "values": list(status_distribution.values()),
+                      "tones": [status_tone(k) for k in status_distribution]},
+        location_chart={"labels": [k or "Unknown" for k in location_distribution],
+                        "values": list(location_distribution.values())},
     )
 
 
