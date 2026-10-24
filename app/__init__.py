@@ -7,12 +7,13 @@ Flask application instance.
 from __future__ import annotations
 
 import os
-import uuid
 
 from dotenv import load_dotenv
 from flask import Flask, Response, request
 
 from app.extensions import csrf, db, limiter, login_manager, migrate
+
+PLACEHOLDER_SECRET = "your-secret-key-change-this-for-production"  # .env.example's value
 
 
 def create_app() -> Flask:
@@ -43,6 +44,9 @@ def create_app() -> Flask:
     _register_error_handlers(app)
     _register_after_request(app)
 
+    from app.security.https import HttpsAware
+
+    app.wsgi_app = HttpsAware(app.wsgi_app)
     return app
 
 
@@ -56,10 +60,15 @@ def _configure_app(app: Flask) -> None:
     instance_folder = os.path.join(base_dir, "instance")
 
     # Secret key ---------------------------------------------------
-    secret_key = os.environ.get("SECRET_KEY")
-    if not secret_key or secret_key == "your-secret-key-change-this-for-production":
-        print("WARNING: Using temporary SECRET_KEY. Set SECRET_KEY environment variable!")
-        secret_key = "dev-secret-key-" + str(uuid.uuid4())
+    # F-22: a missing key used to become a random one per start, which signed everyone out
+    # on every restart. Production's .env sets it (deploy/RUNBOOK.md); refuse without it.
+    secret_key = os.environ.get("SECRET_KEY", "").strip()
+    if not secret_key or secret_key == PLACEHOLDER_SECRET:
+        raise RuntimeError(
+            "SECRET_KEY is not set. Put one in .env, for example the output of\n"
+            "  python -c \"import secrets; print(secrets.token_hex(32))\"\n"
+            "Keep it: changing it signs everyone out."
+        )
     app.config["SECRET_KEY"] = secret_key
 
     # Database -----------------------------------------------------
@@ -90,8 +99,11 @@ def _configure_app(app: Flask) -> None:
 
     app.config["REMEMBER_COOKIE_DURATION"] = dt.timedelta(days=30)
     app.config["PERMANENT_SESSION_LIFETIME"] = dt.timedelta(days=30)
+    # Secure is added per request by app.security.https.HttpsAware, so the cookies are
+    # Secure through the tunnel and still work over plain HTTP on the LAN (F-22).
     app.config["REMEMBER_COOKIE_SECURE"] = False
     app.config["REMEMBER_COOKIE_HTTPONLY"] = True
+    app.config["REMEMBER_COOKIE_SAMESITE"] = "Lax"
     app.config["REMEMBER_COOKIE_REFRESH_EACH_REQUEST"] = False
     app.config["SESSION_COOKIE_SECURE"] = False
     app.config["SESSION_COOKIE_HTTPONLY"] = True
@@ -162,6 +174,7 @@ def _register_blueprints(app: Flask) -> None:
 def _register_context_processors(app: Flask) -> None:
     """Register Jinja2 context processors for global template helpers."""
     from datetime import date as _date
+
     from flask import url_for as _url_for
 
     from app.ui import register as register_ui_filters

@@ -19,6 +19,30 @@ It backs the database up with `pg_dump` before touching anything, refuses to
 continue if the dump is too small to restore from, and stops at the first
 failure. If the health check fails it prints the exact rollback commands.
 
+## One-time: Secure cookies through the tunnel (Step 5.1)
+
+The app now refuses to start without `SECRET_KEY`, and marks its cookies `Secure` on HTTPS
+requests. waitress only tells it a tunnel request was HTTPS once the unit file trusts
+loopback, and `deploy.sh` does not install the unit file, so do this once:
+
+```bash
+# 1. Before deploying: the key must be there, or the new code won't start.
+grep -q '^SECRET_KEY=.' /opt/arcade-tracker/.env && echo "SECRET_KEY ok"
+
+# 2. Deploy as usual.
+/opt/arcade-tracker/deploy/deploy.sh
+
+# 3. Install the new unit (it adds --trusted-proxy=127.0.0.1) and restart.
+cp /opt/arcade-tracker/arcade-tracker.service /etc/systemd/system/arcade-tracker.service
+systemctl daemon-reload && systemctl restart arcade-tracker
+
+# 4. Check: through the tunnel the cookies say Secure; on the LAN address they don't.
+curl -s -o /dev/null -D - https://<public-hostname>/login | grep -i set-cookie
+```
+
+Between steps 2 and 3 nothing breaks: the cookies are simply not `Secure` yet, as before.
+Nobody is signed out unless `SECRET_KEY` changes.
+
 ## One-time cut-over
 
 Do this **once**, in this order.
@@ -60,6 +84,9 @@ for d in instance uploads backups logs static/maintenance_photos static/profile_
 done
 
 # .env holds DATABASE_URL and SECRET_KEY: root owns it, the service only reads it.
+# Since Step 5.1 the app refuses to start without SECRET_KEY (it used to make a random one,
+# signing everyone out on each restart). Keep the existing value; a new one signs everyone out.
+#   grep -q '^SECRET_KEY=.' /opt/arcade-tracker/.env || echo "SECRET_KEY missing"
 chown root:arcade-tracker /opt/arcade-tracker/.env
 chmod 640 /opt/arcade-tracker/.env
 

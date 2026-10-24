@@ -335,6 +335,8 @@ anything is changed.
   - A2 logout is a GET.
 - **F-22 Cookies.** `SESSION_COOKIE_SECURE` and `REMEMBER_COOKIE_SECURE` are `False` while the site is public
   over HTTPS. With no `SECRET_KEY`, a random key is generated on every restart, which logs everyone out.
+  *Fixed in 5.1 (owner's choice: secure when HTTPS): cookies are Secure on requests through the tunnel and
+  stay usable over plain HTTP on the LAN (`app/security/https.py`); the app refuses to start without a key.*
 - **F-23 Weak login protection.** Lockout is per username and in memory, so anyone can lock out a known
   user, and there is no IP rate limit on `/login`. Info-level security events (`LOGIN_SUCCESS`,
   `LOGIN_FAILED`) are dropped because the app logger stays at WARNING (see F-2 for why).
