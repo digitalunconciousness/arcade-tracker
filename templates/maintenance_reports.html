@@ -1,345 +1,163 @@
-{% extends "base.html" %}
+{% extends "layout.html" %}
+{% import "ui.html" as ui %}
+{% set periods = [(7, "Last 7 days"), (30, "Last 30 days"), (90, "Last 90 days"), (365, "Last year"), (9999, "All time")] %}
+{% set view = request.args.get("view") if request.args.get("view") in ("open", "closed", "all") else "summary" %}
+{% set costed = closed_records|rejectattr("cost", "none")|list %}
+{% block title %}Maintenance report{% endblock %}
+
+{% block page_head %}
+{{ ui.page_head("Maintenance report", sub=start_date.strftime('%Y-%m-%d') ~ " to " ~ today().strftime('%Y-%m-%d'), back=url_for("reports.reports"), back_label="Reports") }}
+{% endblock %}
+
+{#- The machine, or the place for a general order. -#}
+{% macro what(record) -%}
+{%- if record.game_id %}<a href="{{ url_for('games.game_detail', game_id=record.game_id) }}">{{ record.game.name }}</a>
+{%- else %}<span class="dim">{{ record.location_description or "General" }}</span>{% endif %}
+{%- endmacro %}
+
+{% macro issue(record) -%}
+<a href="{{ url_for('maintenance.maintenance_detail', record_id=record.id) }}">{{ record.issue_description|truncate(60) }}</a>
+{%- endmacro %}
+
+{% macro work(record) -%}
+{%- set text = record.work_notes or record.fix_description %}
+{%- if text %}{{ text|truncate(60) }}{% else %}<span class="dim">{{ "In progress" if record.status in ["Open", "In_Progress"] else "No notes" }}</span>{% endif %}
+{%- endmacro %}
 
 {% block content %}
-<h1> Maintenance Reports</h1>
+<div class="stack">
+  <form class="filters" method="get" action="{{ url_for('maintenance.maintenance_reports') }}">
+    <input type="hidden" name="view" value="{{ view }}">
+    <div class="field">
+      <label for="days">Period</label>
+      <select id="days" name="days">
+        {%- for value, label in periods %}<option value="{{ value }}"{% if days_filter == value %} selected{% endif %}>{{ label }}</option>{% endfor %}
+        {%- if days_filter not in periods|map(attribute=0) %}<option value="{{ days_filter }}" selected>Last {{ days_filter }} days</option>{% endif %}
+      </select>
+    </div>
+    <div class="filters__actions">
+      <button class="btn" type="submit">Update</button>
+    </div>
+    <div class="filters__actions cluster">
+      <span class="dim">PDF:</span>
+      {%- for value, label in [("open", "Open"), ("closed", "Closed"), ("all", "All")] %}
+      <a class="btn btn--sm" href="{{ url_for('maintenance.export_maintenance_report', type=value, days=days_filter) }}">{{ label }}</a>
+      {%- endfor %}
+    </div>
+  </form>
 
-<!-- Time Frame Filter -->
-<div style="background: var(--dark-card); padding: 20px; border-radius: 8px; border: 1px solid var(--neon-cyan); margin: 20px 0;">
-    <h3> Time Frame Filter</h3>
-    <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
-        <a href="{{ url_for('maintenance.maintenance_reports', days=7) }}" class="btn {{ 'btn-success' if days_filter == 7 else '' }}" style="margin: 5px;">Last 7 Days</a>
-        <a href="{{ url_for('maintenance.maintenance_reports', days=30) }}" class="btn {{ 'btn-success' if days_filter == 30 else '' }}" style="margin: 5px;">Last 30 Days</a>
-        <a href="{{ url_for('maintenance.maintenance_reports', days=90) }}" class="btn {{ 'btn-success' if days_filter == 90 else '' }}" style="margin: 5px;">Last 90 Days</a>
-        <a href="{{ url_for('maintenance.maintenance_reports', days=365) }}" class="btn {{ 'btn-success' if days_filter == 365 else '' }}" style="margin: 5px;">Last Year</a>
-        
-        <div style="margin-left: 20px;">
-            <strong>Current Period:</strong> {{ start_date.strftime('%Y-%m-%d') }} to {{ today().strftime('%Y-%m-%d') }} ({{ days_filter }} days)
-        </div>
-    </div>
-</div>
+  <dl class="readouts">
+    {{ ui.readout("Orders", all_records|length, "reported in this period") }}
+    {{ ui.readout("Open", open_records|length, "open or in progress", "fault" if open_records else none) }}
+    {{ ui.readout("Closed", closed_records|length, "fixed or deferred") }}
+    {{ ui.readout("Cost", "${:,.2f}".format(total_cost), "of closed orders") }}
+    {{ ui.readout("Time to fix", "%.1f days"|format(avg_resolution_days), "on average") }}
+  </dl>
 
-<!-- Summary Stats -->
-<div style="display: flex; gap: 20px; margin: 30px 0; flex-wrap: wrap;">
-    <div class="stat-card" style="background: var(--dark-card); padding: 20px; border-radius: 8px; border: 1px solid var(--neon-orange); text-align: center; min-width: 150px;">
-        <div class="stat-number" style="font-size: 2em; font-weight: bold; color: var(--neon-orange);">{{ all_records|length }}</div>
-        <div>Total Orders</div>
-    </div>
-    <div class="stat-card" style="background: var(--dark-card); padding: 20px; border-radius: 8px; border: 1px solid #ff4444; text-align: center; min-width: 150px;">
-        <div class="stat-number" style="font-size: 2em; font-weight: bold; color: #ff4444;">{{ open_records|length }}</div>
-        <div>Open Orders</div>
-    </div>
-    <div class="stat-card" style="background: var(--dark-card); padding: 20px; border-radius: 8px; border: 1px solid var(--neon-green); text-align: center; min-width: 150px;">
-        <div class="stat-number" style="font-size: 2em; font-weight: bold; color: var(--neon-green);">{{ closed_records|length }}</div>
-        <div>Closed Orders</div>
-    </div>
-    <div class="stat-card" style="background: var(--dark-card); padding: 20px; border-radius: 8px; border: 1px solid var(--neon-cyan); text-align: center; min-width: 150px;">
-        <div class="stat-number" style="font-size: 2em; font-weight: bold; color: var(--neon-cyan);">${{ "%.0f"|format(total_cost) }}</div>
-        <div>Total Cost</div>
-    </div>
-    <div class="stat-card" style="background: var(--dark-card); padding: 20px; border-radius: 8px; border: 1px solid var(--neon-purple); text-align: center; min-width: 150px;">
-        <div class="stat-number" style="font-size: 2em; font-weight: bold; color: var(--neon-purple);">{{ "%.1f"|format(avg_resolution_days) }}</div>
-        <div>Avg Resolution (Days)</div>
-    </div>
-</div>
+  <nav class="tabs" aria-label="Report view">
+    {%- for key, label, n in [("summary", "Summary", none), ("open", "Open", open_records|length), ("closed", "Closed", closed_records|length), ("all", "All", all_records|length)] %}
+    <a href="{{ url_for('maintenance.maintenance_reports', days=days_filter, view=key) }}"{% if key == view %} aria-current="page"{% endif %}>{{ label }}{% if n is not none %} <span class="tabs__count">{{ n }}</span>{% endif %}</a>
+    {%- endfor %}
+  </nav>
 
-<!-- Export Buttons -->
-<div style="text-align: center; margin: 30px 0;">
-    <h3> Export Reports</h3>
-    <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
-        <a href="{{ url_for('maintenance.export_maintenance_report', type='open', days=days_filter) }}" 
-           class="btn" style="background: #ff4444; color: white; padding: 12px 20px;">
-            Export Open Orders PDF
-        </a>
-        <a href="{{ url_for('maintenance.export_maintenance_report', type='closed', days=days_filter) }}" 
-           class="btn" style="background: var(--neon-green); color: black; padding: 12px 20px;">
-            Export Closed Orders PDF
-        </a>
-        <a href="{{ url_for('maintenance.export_maintenance_report', type='all', days=days_filter) }}" 
-           class="btn" style="background: var(--neon-cyan); color: black; padding: 12px 20px;">
-            Export All Orders PDF
-        </a>
-    </div>
-</div>
+  {%- if view == "summary" %}
+  {%- if all_records %}
+  <section class="card" aria-labelledby="cost-title">
+    <h2 id="cost-title">Cost of closed orders</h2>
+    <dl class="kv">
+      <dt>Total</dt><dd class="num">${{ "{:,.2f}".format(total_cost) }}</dd>
+      <dt>Per closed order</dt><dd class="num">${{ "{:,.2f}".format(total_cost / closed_records|length) if closed_records else "0.00" }}</dd>
+      <dt>Over $50</dt><dd class="num">{{ costed|selectattr("cost", "gt", 50)|list|length }}</dd>
+      <dt>Most expensive</dt><dd class="num">${{ "{:,.2f}".format(costed|map(attribute="cost")|max) if costed else "0.00" }}</dd>
+    </dl>
+    {%- set dearest = costed|selectattr("cost", "gt", 0)|sort(attribute="cost", reverse=true) %}
+    {%- if dearest %}
+    <h3>Most expensive repairs</h3>
+    <ul class="rows">
+      {%- for record in dearest[:5] %}
+      <li class="row"><span class="row__main">{{ issue(record) }}<span class="row__meta">{{ what(record) }} · {{ record.date_reported.strftime('%Y-%m-%d') }}</span></span>
+        <span class="row__end num">${{ "{:,.2f}".format(record.cost) }}</span></li>
+      {%- endfor %}
+    </ul>
+    {%- endif %}
+  </section>
+  {%- else %}
+  {{ ui.empty("No work orders in this period") }}
+  {%- endif %}
 
-<!-- Tabs for different views -->
-<div style="margin: 30px 0;">
-    <button onclick="showReportTab('summary')" id="summaryTab" class="btn btn-success" style="margin-right: 10px;"> Summary</button>
-    <button onclick="showReportTab('open')" id="openTab" class="btn btn-warning" style="margin-right: 10px;"> Open ({{ open_records|length }})</button>
-    <button onclick="showReportTab('closed')" id="closedTab" class="btn" style="background: var(--neon-green); margin-right: 10px;"> Closed ({{ closed_records|length }})</button>
-    <button onclick="showReportTab('all')" id="allTab" class="btn" style="background: var(--neon-cyan);"> All ({{ all_records|length }})</button>
-</div>
-
-<!-- Summary Tab -->
-<div id="summaryReport" class="report-tab">
-    <h2> Maintenance Summary ({{ days_filter }} days)</h2>
-    
-    {% if all_records %}
-    <!-- Cost Breakdown -->
-    <div style="display: flex; gap: 40px; margin: 30px 0; flex-wrap: wrap;">
-        <div style="flex: 1; min-width: 300px;">
-            <h3> Cost Breakdown</h3>
-            <table class="table">
-                <tr>
-                    <td>Total Maintenance Cost:</td>
-                    <td><strong>${{ "%.2f"|format(total_cost) }}</strong></td>
-                </tr>
-                <tr>
-                    <td>Average Cost per Ticket:</td>
-                    <td><strong>${{ "%.2f"|format(total_cost / closed_records|length) if closed_records else "0.00" }}</strong></td>
-                </tr>
-                <tr>
-                    <td>Tickets with Cost > $50:</td>
-                    <td><strong>{{ closed_records|rejectattr('cost', 'none')|selectattr('cost', 'gt', 50)|list|length }}</strong></td>
-                </tr>
-                <tr>
-                    <td>Most Expensive Repair:</td>
-                    <td><strong>${{ "%.2f"|format(closed_records|rejectattr('cost', 'none')|map(attribute='cost')|max) if closed_records|rejectattr('cost', 'none')|list else "0.00" }}</strong></td>
-                </tr>
-            </table>
-        </div>
-    </div>
-    {% else %}
-    <p>No maintenance records found for the selected time period.</p>
-    {% endif %}
-</div>
-
-<!-- Open Orders Tab -->
-<div id="openReport" class="report-tab" style="display: none;">
-    <h2> Open Maintenance Orders</h2>
-    {% if open_records %}
-    <table class="table" id="openReportTable">
-        <thead>
-            <tr>
-                <th onclick="sortReportTable(0, 'openReportTable')" style="cursor: pointer;" title="Click to sort">Priority ↕</th>
-                <th onclick="sortReportTable(1, 'openReportTable')" style="cursor: pointer;" title="Click to sort">Game ↕</th>
-                <th onclick="sortReportTable(2, 'openReportTable')" style="cursor: pointer;" title="Click to sort">Issue ↕</th>
-                <th onclick="sortReportTable(3, 'openReportTable')" style="cursor: pointer;" title="Click to sort">Days Open ↕</th>
-                <th onclick="sortReportTable(4, 'openReportTable')" style="cursor: pointer;" title="Click to sort">Technician ↕</th>
-                <th onclick="sortReportTable(5, 'openReportTable')" style="cursor: pointer;" title="Click to sort">Status ↕</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for record in open_records %}
-            {% set days_open = (today() - record.date_reported.date()).days %}
-            <tr style="background-color: {{ '#ffcdd2' if days_open > 7 else '#fff3e0' if days_open > 3 else 'inherit' }};">
-                <td>
-                    {% if days_open > 7 %}
-                        <span style="color: #d32f2f; font-weight: bold;"> HIGH</span>
-                    {% elif days_open > 3 %}
-                        <span style="color: #f57c00; font-weight: bold;"> MEDIUM</span>
-                    {% else %}
-                        <span style="color: #388e3c; font-weight: bold;"> LOW</span>
-                    {% endif %}
-                </td>
-                <td>{% if record.game_id %}<a href="{{ url_for('games.game_detail', game_id=record.game_id) }}">{{ record.game.name }}</a>{% else %}<em>General Facility</em>{% endif %}</td>
-                <td>{{ record.issue_description[:60] }}{% if record.issue_description|length > 60 %}...{% endif %}</td>
-                <td>{{ days_open }} days</td>
-                <td>{{ record.technician or 'Unassigned' }}</td>
-                <td>{{ record.status.replace('_', ' ') }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
+  {%- elif view == "open" %}
+  {%- if open_records %}
+  <div class="table-wrap">
+    <table class="table table--stack" data-sortable>
+      <thead><tr><th data-sort="num">Age</th><th data-sort="text">Machine</th><th>Issue</th><th data-sort="text">Technician</th><th data-sort="text">Status</th></tr></thead>
+      <tbody>
+        {%- for record in open_records %}
+        {%- set days_open = (today() - record.date_reported.date()).days %}
+        <tr>
+          <td data-label="Age" data-sort-value="{{ days_open }}">{{ ui.chip("fault" if days_open > 7 else "warn" if days_open > 3 else "muted", days_open ~ (" day" if days_open == 1 else " days")) }}</td>
+          <td data-label="Machine">{{ what(record) }}</td>
+          <td data-label="Issue">{{ issue(record) }}</td>
+          <td data-label="Technician">{{ record.technician or "Unassigned" }}</td>
+          <td data-label="Status">{{ ui.status(record.status) }}</td>
+        </tr>
+        {%- endfor %}
+      </tbody>
     </table>
-    {% else %}
-    <p style="color: var(--neon-green);"> No open maintenance orders! All systems operational.</p>
-    {% endif %}
-</div>
+  </div>
+  <p class="dim">Open over a week shows red, over three days amber.</p>
+  {%- else %}
+  {{ ui.empty("No open work orders in this period") }}
+  {%- endif %}
 
-<!-- Closed Orders Tab -->
-<div id="closedReport" class="report-tab" style="display: none;">
-    <h2> Closed Maintenance Orders</h2>
-    {% if closed_records %}
-    <table class="table" id="closedReportTable">
-        <thead>
-            <tr>
-                <th onclick="sortReportTable(0, 'closedReportTable')" style="cursor: pointer;" title="Click to sort">Game ↕</th>
-                <th onclick="sortReportTable(1, 'closedReportTable')" style="cursor: pointer;" title="Click to sort">Issue ↕</th>
-                <th onclick="sortReportTable(2, 'closedReportTable')" style="cursor: pointer;" title="Click to sort">Reported ↕</th>
-                <th onclick="sortReportTable(3, 'closedReportTable')" style="cursor: pointer;" title="Click to sort">Fixed ↕</th>
-                <th onclick="sortReportTable(4, 'closedReportTable')" style="cursor: pointer;" title="Click to sort">Days to Fix ↕</th>
-                <th onclick="sortReportTable(5, 'closedReportTable')" style="cursor: pointer;" title="Click to sort">Cost ↕</th>
-                <th onclick="sortReportTable(6, 'closedReportTable')" style="cursor: pointer;" title="Click to sort">Technician ↕</th>
-                <th>Work Summary</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for record in closed_records %}
-            {% set days_to_fix = (record.date_fixed.date() - record.date_reported.date()).days if record.date_fixed else 0 %}
-            <tr>
-                <td>{% if record.game_id %}<a href="{{ url_for('games.game_detail', game_id=record.game_id) }}">{{ record.game.name }}</a>{% else %}<em>General Facility</em>{% endif %}</td>
-                <td>{{ record.issue_description[:50] }}{% if record.issue_description|length > 50 %}...{% endif %}</td>
-                <td>{{ record.date_reported.strftime('%Y-%m-%d') }}</td>
-                <td>{{ record.date_fixed.strftime('%Y-%m-%d') if record.date_fixed else 'N/A' }}</td>
-                <td>{{ days_to_fix }} days</td>
-                <td>${{ "%.2f"|format(record.cost or 0) }}</td>
-                <td>{{ record.technician or 'N/A' }}</td>
-                <td>
-                    {% if record.work_notes %}
-                        {{ record.work_notes[:60] }}{% if record.work_notes|length > 60 %}...{% endif %}
-                    {% elif record.fix_description %}
-                        {{ record.fix_description[:60] }}{% if record.fix_description|length > 60 %}...{% endif %}
-                    {% else %}
-                        No work notes
-                    {% endif %}
-                </td>
-                <td>
-                    <a href="{{ url_for('maintenance.maintenance_detail', record_id=record.id) }}" class="btn" style="background: var(--neon-cyan); font-size: 10px; padding: 3px 8px; color: black;"> View</a>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
+  {%- elif view == "closed" %}
+  {%- if closed_records %}
+  <div class="table-wrap">
+    <table class="table table--stack" data-sortable>
+      <thead><tr><th data-sort="text">Machine</th><th>Issue</th><th data-sort="text">Reported</th><th data-sort="text">Fixed</th><th data-sort="num" class="num">Days to fix</th><th data-sort="num" class="num">Cost</th><th data-sort="text">Technician</th><th>Work</th></tr></thead>
+      <tbody>
+        {%- for record in closed_records %}
+        {%- set days_to_fix = (record.date_fixed.date() - record.date_reported.date()).days if record.date_fixed else none %}
+        <tr>
+          <td data-label="Machine">{{ what(record) }}</td>
+          <td data-label="Issue">{{ issue(record) }}</td>
+          <td data-label="Reported">{{ record.date_reported.strftime('%Y-%m-%d') }}</td>
+          <td data-label="Fixed">{{ record.date_fixed.strftime('%Y-%m-%d') if record.date_fixed else "—" }}</td>
+          <td data-label="Days to fix" class="num" data-sort-value="{{ days_to_fix if days_to_fix is not none else -1 }}">{{ days_to_fix if days_to_fix is not none else "—" }}</td>
+          <td data-label="Cost" class="num" data-sort-value="{{ record.cost or 0 }}">${{ "{:,.2f}".format(record.cost or 0) }}</td>
+          <td data-label="Technician">{{ record.technician or "—" }}</td>
+          <td data-label="Work">{{ work(record) }}</td>
+        </tr>
+        {%- endfor %}
+      </tbody>
     </table>
-    {% else %}
-    <p>No closed maintenance orders in the selected time period.</p>
-    {% endif %}
-</div>
+  </div>
+  {%- else %}
+  {{ ui.empty("No closed work orders in this period") }}
+  {%- endif %}
 
-<!-- All Orders Tab -->
-<div id="allReport" class="report-tab" style="display: none;">
-    <h2> All Maintenance Orders</h2>
-    {% if all_records %}
-    <table class="table" id="allReportTable">
-        <thead>
-            <tr>
-                <th onclick="sortReportTable(0, 'allReportTable')" style="cursor: pointer;" title="Click to sort">Status ↕</th>
-                <th onclick="sortReportTable(1, 'allReportTable')" style="cursor: pointer;" title="Click to sort">Game ↕</th>
-                <th onclick="sortReportTable(2, 'allReportTable')" style="cursor: pointer;" title="Click to sort">Issue ↕</th>
-                <th onclick="sortReportTable(3, 'allReportTable')" style="cursor: pointer;" title="Click to sort">Reported ↕</th>
-                <th onclick="sortReportTable(4, 'allReportTable')" style="cursor: pointer;" title="Click to sort">Cost ↕</th>
-                <th onclick="sortReportTable(5, 'allReportTable')" style="cursor: pointer;" title="Click to sort">Technician ↕</th>
-                <th>Work Summary</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for record in all_records %}
-            <tr>
-                <td>
-                    {% if record.status == 'Open' %}
-                        <span style="color: #ff4444; font-weight: bold;"> Open</span>
-                    {% elif record.status == 'In_Progress' %}
-                        <span style="color: #ffaa00; font-weight: bold;"> In Progress</span>
-                    {% elif record.status == 'Fixed' %}
-                        <span style="color: var(--neon-green); font-weight: bold;"> Fixed</span>
-                    {% elif record.status == 'Deferred' %}
-                        <span style="color: #888; font-weight: bold;">⏸ Deferred</span>
-                    {% endif %}
-                </td>
-                <td>{% if record.game_id %}<a href="{{ url_for('games.game_detail', game_id=record.game_id) }}">{{ record.game.name }}</a>{% else %}<em>General Facility</em>{% endif %}</td>
-                <td>{{ record.issue_description[:50] }}{% if record.issue_description|length > 50 %}...{% endif %}</td>
-                <td>{{ record.date_reported.strftime('%Y-%m-%d') }}</td>
-                <td>${{ "%.2f"|format(record.cost or 0) }}</td>
-                <td>{{ record.technician or 'N/A' }}</td>
-                <td>
-                    {% if record.work_notes %}
-                        {{ record.work_notes[:60] }}{% if record.work_notes|length > 60 %}...{% endif %}
-                    {% elif record.fix_description %}
-                        {{ record.fix_description[:60] }}{% if record.fix_description|length > 60 %}...{% endif %}
-                    {% else %}
-                        {% if record.status in ['Open', 'In_Progress'] %}In progress...{% else %}No work notes{% endif %}
-                    {% endif %}
-                </td>
-                <td>
-                    <a href="{{ url_for('maintenance.maintenance_detail', record_id=record.id) }}" class="btn" style="background: var(--neon-cyan); font-size: 10px; padding: 3px 8px; color: black;"> View</a>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
+  {%- else %}
+  {%- if all_records %}
+  <div class="table-wrap">
+    <table class="table table--stack" data-sortable>
+      <thead><tr><th data-sort="text">Status</th><th data-sort="text">Machine</th><th>Issue</th><th data-sort="text">Reported</th><th data-sort="num" class="num">Cost</th><th data-sort="text">Technician</th><th>Work</th></tr></thead>
+      <tbody>
+        {%- for record in all_records %}
+        <tr>
+          <td data-label="Status" data-sort-value="{{ record.status }}">{{ ui.status(record.status) }}</td>
+          <td data-label="Machine">{{ what(record) }}</td>
+          <td data-label="Issue">{{ issue(record) }}</td>
+          <td data-label="Reported">{{ record.date_reported.strftime('%Y-%m-%d') }}</td>
+          <td data-label="Cost" class="num" data-sort-value="{{ record.cost or 0 }}">${{ "{:,.2f}".format(record.cost or 0) }}</td>
+          <td data-label="Technician">{{ record.technician or "—" }}</td>
+          <td data-label="Work">{{ work(record) }}</td>
+        </tr>
+        {%- endfor %}
+      </tbody>
     </table>
-    {% else %}
-    <p>No maintenance records found for the selected time period.</p>
-    {% endif %}
+  </div>
+  {%- else %}
+  {{ ui.empty("No work orders in this period") }}
+  {%- endif %}
+  {%- endif %}
 </div>
-
-<script>
-let sortDirection = {};
-
-function showReportTab(tabName) {
-    // Hide all tabs
-    document.querySelectorAll('.report-tab').forEach(tab => tab.style.display = 'none');
-    
-    // Remove active styling from all buttons
-    document.querySelectorAll('button[onclick^="showReportTab"]').forEach(btn => {
-        btn.style.background = '#6c757d';
-    });
-    
-    // Show selected tab and highlight button
-    if (tabName === 'summary') {
-        document.getElementById('summaryReport').style.display = 'block';
-        document.getElementById('summaryTab').style.background = 'var(--neon-green)';
-    } else if (tabName === 'open') {
-        document.getElementById('openReport').style.display = 'block';
-        document.getElementById('openTab').style.background = 'var(--neon-orange)';
-    } else if (tabName === 'closed') {
-        document.getElementById('closedReport').style.display = 'block';
-        document.getElementById('closedTab').style.background = 'var(--neon-green)';
-    } else if (tabName === 'all') {
-        document.getElementById('allReport').style.display = 'block';
-        document.getElementById('allTab').style.background = 'var(--neon-cyan)';
-    }
-}
-
-function sortReportTable(columnIndex, tableId) {
-    const table = document.getElementById(tableId);
-    const tbody = table.getElementsByTagName('tbody')[0];
-    const rows = Array.from(tbody.getElementsByTagName('tr'));
-    
-    const sortKey = tableId + '_' + columnIndex;
-    sortDirection[sortKey] = sortDirection[sortKey] === 'asc' ? 'desc' : 'asc';
-    const isAscending = sortDirection[sortKey] === 'asc';
-    
-    rows.sort((a, b) => {
-        let aValue = a.getElementsByTagName('td')[columnIndex].textContent.trim();
-        let bValue = b.getElementsByTagName('td')[columnIndex].textContent.trim();
-        
-        // Handle date columns
-        if (aValue.match(/\d{4}-\d{2}-\d{2}/) || bValue.match(/\d{4}-\d{2}-\d{2}/)) {
-            aValue = new Date(aValue === 'N/A' ? '1900-01-01' : aValue);
-            bValue = new Date(bValue === 'N/A' ? '1900-01-01' : bValue);
-            return isAscending ? aValue - bValue : bValue - aValue;
-        }
-        
-        // Handle cost columns
-        if (aValue.includes('$') || bValue.includes('$')) {
-            aValue = parseFloat(aValue.replace('$', '')) || 0;
-            bValue = parseFloat(bValue.replace('$', '')) || 0;
-            return isAscending ? aValue - bValue : bValue - aValue;
-        }
-        
-        // Handle "days" columns
-        if (aValue.includes('days') || bValue.includes('days')) {
-            aValue = parseInt(aValue.replace(' days', '')) || 0;
-            bValue = parseInt(bValue.replace(' days', '')) || 0;
-            return isAscending ? aValue - bValue : bValue - aValue;
-        }
-        
-        // String sorting
-        return isAscending ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue);
-    });
-    
-    tbody.innerHTML = '';
-    rows.forEach(row => tbody.appendChild(row));
-    
-    // Update headers
-    updateReportHeaders(columnIndex, isAscending, tableId);
-}
-
-function updateReportHeaders(sortedColumn, isAscending, tableId) {
-    const headers = document.querySelectorAll(`#${tableId} th[onclick]`);
-    headers.forEach((header, index) => {
-        const baseText = header.textContent.replace(' ↕', '').replace(' ↑', '').replace(' ↓', '');
-        if (index === sortedColumn) {
-            header.textContent = baseText + (isAscending ? ' ↑' : ' ↓');
-            header.style.color = 'var(--neon-cyan)';
-        } else {
-            header.textContent = baseText + ' ↕';
-            header.style.color = '';
-        }
-    });
-}
-
-// Initialize with summary tab
-showReportTab('summary');
-</script>
 {% endblock %}

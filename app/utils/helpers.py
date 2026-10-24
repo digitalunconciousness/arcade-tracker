@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-import os
 import re
-import time
 from pathlib import Path
 
 ALLOWED_EXTENSIONS: set[str] = {"png", "jpg", "jpeg", "gif"}
@@ -75,34 +73,6 @@ def get_directory_size(directory: str) -> float:
     return total_bytes / (1024 * 1024)
 
 
-def cleanup_old_photos(max_age_days: int = 365) -> int:
-    """Remove maintenance photos older than *max_age_days*.
-
-    Scans the ``static/maintenance_photos`` directory relative to the
-    application root and deletes files whose modification time exceeds
-    the threshold.
-
-    Returns:
-        The number of files removed.
-    """
-    base_dir = os.path.abspath(
-        os.path.join(os.path.dirname(__file__), os.pardir, os.pardir)
-    )
-    photos_dir = os.path.join(base_dir, "static", "maintenance_photos")
-
-    if not os.path.isdir(photos_dir):
-        return 0
-
-    cutoff = time.time() - (max_age_days * 86400)
-    removed = 0
-
-    for filename in os.listdir(photos_dir):
-        filepath = os.path.join(photos_dir, filename)
-        if os.path.isfile(filepath) and os.path.getmtime(filepath) < cutoff:
-            os.remove(filepath)
-            removed += 1
-
-    return removed
 
 
 def slugify(text: str) -> str:

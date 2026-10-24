@@ -84,26 +84,20 @@ def test_no_page_or_stylesheet_fetches_from_a_cdn(path):
 
 
 def test_the_fonts_are_in_the_repository_with_their_licence():
+    """Every font file is one base.css declares, and each family's licence travels with it.
+    (The pre-redesign Orbitron files went with cyberpunk.css in Step 4.8d.)"""
     fonts = os.path.join(REPO_ROOT, "static", "fonts")
-    present = set(os.listdir(fonts))
-    assert {"orbitron-v35-latin.woff2", "share-tech-mono-v16-latin.woff2"} <= present
-    for name in present:
+    css = open(os.path.join(REPO_ROOT, "static", "css", "base.css"), encoding="utf-8").read()
+    declared = set(re.findall(r'url\("\.\./fonts/([^"]+)"\)', css))
+    files = {n for n in os.listdir(fonts) if n.endswith((".woff2", ".woff", ".ttf", ".otf"))}
+    assert files == declared, f"undeclared: {files - declared}, missing: {declared - files}"
+    for name in files:
         if name.endswith(".woff2"):
             with open(os.path.join(fonts, name), "rb") as fh:
                 assert fh.read(4) == b"wOF2", f"{name} is not a woff2 file"
-    # The OFL requires the notice to travel with the fonts.
-    licence = open(os.path.join(fonts, "OFL.txt"), encoding="utf-8").read()
-    assert "SIL OPEN FONT LICENSE" in licence.upper()
-    for font in ("Orbitron", "Share Tech Mono"):
-        assert font in licence
-
-
-def test_the_stylesheet_declares_both_families_locally():
-    css = open(os.path.join(REPO_ROOT, "static", "css", "cyberpunk.css"),
-               encoding="utf-8").read()
-    assert css.count("@font-face") == 4, "three Orbitron weights plus Share Tech Mono"
-    assert "../fonts/orbitron-v35-latin.woff2" in css
-    assert "../fonts/share-tech-mono-v16-latin.woff2" in css
+    for licence in ("OFL-ChakraPetch.txt", "OFL-ShareTechMono.txt"):
+        assert "SIL OPEN FONT LICENSE" in open(os.path.join(fonts, licence),
+                                               encoding="utf-8").read().upper()
 
 
 # --- the policy that enforces it at runtime --------------------------------

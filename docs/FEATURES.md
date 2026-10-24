@@ -267,7 +267,8 @@ anything is changed.
 
 ### Broken or wrong (needs a decision or a fix)
 
-- **F-6 Photo cleanup deletes live photos.** X4 removes every file older than a year without checking whether
+- **F-6 Photo cleanup deletes live photos.** *Fixed in 4.7c: only files no work order lists are removed, and
+  cleanup is admin-only, like the storage page it is on.* X4 removes every file older than a year without checking whether
   a work order still references it. The order keeps the filename, and the image 404s. It's manager-reachable.
 - **F-7 Game images never display.** *Fixed in 4.2: served by `games.game_image`.* G2 and G4 save to `uploads/`, but the templates load
   `static/uploads/<file>`, and nothing serves `uploads/`.
@@ -280,15 +281,19 @@ anything is changed.
 - **F-10 Deleting a game orphans rows.** G8 uses bulk `query.delete()`, which skips the ORM cascades, so the
   work logs, session tags, part usage and requests of those orders are left orphaned or hit FK errors on
   PostgreSQL. Deleting a user with history (X1) likely fails the same way. *The user half is fixed in
-  4.7b: a user with work on record can be deactivated, not deleted.*
-- **F-11 The backups page can't back up production.** X5–X9 are SQLite-only (`arcade.db`), but production
+  4.7b: a user with work on record can be deactivated, not deleted. The machine half is fixed in 4.8a:
+  deleting a machine removes its orders with their logs, tags and part usage, unlinks their requests,
+  and keeps the rail sessions with no machine.*
+- **F-11 The backups page can't back up production.** *Since 4.7c the page says so on PostgreSQL, turns
+  Create and Restore off, and lists the deploy dumps; in-app PostgreSQL backups are still to come.* X5–X9 are SQLite-only (`arcade.db`), but production
   is PostgreSQL (`deploy/RUNBOOK.md` uses `pg_dump`). The page shows nothing useful and "Create backup" fails
   or backs up a stale file. `scripts/daily_backup.sh` has the same problem.
-- **F-12 The 500 errors I can see:** *The work-order PDFs escape user text since 4.4.*
+- **F-12 The 500 errors I can see:** *The work-order PDFs escape user text since 4.4; G4 and G5 explain bad
+  years, dates and readings on the form since 4.8a.*
   - G5 with a bad or empty `date` field.
   - G4 with a non-numeric year.
   - The PDF exports when a description contains text that looks like a ReportLab tag, such as an
-    unclosed `<b>` or a `<br>`. Plain `<` and `&` are fine; checked by `test_flags.py`.
+    unclosed `<b>` or a `<br>`. Plain `<` and `&` are fine; checked by `test_work_orders.py`.
   - The skeeball DB init runs `sqlite_master`, which fails on PostgreSQL (the error is swallowed, and the
     lane is never linked).
 - **F-13 M3 mutates ORM objects** *Fixed in 4.4: the page builds no JavaScript strings now.* to strip newlines for its inline JavaScript. That's harmless today because
@@ -298,7 +303,8 @@ anything is changed.
   - G14 mints a barcode (operator and up since 4.7a; it says so when it does).
   - G18 mints report tokens. *Fixed in 4.7a: only the print button (a POST) mints; opening the sheet changes nothing.*
   - S7, an unauthenticated GET, starts threads and creates a Game row.
-- **F-15 The P2 location filter can only return nothing.** The query is already Floor-only, so any other
+- **F-15 The P2 location filter can only return nothing.** *Fixed in 4.8c: with no location the report is the
+  Floor as before; any other choice, or "Every location", replaces it. The PDF uses the same rule.* The query is already Floor-only, so any other
   location gives an empty result.
 
 ### Access control (security pass, Step 5)
@@ -309,7 +315,8 @@ anything is changed.
 - **F-17 Any signed-in user, readonly included, can:** *Fixed in 4.7a for the coin-door labels: printing and retiring them is manager and up, and public labels are operator and up. The skeeball items went with skeeball.* reboot the skeeball Pi (S27), drive its GPIO (S14),
   switch GPIO mode, write revenue (S25, S26), reset lanes, rotate coin-door tokens (G19), and mint tokens by
   printing (G18).
-- **F-18 Path traversal in backups.** *The photo half is fixed in 4.4 (only an order's own photo can be deleted); the backup half is the admin step.* X7 and X9 join a form value onto `backups/` with no check, so
+- **F-18 Path traversal in backups.** *Fixed: the photo half in 4.4 (only an order's own photo can be deleted), the backup half in 4.7c (only a
+  bare `arcade_backup_*.db` name inside `backups/` is accepted).* X7 and X9 join a form value onto `backups/` with no check, so
   `../instance/arcade.db` or `../.env` can be restored over or deleted. Combined with CSRF being off, a
   forged POST to a signed-in admin could delete the live SQLite file. X8 checks the prefix but not for `..`.
   M10 deletes any filename in the photo folder, not only that order's photos.
@@ -332,7 +339,8 @@ anything is changed.
   user, and there is no IP rate limit on `/login`. Info-level security events (`LOGIN_SUCCESS`,
   `LOGIN_FAILED`) are dropped because the app logger stays at WARNING (see F-2 for why).
 - **F-24 Uploads are checked by extension only.** Pillow re-encoding is the real check, but its failure is
-  ignored (F-8). There's no size check per file, only the 50 MB request cap.
+  ignored (F-8). There's no size check per file, only the 50 MB request cap. *Since 4.8a machine photos are
+  re-encoded as JPEG and a file Pillow can't read is refused.*
 
 ### Unreachable or unclear
 
@@ -345,15 +353,17 @@ anything is changed.
   - S11 and S23–S27 have no UI caller.
 
   Keep them, hide them behind admin, or strike?
-- **F-27 The light theme toggle in `base.html`** goes away, per your answer.
+- **F-27 The light theme toggle in `base.html`** goes away, per your answer. *Done: `layout.html` has none,
+  and `base.html` was deleted in 4.8d.*
 - **F-28 S3 is the stats page in your brief, but it shows local lane counters.** The Pi :5002 proxy feeds
   S8–S10, which S3's JavaScript polls.
 
 ### Found while writing the characterization tests
 
-- **F-29 A rail session with partial figures is a 500.** `rails_session.html` formats `powered_min` and
+- **F-29 A rail session with partial figures is a 500.** *Fixed in 4.8b: each figure shows on its own, and a
+  missing one reads —. The machine history's range column had the same fault and is fixed too.* `rails_session.html` formats `powered_min` and
   `powered_max` whenever `powered_mean` is set, so a session that has a mean but no range crashes the page.
-- **F-30 User text inside inline JavaScript.** *Fixed in 4.5 for the inventory pages, which have no inline handlers at all now; M3 (F-13) is fixed since 4.4.* `inventory_request_detail.html` (and the newline-stripping
+- **F-30 User text inside inline JavaScript.** *Fixed in 4.5 for the inventory pages, which have no inline handlers at all now; M3 (F-13) is fixed since 4.4. Since 4.8c the report pages build no JavaScript either: P3 put machine names inside JS strings, so an apostrophe broke every chart on the page.* `inventory_request_detail.html` (and the newline-stripping
   in M3, F-13) put item names and notes inside `onclick="…('{{ … }}')"`. Jinja's escaping is decoded back
   by the HTML parser before the JavaScript runs, so a quote in an item name breaks the button, and a
   crafted one runs script.
@@ -369,7 +379,7 @@ anything is changed.
   missing, so an item with no stock can't be added or edited down to 0.
 - **F-33 Fields that are never saved.** *Fixed in 4.5: removed from the form.* `InventoryItemForm` has category, location and image fields that
   the views never save. (The page never rendered them; the tests posted `category` and it was dropped.)
-- **F-34 "Download backup" can never work.** X8 checks `backups/<f>` relative to the working directory,
+- **F-34 "Download backup" can never work.** *Fixed in 4.7c: the path is made absolute before `send_file`.* X8 checks `backups/<f>` relative to the working directory,
   but `send_file` resolves a relative path against `app.root_path` (the `app/` package), so it raises and
   returns a 500.
 
@@ -416,7 +426,7 @@ anything is changed.
 3. **ngrok is retired.** `scripts/setup_autostart.sh`, which installed the missing ngrok unit, moved to
    `docs/history/` on 2026-10-08. The Cloudflare tunnel is the only public path.
 4. **Skeeball:** retired on 2026-10-08 (see 1 and `docs/history/skeeball/README.md`).
-5. **In-app backups stay.** The path traversal (F-18) and the download (F-34) get fixed in Step 5.
+5. **In-app backups stay.** The path traversal (F-18) and the download (F-34) were fixed in 4.7c.
    PostgreSQL support (F-11) is a separate, later change.
 
 ### Decisions of 2026-10-22 (Step 4.7)

@@ -9,103 +9,11 @@ Step 5 security tests, or a decision the owner has not made yet.
 """
 from __future__ import annotations
 
-import os
-import time
-
 import pytest
-
-from char_support import login
-from test_routes_post import fresh
 
 
 def flag(code: str, why: str):
     return pytest.mark.xfail(strict=True, reason=f"{code}: {why}")
 
 
-@flag("F-6", "photo cleanup deletes files that work orders still reference")
-def test_cleanup_keeps_photos_a_work_order_still_uses(client, floor, sandbox):
-    from app.extensions import db
-    from app.models import MaintenanceRecord
-
-    photo = sandbox / "static" / "maintenance_photos" / "kept.jpg"
-    photo.write_bytes(b"x")
-    old = time.time() - 2 * 365 * 86400
-    os.utime(photo, (old, old))
-    fresh(MaintenanceRecord, floor["closed_order"]).add_photo("kept.jpg")
-    db.session.commit()
-    login(client, "manager")
-    client.post("/admin/cleanup_photos")
-    assert photo.exists()
-
-
-
-
-@flag("F-10", "deleting a game bulk-deletes its orders and orphans their work logs")
-def test_deleting_a_game_leaves_no_orphaned_work_logs(client, floor, sandbox):
-    from app.models import WorkLog
-
-    login(client, "admin")
-    client.post(f"/delete_game/{floor['raider']}")
-    assert WorkLog.query.filter_by(maintenance_id=floor["open_order"]).count() == 0
-
-
-@flag("F-12", "a missing or malformed date on record_plays is a 500")
-def test_record_plays_with_a_bad_date_explains_itself(client, floor):
-    login(client, "operator")
-    resp = client.post(f"/record_plays/{floor['raider']}",
-                       data={"coin_count": "150", "date": "yesterday"})
-    assert resp.status_code in (200, 302)
-
-
-@flag("F-12", "a non-numeric year on edit_game is a 500")
-def test_edit_game_with_a_bad_year_explains_itself(client, floor, sandbox):
-    login(client, "operator")
-    resp = client.post(f"/edit_game/{floor['raider']}", data={"name": "Neon Raider",
-                                                             "year": "eighty-seven"})
-    assert resp.status_code in (200, 302)
-
-
-@flag("F-15", "the location filter is ANDed with Floor-only, so any other location is empty")
-def test_revenue_report_location_filter_can_show_warehouse_revenue(client, floor):
-    from app.extensions import db
-    from app.models import PlayRecord
-
-    db.session.add(PlayRecord(game_id=floor["pinball"], coin_count=10, plays_count=10,
-                              revenue=10.0))
-    db.session.commit()
-    login(client, "manager")
-    html = client.get("/revenue_reports?days=30&location=Warehouse").get_data(as_text=True)
-    assert "Pixel Pinball" in html
-
-
-
-@flag("F-18", "delete_backup joins a form value onto backups/ with no traversal check")
-def test_delete_backup_cannot_leave_the_backup_folder(client, floor, sandbox):
-    victim = sandbox / "instance" / "precious.db"
-    victim.write_bytes(b"synthetic")
-    login(client, "admin")
-    client.post("/delete_backup", data={"backup_file": "../instance/precious.db"})
-    assert victim.exists()
-
-
-
-@flag("F-29", "a rail session with a mean but no min/max is a 500 on its page")
-def test_a_rail_session_with_partial_figures_renders(client, floor):
-    from app.extensions import db
-    from app.models import RailSession
-
-    s = RailSession.query.filter_by(uid=floor["session_uid"]).one()
-    s.powered_min = s.powered_max = None
-    db.session.commit()
-    login(client, "readonly")
-    assert client.get(f"/rails/session/{floor['session_uid']}").status_code == 200
-
-
-
-
-@flag("F-34", "send_file resolves backups/ against app/, not the cwd the view checked")
-def test_a_backup_can_be_downloaded(client, floor, sandbox):
-    (sandbox / "backups" / "arcade_backup_20260101_000000.db").write_bytes(b"SQLite format 3")
-    login(client, "admin")
-    resp = client.get("/download_backup/arcade_backup_20260101_000000.db")
-    assert resp.status_code == 200
+# None open: F-15 was the last, fixed in 4.8c (tests/characterization/test_reports.py).

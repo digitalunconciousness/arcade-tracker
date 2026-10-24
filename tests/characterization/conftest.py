@@ -29,7 +29,6 @@ def sandbox(app, tmp_path, monkeypatch):
     * The working directory becomes ``tmp_path``, with ``scripts/`` copied in, because the
       backup views shell out to ``scripts/*.py`` relative to the cwd and those scripts open
       ``instance/arcade.db`` relative to it. The copy there is a synthetic SQLite file.
-    * ``helpers.cleanup_old_photos`` finds its folder from its own ``__file__``.
     """
     from app.utils import helpers
 

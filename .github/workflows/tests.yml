@@ -1,10 +1,8 @@
 name: tests
 
+# Manual only for now: Actions never starts the jobs on this account, so automatic
+# runs just leave every push red. Restore the push and pull_request triggers in Step 6.
 on:
-  push:
-    branches: [master, 'integration/**']
-  pull_request:
-    branches: [master]
   workflow_dispatch:
 
 jobs:

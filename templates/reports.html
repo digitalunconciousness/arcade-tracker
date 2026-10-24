@@ -1,369 +1,187 @@
-{% extends "base.html" %}
+{% extends "layout.html" %}
+{% import "ui.html" as ui %}
+{% set periods = [(7, "Last week"), (30, "Last month"), (90, "Last quarter"), (365, "Last year"), (9999, "All time")] %}
+{% block title %}Reports{% endblock %}
+
+{% block page_head %}
+{% call ui.page_head("Reports", sub="The last 30 days at a glance, and every report and export") %}
+  <a class="btn btn--sm" href="{{ url_for('reports.graphs') }}">Graphs</a>
+{% endcall %}
+{% endblock %}
+
+{#- A period picker for a GET form. Each form on the page has its own id prefix. -#}
+{% macro period_select(id) -%}
+<div class="field">
+  <label for="{{ id }}">Period</label>
+  <select id="{{ id }}" name="days">
+    {%- for value, label in periods %}<option value="{{ value }}"{% if value == 30 %} selected{% endif %}>{{ label }}</option>{% endfor %}
+  </select>
+</div>
+{%- endmacro %}
+
+{% macro performer_list(rows) -%}
+<ol class="rank">
+  {%- for p in rows %}
+  <li><a href="{{ url_for('games.game_detail', game_id=p.game.id) }}">{{ p.game.name }}</a> <span class="dim num">${{ "{:,.2f}".format(p.daily_revenue) }}/day</span></li>
+  {%- endfor %}
+</ol>
+{%- endmacro %}
 
 {% block content %}
-<h1> Performance Reports & Analytics</h1>
+<div class="stack">
 
-<!-- Revenue Reports Section -->
-<div style="background: var(--dark-card); padding: 20px; border-radius: 8px; border: 1px solid var(--neon-cyan); margin: 30px 0; box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);">
-    <h2 style="color: var(--neon-cyan); margin-top: 0;"> Revenue Reports</h2>
-    <p style="color: var(--text-secondary); margin-bottom: 20px;">Generate revenue analytics and export reports.</p>
-    
-    <div style="display: flex; gap: 20px; align-items: center; flex-wrap: wrap; margin-bottom: 20px;">
-        <div style="display: flex; align-items: center; gap: 10px;">
-            <label for="revenueTimeRange" style="color: var(--text-primary); font-weight: bold;">Time Range:</label>
-            <select id="revenueTimeRange" style="padding: 8px 12px; background: var(--dark-nav); color: var(--text-primary); border: 1px solid var(--neon-cyan); border-radius: 4px; font-family: inherit;">
-                <option value="7">Last Week</option>
-                <option value="30" selected>Last Month</option>
-                <option value="90">Last Quarter</option>
-                <option value="365">Last Year</option>
-                <option value="9999">All Time</option>
-            </select>
+  <dl class="readouts">
+    {{ ui.readout("Revenue, 30 days", "${:,.2f}".format(total_revenue_30days)) }}
+    {{ ui.readout("Per day", "${:,.2f}".format(total_revenue_30days / daily_revenue|length) if daily_revenue else "$0.00", "averaged over days with readings") }}
+    {{ ui.readout("Floor machines", floor_games_count, "with a working counter") }}
+    {{ ui.readout("Low stock", low_stock_items|length, tone="warn" if low_stock_items else none) }}
+    {{ ui.readout("Open orders", open_maintenance|length, tone="fault" if open_maintenance else none) }}
+  </dl>
+
+  <div class="grid grid--pair">
+    <section class="card stack" aria-labelledby="revenue-title">
+      <h2 id="revenue-title">Revenue</h2>
+      <form class="form" method="get" action="{{ url_for('reports.revenue_reports') }}">
+        {{ period_select("revenue-days") }}
+        <div class="form__actions">
+          <button class="btn btn--primary" type="submit">View report</button>
         </div>
-        
-        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-            <button onclick="viewRevenueReport()" class="btn" style="background: var(--neon-cyan); color: black; padding: 8px 16px;">
-                 View Report
-            </button>
-            <button onclick="exportRevenuePDF()" class="btn" style="background: #dc3545; color: white; padding: 8px 16px;">
-                 Export PDF
-            </button>
-            <button onclick="exportCSV()" class="btn" style="background: var(--neon-green); color: black; padding: 8px 16px;">
-                 Export CSV
-            </button>
+      </form>
+      <p class="cluster">
+        <a class="btn btn--sm" href="{{ url_for('reports.export_report') }}">Full PDF</a>
+        <a class="btn btn--sm" href="{{ url_for('reports.export_csv') }}">CSV</a>
+      </p>
+    </section>
+
+    <section class="card stack" aria-labelledby="maint-title">
+      <h2 id="maint-title">Maintenance</h2>
+      <form class="form" method="get" action="{{ url_for('maintenance.maintenance_reports') }}">
+        {{ period_select("maint-days") }}
+        <div class="form__actions">
+          <button class="btn btn--primary" type="submit">View report</button>
         </div>
-    </div>
-</div>
-
-<!-- Executive Summary Section -->
-<div style="background: var(--dark-card); padding: 25px; border-radius: 8px; border: 2px solid var(--neon-cyan); margin: 30px 0; box-shadow: 0 0 20px rgba(0, 255, 255, 0.4);">
-    <h2 style="color: var(--neon-cyan); margin-top: 0; text-align: center;"> Executive Summary (30 Days)</h2>
-    
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 20px;">
-        <!-- Revenue Summary -->
-        <div style="background: rgba(0, 255, 255, 0.1); padding: 20px; border-radius: 8px; border-left: 4px solid var(--neon-cyan);">
-            <h3 style="color: var(--neon-cyan); margin-top: 0;"> Revenue Summary</h3>
-            <div style="color: var(--text-primary); margin-bottom: 15px;">
-                <strong>Total Revenue:</strong> <span style="color: var(--neon-green); font-size: 1.3em; font-weight: bold;">${{ "%.2f"|format(total_revenue_30days) }}</span>
-            </div>
-            <div style="color: var(--text-secondary); margin-bottom: 10px;"><strong>Top 5 Games:</strong></div>
-            <ol style="color: var(--text-primary); margin: 0; padding-left: 20px;">
-                {% for performer in top_5_games %}
-                <li>
-                    <a href="{{ url_for('games.game_detail', game_id=performer.game.id) }}" style="color: var(--neon-green);">{{ performer.game.name }}</a>
-                    <span style="color: var(--text-secondary);"> - ${{ "%.2f"|format(performer.daily_revenue) }}/day</span>
-                </li>
-                {% endfor %}
-            </ol>
-            <div style="color: var(--text-secondary); margin: 15px 0 10px 0;"><strong>Bottom 3 Games:</strong></div>
-            <ol style="color: var(--text-primary); margin: 0; padding-left: 20px;">
-                {% for performer in bottom_3_games %}
-                <li>
-                    <a href="{{ url_for('games.game_detail', game_id=performer.game.id) }}" style="color: #ff6666;">{{ performer.game.name }}</a>
-                    <span style="color: var(--text-secondary);"> - ${{ "%.2f"|format(performer.daily_revenue) }}/day</span>
-                </li>
-                {% endfor %}
-            </ol>
+        {#- The export buttons send the same period to the PDF. #}
+        <div class="cluster">
+          <span class="dim">PDF:</span>
+          {%- for value, label in [("all", "All"), ("open", "Open"), ("closed", "Closed")] %}
+          <button class="btn btn--sm" type="submit" name="type" value="{{ value }}" formaction="{{ url_for('maintenance.export_maintenance_report') }}">{{ label }}</button>
+          {%- endfor %}
         </div>
-        
-        <!-- Inventory Summary -->
-        <div style="background: rgba(255, 128, 0, 0.1); padding: 20px; border-radius: 8px; border-left: 4px solid var(--neon-orange);">
-            <h3 style="color: var(--neon-orange); margin-top: 0;"> Inventory Status</h3>
-            <div style="color: var(--text-primary); margin-bottom: 15px;">
-                <strong>Low Stock Items:</strong> <span style="color: {{ 'var(--neon-orange)' if low_stock_items|length > 0 else 'var(--neon-green)' }}; font-size: 1.2em; font-weight: bold;">{{ low_stock_items|length }}</span>
-            </div>
-            {% if low_stock_items %}
-            <div style="color: var(--text-secondary); margin-bottom: 10px;"><strong>Items needing restock:</strong></div>
-            <ul style="color: var(--text-primary); margin: 0; padding-left: 20px; max-height: 150px; overflow-y: auto;">
-                {% for item in low_stock_items[:10] %}
-                <li>
-                    {{ item.name }}
-                    <span style="color: var(--neon-orange);"> ({{ item.stock_quantity }}/{{ item.minimum_stock }})</span>
-                </li>
-                {% endfor %}
-            </ul>
-            {% else %}
-            <p style="color: var(--neon-green);">All inventory levels are adequate</p>
-            {% endif %}
-            
-            <div style="color: var(--text-primary); margin: 15px 0 10px 0;">
-                <strong>Pending Requests:</strong> <span style="color: {{ 'var(--neon-orange)' if pending_requests|length > 0 else 'var(--text-secondary)' }}; font-size: 1.2em; font-weight: bold;">{{ pending_requests|length }}</span>
-            </div>
-            {% if pending_requests %}
-            <ul style="color: var(--text-primary); margin: 0; padding-left: 20px; max-height: 100px; overflow-y: auto;">
-                {% for request in pending_requests[:5] %}
-                <li>
-                    {{ request.item_name }} (x{{ request.quantity_requested }})
-                    <span style="color: var(--text-secondary); font-size: 0.9em;"> - {{ request.urgency }}</span>
-                </li>
-                {% endfor %}
-            </ul>
-            {% endif %}
-        </div>
-        
-        <!-- Maintenance Summary -->
-        <div style="background: rgba(255, 68, 68, 0.1); padding: 20px; border-radius: 8px; border-left: 4px solid #ff4444;">
-            <h3 style="color: #ff4444; margin-top: 0;"> Maintenance Status</h3>
-            <div style="color: var(--text-primary); margin-bottom: 15px;">
-                <strong>Open Orders:</strong> <span style="color: {{ 'var(--neon-orange)' if open_maintenance|length > 5 else '#ff4444' if open_maintenance|length > 0 else 'var(--neon-green)' }}; font-size: 1.2em; font-weight: bold;">{{ open_maintenance|length }}</span>
-            </div>
-            {% if open_maintenance %}
-            <div style="color: var(--text-secondary); margin-bottom: 10px;"><strong>Active work orders:</strong></div>
-            <ul style="color: var(--text-primary); margin: 0; padding-left: 20px; max-height: 200px; overflow-y: auto;">
-                {% for order in open_maintenance[:10] %}
-                <li>
-                    <a href="{{ url_for('maintenance.maintenance_detail', record_id=order.id) }}" style="color: #ff6666;">
-                        {% if order.game %}
-                        {{ order.game.name }}
-                        {% else %}
-                        {{ order.location_description or 'General Maintenance' }}
-                        {% endif %}
-                    </a>
-                    <span style="color: var(--text-secondary); font-size: 0.9em;"> - {{ order.priority }}</span>
-                    <span style="color: {{ 'var(--neon-orange)' if order.status == 'In_Progress' else '#ff4444' }}; font-size: 0.9em;"> ({{ order.status.replace('_', ' ') }})</span>
-                </li>
-                {% endfor %}
-            </ul>
-            {% else %}
-            <p style="color: var(--neon-green);">No open maintenance orders</p>
-            {% endif %}
-        </div>
-    </div>
-</div>
+      </form>
+    </section>
+  </div>
 
-<!-- Maintenance Reports Section -->
-<div style="background: var(--dark-card); padding: 20px; border-radius: 8px; border: 1px solid var(--neon-purple); margin: 30px 0; box-shadow: 0 0 15px rgba(128, 0, 255, 0.3);">
-    <h2 style="color: var(--neon-purple); margin-top: 0;"> Maintenance Reports</h2>
-    <p style="color: var(--text-secondary); margin-bottom: 20px;">Generate maintenance analytics and export reports.</p>
-    
-    <div style="display: flex; gap: 20px; align-items: center; flex-wrap: wrap; margin-bottom: 20px;">
-        <div style="display: flex; align-items: center; gap: 10px;">
-            <label for="timeRange" style="color: var(--text-primary); font-weight: bold;">Time Range:</label>
-            <select id="timeRange" style="padding: 8px 12px; background: var(--dark-nav); color: var(--text-primary); border: 1px solid var(--neon-cyan); border-radius: 4px; font-family: inherit;">
-                <option value="7">Last Week</option>
-                <option value="30" selected>Last Month</option>
-                <option value="90">Last Quarter</option>
-                <option value="365">Last Year</option>
-                <option value="9999">All Time</option>
-            </select>
-        </div>
-        
-        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-            <button onclick="viewMaintenanceReport()" class="btn" style="background: var(--neon-cyan); color: black; padding: 8px 16px;">
-                 View Report
-            </button>
-            <button onclick="exportMaintenanceReport('all')" class="btn" style="background: var(--neon-orange); color: black; padding: 8px 16px;">
-                 Export All
-            </button>
-            <button onclick="exportMaintenanceReport('open')" class="btn" style="background: #ff4444; color: white; padding: 8px 16px;">
-                 Export Open
-            </button>
-            <button onclick="exportMaintenanceReport('closed')" class="btn" style="background: var(--neon-green); color: black; padding: 8px 16px;">
-                 Export Closed
-            </button>
-        </div>
-    </div>
-</div>
+  <div class="grid grid--pair">
+    <section class="card stack" aria-labelledby="best-title">
+      <h2 id="best-title">Best earners</h2>
+      <p class="dim">Floor machines by revenue per day since they were added.</p>
+      {%- if top_5_games %}{{ performer_list(top_5_games) }}{% else %}{{ ui.empty("No floor machines to rank yet") }}{% endif %}
+    </section>
+    <section class="card stack" aria-labelledby="worst-title">
+      <h2 id="worst-title">Lowest earners</h2>
+      <p class="dim">Candidates to replace or move.</p>
+      {%- if bottom_3_games %}{{ performer_list(bottom_3_games) }}{% else %}{{ ui.empty("No floor machines to rank yet") }}{% endif %}
+    </section>
+  </div>
 
-<script>
-// Revenue Report Functions
-function viewRevenueReport() {
-    const days = document.getElementById('revenueTimeRange').value;
-    window.open(`{{ url_for('reports.revenue_reports') }}?days=${days}`, '_blank');
-}
+  <div class="grid grid--pair">
+    <section class="card stack" aria-labelledby="stock-title">
+      <h2 id="stock-title">Stock</h2>
+      {%- if low_stock_items %}
+      <ul class="rows">
+        {%- for item in low_stock_items[:10] %}
+        <li class="row"><span class="row__main"><a class="row__title" href="{{ url_for('inventory.inventory_detail', item_id=item.id) }}">{{ item.name }}</a></span>
+          <span class="row__end">{{ ui.chip("warn", item.stock_quantity ~ " of " ~ item.minimum_stock) }}</span></li>
+        {%- endfor %}
+      </ul>
+      {%- else %}
+      <p class="is-ok">Every part is above its minimum.</p>
+      {%- endif %}
+      <h3>Part requests waiting: {{ pending_requests|length }}</h3>
+      {%- if pending_requests %}
+      <ul class="rows">
+        {%- for req in pending_requests[:5] %}
+        <li class="row"><span class="row__main"><a class="row__title" href="{{ url_for('inventory.inventory_request_detail', request_id=req.id) }}">{{ req.item_name }} × {{ req.quantity_requested }}</a></span>
+          <span class="row__end">{% if req.urgency and req.urgency != "Normal" %}{{ ui.status(req.urgency) }} {% endif %}{{ ui.status(req.status) }}</span></li>
+        {%- endfor %}
+      </ul>
+      {%- endif %}
+    </section>
 
-function exportRevenuePDF() {
-    window.open(`{{ url_for('reports.export_report') }}`, '_blank');
-}
+    <section class="card stack" aria-labelledby="orders-title">
+      <h2 id="orders-title">Open work orders</h2>
+      {%- if open_maintenance %}
+      <ul class="rows">
+        {%- for order in open_maintenance[:10] %}
+        <li class="row"><span class="row__main"><a class="row__title" href="{{ url_for('maintenance.maintenance_detail', record_id=order.id) }}">{{ order.game.name if order.game else (order.location_description or "General maintenance") }}</a>
+            <span class="row__meta">{{ order.priority }} priority</span></span>
+          <span class="row__end">{{ ui.status(order.status) }}</span></li>
+        {%- endfor %}
+      </ul>
+      {%- else %}
+      <p class="is-ok">No open work orders.</p>
+      {%- endif %}
+    </section>
+  </div>
 
-function exportCSV() {
-    window.open(`{{ url_for('reports.export_csv') }}`, '_blank');
-}
+  <section class="stack" aria-labelledby="trend-title">
+    <h2 id="trend-title">Revenue by day, last 30 days</h2>
+    {%- if daily_chart.values %}
+    <div class="chart chart--tall"><canvas data-chart="line" data-source="daily-data" data-money data-label="Revenue" role="img" aria-label="Revenue by day over the last 30 days"></canvas></div>
+    <script type="application/json" id="daily-data">{{ daily_chart|tojson }}</script>
+    {%- else %}
+    {{ ui.empty("No readings in the last 30 days") }}
+    {%- endif %}
+  </section>
 
-// Maintenance Report Functions
-function viewMaintenanceReport() {
-    const days = document.getElementById('timeRange').value;
-    window.open(`{{ url_for('maintenance.maintenance_reports') }}?days=${days}`, '_blank');
-}
+  {%- if top_performers %}
+  <section class="stack" aria-labelledby="ranking-title">
+    <h2 id="ranking-title">Floor ranking</h2>
+    <div class="chart chart--tall"><canvas data-chart="bar" data-horizontal data-source="games-data" data-money data-label="Total revenue" role="img" aria-label="Total revenue of the ten best floor machines"></canvas></div>
+    <script type="application/json" id="games-data">{{ games_chart|tojson }}</script>
 
-function exportMaintenanceReport(type) {
-    const days = document.getElementById('timeRange').value;
-    window.open(`{{ url_for('maintenance.export_maintenance_report') }}?type=${type}&days=${days}`, '_blank');
-}
-</script>
-
-<div style="display: flex; gap: 40px; margin: 30px 0;">
-    <div style="flex: 1;">
-        <h2 style="color: red;"> WORST Performers - Replace These!</h2>
-        {% if worst_performers %}
-        <table class="table critical-table">
-            <thead>
-                <tr>
-                    <th>Rank</th>
-                    <th>Game</th>
-                    <th>Daily Revenue</th>
-                    <th>Total Revenue</th>
-                    <th>Recommendation</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for performer in worst_performers %}
-                <tr class="performance-bad" style="border-left: {{ '4px solid #ff4444' if loop.index <= 3 else '2px solid #ff6666' }};">
-                    <td style="color: var(--text-primary); font-weight: bold;">{{ loop.index }}</td>
-                    <td><a href="{{ url_for('games.game_detail', game_id=performer.game.id) }}" style="color: var(--neon-cyan); font-weight: bold;">{{ performer.game.name }}</a></td>
-                    <td class="revenue-text" style="color: #ff6666;">${{ "%.2f"|format(performer.daily_revenue) }}</td>
-                    <td class="revenue-text" style="color: #ff6666;">${{ "%.2f"|format(performer.total_revenue) }}</td>
-                    <td style="font-weight: bold; color: #ff4444; text-transform: uppercase;">
-                        {% if loop.index <= 3 %} REPLACE IMMEDIATELY{% else %} Consider Replacement{% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
+    <div class="grid grid--pair">
+      <div class="table-wrap">
+        <table class="table">
+          <caption>Best 10, per day</caption>
+          <thead><tr><th class="num">#</th><th>Machine</th><th class="num">Per day</th><th class="num">Total</th><th class="num">Top 5 / 10</th></tr></thead>
+          <tbody>
+            {%- for p in top_performers %}
+            <tr>
+              <td class="num">{{ loop.index }}</td>
+              <td><a href="{{ url_for('games.game_detail', game_id=p.game.id) }}">{{ p.game.name }}</a></td>
+              <td class="num">${{ "{:,.2f}".format(p.daily_revenue) }}</td>
+              <td class="num">${{ "{:,.2f}".format(p.total_revenue) }}</td>
+              <td class="num">{{ p.game.times_in_top_5 or 0 }} / {{ p.game.times_in_top_10 or 0 }}</td>
+            </tr>
+            {%- endfor %}
+          </tbody>
         </table>
-        {% else %}
-        <p>No floor games to analyze yet.</p>
-        {% endif %}
-    </div>
-    
-    <div style="flex: 1;">
-        <h2 style="color: green;"> TOP Performers - Keep These!</h2>
-        {% if top_performers %}
-        <table class="table" style="border: 2px solid var(--neon-green); box-shadow: 0 0 15px rgba(0, 255, 0, 0.3);">
-            <thead>
-                <tr style="background: linear-gradient(45deg, var(--neon-green), #00cc00);">
-                    <th style="color: var(--dark-bg); text-shadow: none;">Rank</th>
-                    <th style="color: var(--dark-bg); text-shadow: none;">Game</th>
-                    <th style="color: var(--dark-bg); text-shadow: none;">Daily Revenue</th>
-                    <th style="color: var(--dark-bg); text-shadow: none;">Total Revenue</th>
-                    <th style="color: var(--dark-bg); text-shadow: none;">Top History</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for performer in top_performers %}
-                <tr class="performance-good" style="border-left: {{ '4px solid var(--neon-green)' if loop.index <= 3 else '2px solid #66ff66' }};">
-                    <td style="color: var(--text-primary); font-weight: bold;">{{ loop.index }}</td>
-                    <td><a href="{{ url_for('games.game_detail', game_id=performer.game.id) }}" style="color: var(--neon-green); font-weight: bold;">{{ performer.game.name }}</a></td>
-                    <td class="revenue-text" style="color: #66ff66;">${{ "%.2f"|format(performer.daily_revenue) }}</td>
-                    <td class="revenue-text" style="color: #66ff66;">${{ "%.2f"|format(performer.total_revenue) }}</td>
-                    <td style="color: var(--text-secondary); font-weight: 500;">
-                        {% if loop.index <= 3 %} {% endif %}Top5: {{ performer.game.times_in_top_5 }}x, Top10: {{ performer.game.times_in_top_10 }}x
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
+      </div>
+      <div class="table-wrap">
+        <table class="table">
+          <caption>Lowest 10, per day</caption>
+          <thead><tr><th class="num">#</th><th>Machine</th><th class="num">Per day</th><th class="num">Total</th><th>Advice</th></tr></thead>
+          <tbody>
+            {%- for p in worst_performers %}
+            <tr>
+              <td class="num">{{ loop.index }}</td>
+              <td><a href="{{ url_for('games.game_detail', game_id=p.game.id) }}">{{ p.game.name }}</a></td>
+              <td class="num">${{ "{:,.2f}".format(p.daily_revenue) }}</td>
+              <td class="num">${{ "{:,.2f}".format(p.total_revenue) }}</td>
+              <td>{{ ui.chip("fault", "Replace") if loop.index <= 3 else ui.chip("warn", "Consider replacing") }}</td>
+            </tr>
+            {%- endfor %}
+          </tbody>
         </table>
-        {% else %}
-        <p>No top performers yet.</p>
-        {% endif %}
+      </div>
     </div>
+  </section>
+  {%- endif %}
 </div>
+{% endblock %}
 
-<div style="margin: 40px 0;">
-    <h2> Daily Revenue Trend (Last 30 Days)</h2>
-    <canvas id="revenueChart" width="400" height="200"></canvas>
-</div>
-
-<div style="display: flex; gap: 40px; margin: 30px 0;">
-    <div style="flex: 1;">
-        <h2> Revenue by Game (Top 10)</h2>
-        <canvas id="gameRevenueChart" width="400" height="300"></canvas>
-    </div>
-    
-    <div style="flex: 1;">
-        <h2> Quick Stats</h2>
-        <div class="stats">
-            <div class="stat-card">
-                <div class="stat-number">${{ daily_revenue.values()|sum if daily_revenue else 0 }}</div>
-                <div>Revenue (30 Days)</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number">${{ (daily_revenue.values()|sum / daily_revenue|length)|round(2) if daily_revenue else 0 }}</div>
-                <div>Avg Daily Revenue</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number">{{ floor_games_count }}</div>
-                <div>Floor Games</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number">{{ worst_performers[:3]|length }}</div>
-                <div>Games to Replace</div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script>
-// Daily Revenue Chart
-const revenueCtx = document.getElementById('revenueChart').getContext('2d');
-const dailyRevenueData = {{ daily_revenue|tojson|safe }};
-
-const sortedDates = Object.keys(dailyRevenueData).sort();
-const revenueValues = sortedDates.map(date => dailyRevenueData[date]);
-
-new Chart(revenueCtx, {
-    type: 'line',
-    data: {
-        labels: sortedDates,
-        datasets: [{
-            label: 'Daily Revenue ($)',
-            data: revenueValues,
-            borderColor: 'rgb(75, 192, 192)',
-            backgroundColor: 'rgba(75, 192, 192, 0.2)',
-            tension: 0.1
-        }]
-    },
-    options: {
-        responsive: true,
-        scales: {
-            y: {
-                beginAtZero: true,
-                ticks: {
-                    callback: function(value) {
-                        return '$' + value;
-                    }
-                }
-            }
-        }
-    }
-});
-
-// Game Revenue Chart
-const gameCtx = document.getElementById('gameRevenueChart').getContext('2d');
-const topPerformers = {{ top_performers|tojson|safe }};
-
-const gameNames = topPerformers.map(p => p.game.name.substring(0, 15) + (p.game.name.length > 15 ? '...' : ''));
-const gameRevenues = topPerformers.map(p => p.total_revenue);
-
-new Chart(gameCtx, {
-    type: 'bar',
-    data: {
-        labels: gameNames,
-        datasets: [{
-            label: 'Total Revenue ($)',
-            data: gameRevenues,
-            backgroundColor: [
-                '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
-                '#FF9F40', '#FF6384', '#C9CBCF', '#4BC0C0', '#FF6384'
-            ]
-        }]
-    },
-    options: {
-        responsive: true,
-        scales: {
-            y: {
-                beginAtZero: true,
-                ticks: {
-                    callback: function(value) {
-                        return '$' + value;
-                    }
-                }
-            }
-        },
-        plugins: {
-            legend: {
-                display: false
-            }
-        }
-    }
-});
-</script>
+{% block scripts %}
+<script src="{{ asset('js/chart.min.js') }}"></script>
+<script src="{{ asset('js/charts.js') }}"></script>
 {% endblock %}

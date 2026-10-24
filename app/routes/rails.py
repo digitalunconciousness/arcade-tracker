@@ -33,14 +33,15 @@ rails_bp = Blueprint("rails", __name__, url_prefix="/rails")
 FLOOR_LIMIT = 50          # the floor view: recent arrivals, not an archive
 TABLE_LIMIT = 300         # readings shown as rows; 2000 is not a table anyone finishes
 
-# The verdicts GATBOX decides, and the palette already in cyberpunk.css. A session with no
-# window has no verdict at all (bench and free profiles have nothing to pass), which is not
+# The verdicts GATBOX decides, as design-system tones (static/css/tokens.css). `colour` is the
+# same tone's hex, for the chart points, which a canvas can't style with a class. A session with
+# no window has no verdict at all (bench and free profiles have nothing to pass), which is not
 # the same as passing -- so it gets its own entry rather than falling through to "held".
 VERDICT = {
-    "held": {"label": "held the window", "colour": "#00ff00", "css": "ok"},
-    "left": {"label": "left the window", "colour": "#ff8000", "css": "warn"},
-    "over": {"label": "over-voltage", "colour": "#ff00ff", "css": "bad"},
-    None: {"label": "no window", "colour": "#888888", "css": "mut"},
+    "held": {"label": "held the window", "colour": "#5ef2b0", "tone": "ok"},
+    "left": {"label": "left the window", "colour": "#ffb74d", "tone": "warn"},
+    "over": {"label": "over-voltage", "colour": "#ff4d6d", "tone": "fault"},
+    None: {"label": "no window", "colour": "#a394c4", "tone": "muted"},
 }
 
 # Columns the history view needs. Named explicitly so the query cannot drift into loading

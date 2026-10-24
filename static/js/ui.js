@@ -8,7 +8,10 @@
  *   - select-all checkboxes (data-select-all="name") with a live count;
  *   - <form data-confirm="Question?" data-confirm-action="Delete">: a styled confirm dialog
  *     before submitting, falling back to window.confirm where <dialog> is missing;
- *   - <button data-print>: opens the print dialog (label sheets).
+ *   - <button data-print>: opens the print dialog (label sheets);
+ *   - <input data-keep-focus>: the scan box takes focus back after a click elsewhere, so
+ *     every scan lands in it;
+ *   - <table data-sortable>: headings marked data-sort sort the rows when clicked.
  */
 (function () {
   "use strict";
@@ -74,6 +77,49 @@
       } else if (t.matches("input[type=checkbox][name]")) {
         if (document.querySelector('[data-select-all="' + t.name + '"]')) syncCount(t.name);
       }
+    });
+
+    // --- keep the scan box focused --------------------------------------------------------
+    var keep = document.querySelector("[data-keep-focus]");
+    if (keep) {
+      document.addEventListener("click", function (e) {
+        if (!e.target.closest("a, button, input, select, textarea, label, summary")) keep.focus();
+      });
+    }
+
+    // --- sortable tables -----------------------------------------------------------------
+    // <table data-sortable> with <th data-sort="text|num">: the heading becomes a button.
+    // A cell sorts by its data-sort-value when it has one (days as a number, a date as ISO),
+    // otherwise by its text. Without this script the table simply stays in server order.
+    document.querySelectorAll("table[data-sortable]").forEach(function (table) {
+      var heads = table.querySelectorAll("th[data-sort]");
+      heads.forEach(function (th) {
+        var button = document.createElement("button");
+        button.type = "button";
+        button.className = "sort";
+        while (th.firstChild) button.appendChild(th.firstChild);
+        th.appendChild(button);
+        button.addEventListener("click", function () {
+          var col = Array.prototype.indexOf.call(th.parentNode.children, th);
+          var asc = th.getAttribute("aria-sort") !== "ascending";
+          var numeric = th.getAttribute("data-sort") === "num";
+          heads.forEach(function (h) { h.removeAttribute("aria-sort"); });
+          th.setAttribute("aria-sort", asc ? "ascending" : "descending");
+          var body = table.tBodies[0];
+          var rows = Array.prototype.slice.call(body.rows);
+          function key(row) {
+            var cell = row.cells[col];
+            var v = cell.hasAttribute("data-sort-value") ? cell.getAttribute("data-sort-value")
+                                                          : cell.textContent.trim();
+            return numeric ? parseFloat(v) || 0 : v.toLowerCase();
+          }
+          rows.sort(function (a, b) {
+            var x = key(a), y = key(b);
+            return (x < y ? -1 : x > y ? 1 : 0) * (asc ? 1 : -1);
+          });
+          rows.forEach(function (r) { body.appendChild(r); });
+        });
+      });
     });
 
     // --- print buttons ------------------------------------------------------------------

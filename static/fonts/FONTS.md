@@ -18,6 +18,6 @@ To rebuild the Chakra Petch subset:
       --unicodes="U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2190-2199,U+2212,U+2215,U+FEFF,U+FFFD" \
       --output-file=chakra-petch-600-latin.woff2
 
-The old files `orbitron-v35-latin.woff2`, `share-tech-mono-v16-latin.woff2` and `OFL.txt` belong
-to the pre-redesign stylesheet (`static/css/cyberpunk.css`) and are deleted with it at the end of
-the migration.
+The pre-redesign fonts (Orbitron and a WOFF2 Share Tech Mono, with their shared `OFL.txt`) were
+deleted with `cyberpunk.css` in Step 4.8d. `tests/test_no_external_assets.py` checks that every
+file here is one `static/css/base.css` declares.

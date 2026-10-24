@@ -793,6 +793,37 @@ legend {
 /* =========================================================================================
    Tabs (links between filtered views; no JS needed)
    ========================================================================================= */
+/* Sortable table headings (static/js/ui.js). The button inherits the heading's look. */
+.table th .sort {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  display: inline-flex;
+  gap: 0.3em;
+  cursor: pointer;
+}
+.table th .sort::after {
+  content: "↕";
+  opacity: 0.5;
+}
+.table th[aria-sort="ascending"] .sort::after {
+  content: "↑";
+  opacity: 1;
+}
+.table th[aria-sort="descending"] .sort::after {
+  content: "↓";
+  opacity: 1;
+}
+.table th .sort:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
 .tabs {
   display: flex;
   gap: var(--sp-1);
@@ -897,6 +928,49 @@ legend {
 }
 .chart canvas {
   width: 100% !important;
+}
+/* Two panels side by side when there is room; unlike .grid, they share the width. */
+.grid--pair {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
+}
+
+/* A short ranked list: the reports page's best and lowest earners. */
+.rank {
+  margin: 0;
+  padding-left: 1.5em;
+}
+.rank li + li {
+  margin-top: var(--sp-1);
+}
+
+.chart--tall {
+  height: 300px;
+}
+@media (min-width: 48em) {
+  .chart--tall {
+    height: 360px;
+  }
+}
+/* Rail verdicts, one bar per session. Each bar is a link with its verdict as hidden text,
+   and the chips under the strip say what each colour means. */
+.verdict-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.verdict-strip a {
+  display: block;
+  width: 16px;
+  height: 28px;
+  border-radius: 2px;
+  background: currentColor;
+}
+.verdict-strip a:hover {
+  outline: 2px solid var(--text);
+  outline-offset: 1px;
 }
 .chart__empty {
   position: absolute;
@@ -1224,4 +1298,28 @@ legend {
   background: var(--surface-inset);
   border: 1px dashed var(--border-control);
   border-radius: var(--r);
+}
+
+/* Storage meter (native <meter>: the browser picks the colour band from low/high) */
+.meter {
+  display: block;
+  width: 100%;
+  height: 14px;
+  border-radius: var(--r-pill);
+  background: var(--surface-inset);
+}
+.meter::-webkit-meter-bar {
+  background: var(--surface-inset);
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+}
+.meter::-moz-meter-bar {
+  border-radius: var(--r-pill);
+}
+
+/* Scan page: one big box a USB scanner types into */
+.scan__box {
+  min-height: 56px;
+  font-size: var(--fs-lg);
+  letter-spacing: 0.04em;
 }
