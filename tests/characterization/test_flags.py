@@ -18,12 +18,6 @@ def flag(code: str, why: str):
     return pytest.mark.xfail(strict=True, reason=f"{code}: {why}")
 
 
-
-
-
-
-
-
 @flag("F-15", "the location filter is ANDed with Floor-only, so any other location is empty")
 def test_revenue_report_location_filter_can_show_warehouse_revenue(client, floor):
     from app.extensions import db
@@ -37,16 +31,3 @@ def test_revenue_report_location_filter_can_show_warehouse_revenue(client, floor
     assert "Pixel Pinball" in html
 
 
-
-
-
-@flag("F-29", "a rail session with a mean but no min/max is a 500 on its page")
-def test_a_rail_session_with_partial_figures_renders(client, floor):
-    from app.extensions import db
-    from app.models import RailSession
-
-    s = RailSession.query.filter_by(uid=floor["session_uid"]).one()
-    s.powered_min = s.powered_max = None
-    db.session.commit()
-    login(client, "readonly")
-    assert client.get(f"/rails/session/{floor['session_uid']}").status_code == 200

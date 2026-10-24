@@ -898,6 +898,35 @@ legend {
 .chart canvas {
   width: 100% !important;
 }
+.chart--tall {
+  height: 300px;
+}
+@media (min-width: 48em) {
+  .chart--tall {
+    height: 360px;
+  }
+}
+/* Rail verdicts, one bar per session. Each bar is a link with its verdict as hidden text,
+   and the chips under the strip say what each colour means. */
+.verdict-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.verdict-strip a {
+  display: block;
+  width: 16px;
+  height: 28px;
+  border-radius: 2px;
+  background: currentColor;
+}
+.verdict-strip a:hover {
+  outline: 2px solid var(--text);
+  outline-offset: 1px;
+}
 .chart__empty {
   position: absolute;
   inset: 0;

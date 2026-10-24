@@ -358,7 +358,8 @@ anything is changed.
 
 ### Found while writing the characterization tests
 
-- **F-29 A rail session with partial figures is a 500.** `rails_session.html` formats `powered_min` and
+- **F-29 A rail session with partial figures is a 500.** *Fixed in 4.8b: each figure shows on its own, and a
+  missing one reads —. The machine history's range column had the same fault and is fixed too.* `rails_session.html` formats `powered_min` and
   `powered_max` whenever `powered_mean` is set, so a session that has a mean but no range crashes the page.
 - **F-30 User text inside inline JavaScript.** *Fixed in 4.5 for the inventory pages, which have no inline handlers at all now; M3 (F-13) is fixed since 4.4.* `inventory_request_detail.html` (and the newline-stripping
   in M3, F-13) put item names and notes inside `onclick="…('{{ … }}')"`. Jinja's escaping is decoded back
