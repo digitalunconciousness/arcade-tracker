@@ -293,7 +293,7 @@ anything is changed.
   - G5 with a bad or empty `date` field.
   - G4 with a non-numeric year.
   - The PDF exports when a description contains text that looks like a ReportLab tag, such as an
-    unclosed `<b>` or a `<br>`. Plain `<` and `&` are fine; checked by `test_flags.py`.
+    unclosed `<b>` or a `<br>`. Plain `<` and `&` are fine; checked by `test_work_orders.py`.
   - The skeeball DB init runs `sqlite_master`, which fails on PostgreSQL (the error is swallowed, and the
     lane is never linked).
 - **F-13 M3 mutates ORM objects** *Fixed in 4.4: the page builds no JavaScript strings now.* to strip newlines for its inline JavaScript. That's harmless today because
@@ -303,7 +303,8 @@ anything is changed.
   - G14 mints a barcode (operator and up since 4.7a; it says so when it does).
   - G18 mints report tokens. *Fixed in 4.7a: only the print button (a POST) mints; opening the sheet changes nothing.*
   - S7, an unauthenticated GET, starts threads and creates a Game row.
-- **F-15 The P2 location filter can only return nothing.** The query is already Floor-only, so any other
+- **F-15 The P2 location filter can only return nothing.** *Fixed in 4.8c: with no location the report is the
+  Floor as before; any other choice, or "Every location", replaces it. The PDF uses the same rule.* The query is already Floor-only, so any other
   location gives an empty result.
 
 ### Access control (security pass, Step 5)

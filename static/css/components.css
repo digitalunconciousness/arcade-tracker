@@ -898,6 +898,20 @@ legend {
 .chart canvas {
   width: 100% !important;
 }
+/* Two panels side by side when there is room; unlike .grid, they share the width. */
+.grid--pair {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+}
+
+/* A short ranked list: the reports page's best and lowest earners. */
+.rank {
+  margin: 0;
+  padding-left: 1.5em;
+}
+.rank li + li {
+  margin-top: var(--sp-1);
+}
+
 .chart--tall {
   height: 300px;
 }

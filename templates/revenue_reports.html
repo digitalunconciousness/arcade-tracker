@@ -1,236 +1,104 @@
-{% extends "base.html" %}
+{% extends "layout.html" %}
+{% import "ui.html" as ui %}
+{% set periods = [(7, "Last 7 days"), (30, "Last 30 days"), (60, "Last 60 days"), (90, "Last 90 days"),
+                  (180, "Last 6 months"), (365, "Last year"), (9999, "All time")] %}
+{% set period = (periods|selectattr(0, "equalto", days_filter)|map(attribute=1)|first) or ("Last " ~ days_filter ~ " days") %}
+{% block title %}Revenue{% endblock %}
+
+{% block page_head %}
+{% call ui.page_head("Revenue", sub=period ~ " · " ~ scope ~ " · working counters only", back=url_for("reports.reports"), back_label="Reports") %}
+  <a class="btn btn--sm" href="{{ url_for('reports.export_revenue_report', days=days_filter, location=location_filter) }}">Export PDF</a>
+{% endcall %}
+{% endblock %}
 
 {% block content %}
-<h1> Revenue Reports</h1>
+<div class="stack">
+  <form class="filters" method="get" action="{{ url_for('reports.revenue_reports') }}">
+    <div class="field">
+      <label for="days">Period</label>
+      <select id="days" name="days">
+        {%- for value, label in periods %}<option value="{{ value }}"{% if days_filter == value %} selected{% endif %}>{{ label }}</option>{% endfor %}
+        {%- if days_filter not in periods|map(attribute=0) %}<option value="{{ days_filter }}" selected>{{ period }}</option>{% endif %}
+      </select>
+    </div>
+    <div class="field">
+      <label for="location">Location</label>
+      <select id="location" name="location">
+        {%- for value, label in location_options %}<option value="{{ value }}"{% if location_filter == value %} selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="filters__actions">
+      <button class="btn" type="submit">Update</button>
+    </div>
+  </form>
 
-<!-- Filter Controls -->
-<div style="margin-bottom: 20px; padding: 15px; background: rgba(0, 255, 100, 0.1); border: 1px solid var(--neon-green); border-radius: 8px;">
-    <form method="GET" style="display: flex; gap: 15px; flex-wrap: wrap; align-items: end;">
-        <div class="form-group" style="margin: 0; min-width: 120px;">
-            <label for="days" style="font-size: 12px;">Time Period</label>
-            <select id="days" name="days" style="padding: 8px;">
-                <option value="7" {{ 'selected' if days_filter == 7 else '' }}>Last 7 days</option>
-                <option value="30" {{ 'selected' if days_filter == 30 else '' }}>Last 30 days</option>
-                <option value="60" {{ 'selected' if days_filter == 60 else '' }}>Last 60 days</option>
-                <option value="90" {{ 'selected' if days_filter == 90 else '' }}>Last 90 days</option>
-                <option value="180" {{ 'selected' if days_filter == 180 else '' }}>Last 6 months</option>
-                <option value="365" {{ 'selected' if days_filter == 365 else '' }}>Last year</option>
-            </select>
-        </div>
-        
-        <div class="form-group" style="margin: 0; min-width: 120px;">
-            <label for="location" style="font-size: 12px;">Location Filter</label>
-            <select id="location" name="location" style="padding: 8px;">
-                <option value="">All Locations</option>
-                {% for location in locations %}
-                    <option value="{{ location }}" {{ 'selected' if location == location_filter else '' }}>{{ location }}</option>
-                {% endfor %}
-            </select>
-        </div>
-        
-        <button type="submit" class="btn" style="padding: 8px 15px;"> Update Report</button>
-        <a href="{{ url_for('reports.export_revenue_report', days=days_filter, location=location_filter) }}" 
-           class="btn" style="padding: 8px 15px; background: var(--neon-green);"> Export PDF</a>
-    </form>
-</div>
+  <dl class="readouts">
+    {{ ui.readout("Revenue", "${:,.2f}".format(total_revenue), period) }}
+    {{ ui.readout("Plays", "{:,}".format(total_plays), period) }}
+    {{ ui.readout("Per day", "${:,.2f}".format(avg_daily_revenue), "averaged over " ~ days_filter ~ " days") }}
+    {{ ui.readout("Machines", revenue_games|length, "with readings in this period") }}
+  </dl>
 
-<!-- Summary Statistics -->
-<div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px;">
-    <div class="stat-card" style="padding: 20px; background: rgba(0, 255, 100, 0.1); border: 1px solid var(--neon-green); border-radius: 8px; text-align: center;">
-        <h3 style="color: var(--neon-green); margin: 0 0 10px 0;">Total Revenue</h3>
-        <div style="font-size: 24px; font-weight: bold;">${{ "%.2f"|format(total_revenue) }}</div>
-        <small style="color: var(--text-secondary);">Last {{ days_filter }} days</small>
-    </div>
-    
-    <div class="stat-card" style="padding: 20px; background: rgba(0, 255, 255, 0.1); border: 1px solid var(--neon-cyan); border-radius: 8px; text-align: center;">
-        <h3 style="color: var(--neon-cyan); margin: 0 0 10px 0;">Total Plays</h3>
-        <div style="font-size: 24px; font-weight: bold;">{{ total_plays }}</div>
-        <small style="color: var(--text-secondary);">Last {{ days_filter }} days</small>
-    </div>
-    
-    <div class="stat-card" style="padding: 20px; background: rgba(255, 100, 0, 0.1); border: 1px solid var(--neon-orange); border-radius: 8px; text-align: center;">
-        <h3 style="color: var(--neon-orange); margin: 0 0 10px 0;">Daily Average</h3>
-        <div style="font-size: 24px; font-weight: bold;">${{ "%.2f"|format(avg_daily_revenue) }}</div>
-        <small style="color: var(--text-secondary);">Per day average</small>
-    </div>
-    
-    <div class="stat-card" style="padding: 20px; background: rgba(255, 0, 255, 0.1); border: 1px solid var(--neon-purple); border-radius: 8px; text-align: center;">
-        <h3 style="color: var(--neon-purple); margin: 0 0 10px 0;">Active Games</h3>
-        <div style="font-size: 24px; font-weight: bold;">{{ top_games|length }}</div>
-        <small style="color: var(--text-secondary);">With revenue</small>
-    </div>
-</div>
+  {%- if all_records %}
+  <section class="stack" aria-labelledby="daily-title">
+    <h2 id="daily-title">Revenue by day</h2>
+    <div class="chart chart--tall"><canvas data-chart="line" data-source="daily-data" data-money data-label="Revenue" role="img" aria-label="Revenue by day, {{ period|lower }}"></canvas></div>
+    <script type="application/json" id="daily-data">{{ daily_chart|tojson }}</script>
+  </section>
 
-<!-- Top Performing Games -->
-{% if top_games %}
-<div style="margin-bottom: 30px;">
-    <h2 style="color: var(--neon-green); margin-bottom: 15px;"> Top Performing Games</h2>
-    <table class="table" style="--table-cell-padding: 8px 12px;">
-        <thead>
-            <tr>
-                <th>Rank</th>
-                <th>Game Name</th>
-                <th>Revenue</th>
-                <th>Plays</th>
-                <th>Avg per Play</th>
-                <th>Location</th>
-            </tr>
-        </thead>
+  <section class="stack" aria-labelledby="top-title">
+    <h2 id="top-title">Top machines</h2>
+    <div class="table-wrap">
+      <table class="table table--stack">
+        <thead><tr><th class="num">#</th><th>Machine</th><th class="num">Revenue</th><th class="num">Plays</th><th class="num">Per play</th><th>Location</th></tr></thead>
         <tbody>
-            {% for game_data in top_games %}
-            <tr>
-                <td style="text-align: center; font-weight: bold;">
-                    {% if loop.index <= 3 %}
-                        <span style="color: 
-                            {% if loop.index == 1 %}gold
-                            {% elif loop.index == 2 %}silver  
-                            {% else %}#cd7f32{% endif %};">
-                            #{{ loop.index }}
-                        </span>
-                    {% else %}
-                        #{{ loop.index }}
-                    {% endif %}
-                </td>
-                <td><a href="{{ url_for('games.game_detail', game_id=game_data.game.id) }}">{{ game_data.game.name }}</a></td>
-                <td style="font-weight: bold; color: var(--neon-green);">${{ "%.2f"|format(game_data.revenue) }}</td>
-                <td>{{ game_data.plays }}</td>
-                <td>${{ "%.2f"|format(game_data.revenue / game_data.plays if game_data.plays > 0 else 0) }}</td>
-                <td>
-                    <span style="padding: 2px 8px; border-radius: 4px; font-size: 11px; 
-                          background: {% if game_data.game.location == 'Floor' %}rgba(0, 255, 255, 0.2){% else %}rgba(255, 165, 0, 0.2){% endif %};">
-                        {{ game_data.game.location }}
-                    </span>
-                </td>
-            </tr>
-            {% endfor %}
+          {%- for row in top_games %}
+          <tr>
+            <td data-label="Rank" class="num">{{ loop.index }}</td>
+            <td data-label="Machine"><a href="{{ url_for('games.game_detail', game_id=row.game.id) }}">{{ row.game.name }}</a></td>
+            <td data-label="Revenue" class="num">${{ "{:,.2f}".format(row.revenue) }}</td>
+            <td data-label="Plays" class="num">{{ "{:,}".format(row.plays) }}</td>
+            <td data-label="Per play" class="num">${{ "%.2f"|format(row.revenue / row.plays if row.plays > 0 else 0) }}</td>
+            <td data-label="Location">{{ row.game.location }}</td>
+          </tr>
+          {%- endfor %}
         </tbody>
-    </table>
-</div>
-{% endif %}
-
-<!-- Daily Revenue Chart -->
-{% if daily_revenue %}
-<div style="margin-bottom: 30px;">
-    <h2 style="color: var(--neon-cyan); margin-bottom: 15px;"> Daily Revenue Breakdown</h2>
-    <div style="background: rgba(0, 0, 0, 0.3); padding: 20px; border-radius: 8px;">
-        <canvas id="revenueChart" width="400" height="200"></canvas>
+      </table>
     </div>
-</div>
+  </section>
 
-<script>
-// Daily Revenue Chart
-const ctx = document.getElementById('revenueChart').getContext('2d');
-const dailyRevenueData = {{ daily_revenue | tojson }};
-
-// Sort dates and prepare data
-const sortedDates = Object.keys(dailyRevenueData).sort();
-const revenues = sortedDates.map(date => dailyRevenueData[date]);
-
-new Chart(ctx, {
-    type: 'line',
-    data: {
-        labels: sortedDates.map(date => {
-            const d = new Date(date);
-            return (d.getMonth() + 1) + '/' + d.getDate();
-        }),
-        datasets: [{
-            label: 'Daily Revenue',
-            data: revenues,
-            borderColor: '#00ffff',
-            backgroundColor: 'rgba(0, 255, 255, 0.1)',
-            borderWidth: 2,
-            fill: true,
-            tension: 0.4
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: {
-                labels: {
-                    color: '#ffffff'
-                }
-            }
-        },
-        scales: {
-            y: {
-                beginAtZero: true,
-                ticks: {
-                    color: '#ffffff',
-                    callback: function(value) {
-                        return '$' + value.toFixed(2);
-                    }
-                },
-                grid: {
-                    color: 'rgba(255, 255, 255, 0.1)'
-                }
-            },
-            x: {
-                ticks: {
-                    color: '#ffffff'
-                },
-                grid: {
-                    color: 'rgba(255, 255, 255, 0.1)'
-                }
-            }
-        }
-    }
-});
-</script>
-{% endif %}
-
-<!-- Recent Revenue Records -->
-{% if all_records %}
-<div>
-    <h2 style="color: var(--neon-orange); margin-bottom: 15px;"> Recent Revenue Records</h2>
-    <p style="color: var(--text-secondary); margin-bottom: 15px;">
-        Showing {{ all_records|length }} records from {{ start_date.strftime('%Y-%m-%d') }} to today
-        {% if location_filter %}({{ location_filter }} only){% endif %}
-    </p>
-    
-    <table class="table" style="--table-cell-padding: 6px 8px;">
-        <thead>
-            <tr>
-                <th>Date</th>
-                <th>Game</th>
-                <th>Plays</th>
-                <th>Revenue</th>
-                <th>Location</th>
-            </tr>
-        </thead>
+  <section class="stack" aria-labelledby="records-title">
+    <h2 id="records-title">Readings</h2>
+    <p class="dim">{{ all_records|length }} reading{{ "" if all_records|length == 1 else "s" }} since {{ start_date.strftime('%Y-%m-%d') }}{% if all_records|length > 20 %}; the newest 20 are shown, and the PDF has them all{% endif %}.</p>
+    <div class="table-wrap">
+      <table class="table table--stack">
+        <thead><tr><th>Date</th><th>Machine</th><th class="num">Plays</th><th class="num">Revenue</th><th>Location</th></tr></thead>
         <tbody>
-            {% for record in all_records[:20] %}
-            <tr>
-                <td>{{ record.date_recorded.strftime('%Y-%m-%d') }}</td>
-                <td><a href="{{ url_for('games.game_detail', game_id=record.game.id) }}">{{ record.game.name }}</a></td>
-                <td>{{ record.plays_count }}</td>
-                <td style="color: var(--neon-green); font-weight: bold;">${{ "%.2f"|format(record.revenue) }}</td>
-                <td>
-                    <span style="padding: 2px 8px; border-radius: 4px; font-size: 11px; 
-                          background: {% if record.game.location == 'Floor' %}rgba(0, 255, 255, 0.2){% else %}rgba(255, 165, 0, 0.2){% endif %};">
-                        {{ record.game.location }}
-                    </span>
-                </td>
-            </tr>
-            {% endfor %}
-            {% if all_records|length > 20 %}
-            <tr>
-                <td colspan="5" style="text-align: center; color: var(--text-secondary); font-style: italic;">
-                    ... and {{ all_records|length - 20 }} more records
-                </td>
-            </tr>
-            {% endif %}
+          {%- for record in all_records[:20] %}
+          <tr>
+            <td data-label="Date">{{ record.date_recorded.strftime('%Y-%m-%d') }}</td>
+            <td data-label="Machine"><a href="{{ url_for('games.game_detail', game_id=record.game.id) }}">{{ record.game.name }}</a></td>
+            <td data-label="Plays" class="num">{{ "{:,}".format(record.plays_count) }}</td>
+            <td data-label="Revenue" class="num">${{ "{:,.2f}".format(record.revenue) }}</td>
+            <td data-label="Location">{{ record.game.location }}</td>
+          </tr>
+          {%- endfor %}
         </tbody>
-    </table>
+      </table>
+    </div>
+  </section>
+  {%- else %}
+  {{ ui.empty("No revenue in this period",
+              "Nothing was recorded for " ~ scope ~ " in the " ~ period|lower ~ ". Only machines with a working coin counter count.",
+              url_for("reports.revenue_reports", days=days_filter, location="all") if location_filter != "all" else none,
+              "Try every location") }}
+  {%- endif %}
 </div>
-{% else %}
-<div style="text-align: center; padding: 40px;">
-    <p style="font-size: 18px; color: var(--text-secondary);">No revenue records found for the selected period.</p>
-    {% if location_filter %}
-        <p><a href="{{ url_for('reports.revenue_reports', days=days_filter) }}">View all locations</a></p>
-    {% endif %}
-</div>
-{% endif %}
+{% endblock %}
 
+{% block scripts %}
+{%- if all_records %}
+<script src="{{ asset('js/chart.min.js') }}"></script>
+<script src="{{ asset('js/charts.js') }}"></script>
+{%- endif %}
 {% endblock %}

@@ -1,8 +1,8 @@
 """Reports blueprint — revenue reports, graphs, PDF/CSV export."""
 
+import datetime as dt
 import io
 import os
-import datetime as dt
 from collections import Counter
 from datetime import date, datetime, timedelta
 
@@ -25,6 +25,7 @@ from app.models import (
     PlayRecord,
 )
 from app.services.rankings import update_monthly_rankings_if_due
+from app.services.revenue import location_options, scope_label, scoped, series
 from app.utils.decorators import requires_role
 
 reports_bp = Blueprint("reports", __name__)
@@ -113,6 +114,9 @@ def reports():
         low_stock_items=low_stock_items,
         pending_requests=pending_requests,
         open_maintenance=open_maintenance,
+        daily_chart=series(daily_revenue),
+        games_chart={"labels": [p["game"]["name"] for p in top_performers],
+                     "values": [round(p["total_revenue"] or 0, 2) for p in top_performers]},
     )
 
 
@@ -131,24 +135,12 @@ def revenue_reports():
     location_filter = request.args.get("location", "")
     start_date = date.today() - timedelta(days=days)
 
-    # Base query — only floor games with working counters
-    query = PlayRecord.query.join(Game).filter(
-        PlayRecord.date_recorded >= start_date,
-        Game.location == "Floor",
-        Game.counter_status == "Working",
-    )
-    if location_filter and location_filter != "Floor":
-        query = query.filter(Game.location == location_filter)
-
+    query = scoped(PlayRecord.query.join(Game).filter(PlayRecord.date_recorded >= start_date),
+                   location_filter)
     all_records = query.order_by(PlayRecord.date_recorded.desc()).all()
 
-    games_query = Game.query.join(PlayRecord).filter(
-        PlayRecord.date_recorded >= start_date,
-        Game.location == "Floor",
-        Game.counter_status == "Working",
-    )
-    if location_filter and location_filter != "Floor":
-        games_query = games_query.filter(Game.location == location_filter)
+    games_query = scoped(Game.query.join(PlayRecord).filter(PlayRecord.date_recorded >= start_date),
+                         location_filter)
     revenue_games = games_query.distinct().all()
 
     total_revenue = sum(r.revenue for r in all_records)
@@ -183,7 +175,9 @@ def revenue_reports():
         total_plays=total_plays,
         avg_daily_revenue=avg_daily_revenue,
         daily_revenue=daily_revenue,
-        locations=[loc[0] for loc in locations],
+        daily_chart=series(daily_revenue),
+        location_options=location_options(loc[0] for loc in locations),
+        scope=scope_label(location_filter),
     )
 
 
@@ -287,13 +281,21 @@ def export_report():
     """Generate full PDF report with charts for management."""
     import matplotlib
     matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
     import tempfile
+
+    import matplotlib.pyplot as plt
     from reportlab.lib import colors
     from reportlab.lib.pagesizes import letter
     from reportlab.lib.styles import getSampleStyleSheet
     from reportlab.lib.units import inch
-    from reportlab.platypus import Image, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+    from reportlab.platypus import (
+        Image,
+        Paragraph,
+        SimpleDocTemplate,
+        Spacer,
+        Table,
+        TableStyle,
+    )
 
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=letter)
@@ -511,7 +513,13 @@ def export_revenue_report():
     from reportlab.lib import colors
     from reportlab.lib.pagesizes import letter
     from reportlab.lib.styles import getSampleStyleSheet
-    from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+    from reportlab.platypus import (
+        Paragraph,
+        SimpleDocTemplate,
+        Spacer,
+        Table,
+        TableStyle,
+    )
 
     try:
         days = request.args.get("days", 30, type=int)
@@ -523,17 +531,12 @@ def export_revenue_report():
     location_filter = request.args.get("location", "")
     start_date = date.today() - timedelta(days=days)
 
-    query = PlayRecord.query.join(Game).filter(
-        PlayRecord.date_recorded >= start_date,
-        Game.location == "Floor",
-        Game.counter_status == "Working",
-    )
-
-    if location_filter and location_filter != "Floor":
-        query = query.filter(Game.location == location_filter)
-        title = f"Revenue Report - {location_filter} (Last {days} Days)"
-    else:
-        title = f"Revenue Report - Floor Games with Working Counters (Last {days} Days)"
+    query = scoped(PlayRecord.query.join(Game).filter(PlayRecord.date_recorded >= start_date),
+                   location_filter)
+    # The location comes from the query string, and ReportLab reads markup in a Paragraph.
+    from xml.sax.saxutils import escape
+    title = escape(f"Revenue Report - {scope_label(location_filter)}, working counters "
+                   f"(Last {days} Days)")
 
     records = query.order_by(PlayRecord.date_recorded.desc()).all()
 
