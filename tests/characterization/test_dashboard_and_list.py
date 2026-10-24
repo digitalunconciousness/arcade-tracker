@@ -8,7 +8,7 @@ from test_routes_post import fresh
 
 
 def get(client, role, url):
-    client.get("/logout")
+    client.post("/logout")
     login(client, role)
     resp = client.get(url)
     assert resp.status_code == 200

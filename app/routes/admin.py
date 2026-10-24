@@ -29,132 +29,103 @@ admin_bp = Blueprint("admin", __name__)
 MAX_TOTAL_STORAGE_MB = 500
 
 
+def _users_page(revealed=None, status=200):
+    from app.services.accounts import ROLE_TEXT, ROLES, history_count
+
+    users = User.query.order_by(User.is_active.desc(), User.username.asc()).all()
+    return render_template(
+        "manage_users.html", users=users, roles=ROLES, role_text=ROLE_TEXT,
+        history={u.id: history_count(u) for u in users}, revealed=revealed,
+    ), status
+
+
 @admin_bp.route("/admin/users", methods=["GET", "POST"])
 @login_required
 @requires_role("admin")
 def manage_users():
-    """Admin user management dashboard."""
-    users = User.query.order_by(User.username.asc()).all()
+    """Accounts: roles, active or not, password resets, deletes."""
+    from app.services.accounts import one_time_password, refusal
 
-    if request.method == "POST":
-        action = request.form.get("action")
-        user_id = request.form.get("user_id")
-        user = User.query.get_or_404(user_id)
+    if request.method == "GET":
+        return _users_page()
 
-        if action == "toggle_active":
-            user.is_active = not user.is_active
-            db.session.commit()
-            new_state = "activated" if user.is_active else "deactivated"
-            log_security_event(
-                "USER_ACCOUNT_TOGGLED",
-                user_id=current_user.id,
-                details=f"Target user: {user.username} (id={user.id}), state: {new_state}",
-                level="warning",
-            )
-            flash(f"User {user.username} has been {new_state}.", "info")
-
-        elif action == "reset_password":
-            new_password = "Arcade123!"
-            user.set_password(new_password)
-            user.must_change_password = True
-            db.session.commit()
-            log_security_event(
-                "USER_PASSWORD_RESET",
-                user_id=current_user.id,
-                details=f"Target user: {user.username} (id={user.id})",
-                level="warning",
-            )
-            flash(
-                f'Password for {user.username} reset to "{new_password}" (user must change on next login).',
-                "warning",
-            )
-
-        elif action == "change_role":
-            new_role = request.form.get("new_role")
-            if new_role in ["readonly", "operator", "manager", "admin"]:
-                old_role = user.role
-                user.role = new_role
-                db.session.commit()
-                log_security_event(
-                    "USER_ROLE_CHANGED",
-                    user_id=current_user.id,
-                    details=f"Target user: {user.username} (id={user.id}), {old_role} → {new_role}",
-                    level="warning",
-                )
-                flash(f"{user.username} role changed to {new_role}.", "success")
-            else:
-                flash("Invalid role selected.", "error")
-
-        elif action == "delete_user":
-            if user.id == current_user.id:
-                flash("You cannot delete your own account.", "error")
-            else:
-                log_security_event(
-                    "USER_DELETED",
-                    user_id=current_user.id,
-                    details=f"Target user: {user.username} (id={user.id})",
-                    level="warning",
-                )
-                db.session.delete(user)
-                db.session.commit()
-                flash(f"User {user.username} deleted.", "warning")
-
+    action = request.form.get("action")
+    user = db.get_or_404(User, request.form.get("user_id", type=int))
+    new_role = request.form.get("new_role")
+    why_not = refusal(current_user, user, action, new_role)
+    if why_not:
+        flash(why_not, "error")
         return redirect(url_for("admin.manage_users"))
 
-    return render_template("manage_users.html", users=users)
+    if action == "toggle_active":
+        user.is_active = not user.is_active
+        db.session.commit()
+        state = "activated" if user.is_active else "deactivated"
+        log_security_event("USER_ACCOUNT_TOGGLED", user_id=current_user.id,
+                           details=f"Target user: {user.username} (id={user.id}), state: {state}",
+                           level="warning")
+        flash(f"{user.username} is {state}.", "success")
+
+    elif action == "reset_password":
+        password = one_time_password()
+        user.set_password(password)
+        user.must_change_password = True
+        db.session.commit()
+        log_security_event("USER_PASSWORD_RESET", user_id=current_user.id,
+                           details=f"Target user: {user.username} (id={user.id})",
+                           level="warning")
+        # Shown once, in this response only: never in a flash message, which would put it in
+        # the session cookie, and never in a log (F-19).
+        return _users_page(revealed=(user, password))
+
+    elif action == "change_role":
+        old_role = user.role
+        user.role = new_role
+        db.session.commit()
+        log_security_event("USER_ROLE_CHANGED", user_id=current_user.id,
+                           details=f"Target user: {user.username} (id={user.id}), "
+                                   f"{old_role} → {new_role}",
+                           level="warning")
+        flash(f"{user.username} is now {new_role}.", "success")
+
+    elif action == "delete_user":
+        log_security_event("USER_DELETED", user_id=current_user.id,
+                           details=f"Target user: {user.username} (id={user.id})",
+                           level="warning")
+        db.session.delete(user)
+        db.session.commit()
+        flash(f"Deleted {user.username}.", "success")
+
+    return redirect(url_for("admin.manage_users"))
 
 
 @admin_bp.route("/admin/create_user", methods=["GET", "POST"])
 @login_required
 @requires_role("admin")
 def create_user():
-    """Create a new user."""
+    """Add an account. Leave the password blank to have a one-time one made and shown once."""
+    from app.services.accounts import ROLE_TEXT, ROLES, create_user as make_user
+    from app.services.accounts import validate_new_user
+
+    values = {"role": "operator"}
+    errors: dict[str, str] = {}
     if request.method == "POST":
-        username = request.form.get("username", "").strip()
-        password = request.form.get("password")
-        role = request.form.get("role", "readonly")
-
-        if not username or len(username) < 3:
-            flash("Username must be at least 3 characters long.", "error")
-            return render_template("create_user.html")
-
-        if not password or len(password) < 6:
-            flash("Password must be at least 6 characters long.", "error")
-            return render_template("create_user.html")
-
-        existing_user = User.query.filter(User.username.ilike(username)).first()
-        if existing_user:
-            flash("Username already exists.", "error")
-            return render_template("create_user.html")
-
-        if role not in ["readonly", "operator", "manager", "admin"]:
-            flash("Invalid role selected.", "error")
-            return render_template("create_user.html")
-
-        new_user = User(
-            username=username,
-            role=role,
-            is_active=True,
-            must_change_password=True,
-        )
-        new_user.set_password(password)
-
-        db.session.add(new_user)
-        db.session.commit()
-
-        log_security_event(
-            "USER_CREATED",
-            user_id=current_user.id,
-            details=f"Created user: {username} with role: {role}",
-        )
-
-        flash(
-            f'User "{username}" created successfully! They will be prompted to change their password on first login.',
-            "success",
-        )
-        return redirect(url_for("admin.manage_users"))
-
-    return render_template("create_user.html")
+        values = {"username": request.form.get("username", "").strip(),
+                  "role": request.form.get("role", "")}
+        password = request.form.get("password", "")
+        errors = validate_new_user(values["username"], password, values["role"])
+        if not errors:
+            user, generated = make_user(values["username"], password, values["role"])
+            db.session.commit()
+            log_security_event("USER_CREATED", user_id=current_user.id,
+                               details=f"Created user: {user.username} with role: {user.role}")
+            if generated:
+                return _users_page(revealed=(user, generated))
+            flash(f"Added {user.username}. They choose a new password at first sign-in.",
+                  "success")
+            return redirect(url_for("admin.manage_users"))
+    return render_template("create_user.html", values=values, errors=errors, roles=ROLES,
+                           role_text=ROLE_TEXT), (400 if errors else 200)
 
 
 @admin_bp.route("/admin/storage")

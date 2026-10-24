@@ -131,27 +131,15 @@
  },
  "/admin/create_user": {
   "admin": [
-   "admin.backup_management()",
-   "admin.create_user()",
    "admin.manage_users()",
-   "admin.storage_admin()",
    "auth.logout()",
    "auth.profile()",
    "dashboard.home()",
-   "games.add_game()",
    "games.games_list()",
-   "games.import_games()",
    "games.scan()",
-   "inventory.add_inventory_item()",
    "inventory.inventory_list()",
-   "inventory.inventory_requests_list()",
-   "inventory.low_stock_alerts()",
-   "inventory.request_inventory()",
-   "maintenance.general_maintenance()",
    "maintenance.maintenance_orders()",
-   "maintenance.maintenance_reports()",
    "rails.floor()",
-   "reports.graphs()",
    "reports.reports()"
   ]
  },
@@ -186,23 +174,16 @@
    "admin.create_user()",
    "admin.manage_users()",
    "admin.storage_admin()",
+   "auth.change_password()",
    "auth.logout()",
    "auth.profile()",
    "dashboard.home()",
-   "games.add_game()",
+   "games.coin_door_label_pick()",
    "games.games_list()",
-   "games.import_games()",
    "games.scan()",
-   "inventory.add_inventory_item()",
    "inventory.inventory_list()",
-   "inventory.inventory_requests_list()",
-   "inventory.low_stock_alerts()",
-   "inventory.request_inventory()",
-   "maintenance.general_maintenance()",
    "maintenance.maintenance_orders()",
-   "maintenance.maintenance_reports()",
    "rails.floor()",
-   "reports.graphs()",
    "reports.reports()"
   ]
  },
@@ -233,45 +214,26 @@
  },
  "/change_password": {
   "admin": [
-   "admin.backup_management()",
-   "admin.storage_admin()",
+   "admin.manage_users()",
    "auth.logout()",
    "auth.profile()",
    "dashboard.home()",
-   "games.add_game()",
    "games.games_list()",
-   "games.import_games()",
    "games.scan()",
-   "inventory.add_inventory_item()",
    "inventory.inventory_list()",
-   "inventory.inventory_requests_list()",
-   "inventory.low_stock_alerts()",
-   "inventory.request_inventory()",
-   "maintenance.general_maintenance()",
    "maintenance.maintenance_orders()",
-   "maintenance.maintenance_reports()",
    "rails.floor()",
-   "reports.graphs()",
    "reports.reports()"
   ],
   "manager": [
    "auth.logout()",
    "auth.profile()",
    "dashboard.home()",
-   "games.add_game()",
    "games.games_list()",
-   "games.import_games()",
    "games.scan()",
-   "inventory.add_inventory_item()",
    "inventory.inventory_list()",
-   "inventory.inventory_requests_list()",
-   "inventory.low_stock_alerts()",
-   "inventory.request_inventory()",
-   "maintenance.general_maintenance()",
    "maintenance.maintenance_orders()",
-   "maintenance.maintenance_reports()",
    "rails.floor()",
-   "reports.graphs()",
    "reports.reports()"
   ],
   "operator": [
@@ -281,17 +243,17 @@
    "games.games_list()",
    "games.scan()",
    "inventory.inventory_list()",
-   "inventory.inventory_requests_list()",
-   "inventory.request_inventory()",
-   "maintenance.general_maintenance()",
-   "maintenance.maintenance_orders()"
+   "maintenance.maintenance_orders()",
+   "rails.floor()"
   ],
   "readonly": [
    "auth.logout()",
    "auth.profile()",
    "dashboard.home()",
    "games.games_list()",
-   "games.scan()"
+   "games.scan()",
+   "maintenance.maintenance_orders()",
+   "rails.floor()"
   ]
  },
  "/edit_game/<int:game_id>": {
@@ -1410,27 +1372,16 @@
  },
  "/profile": {
   "admin": [
-   "admin.backup_management()",
    "admin.manage_users()",
-   "admin.storage_admin()",
    "auth.change_password()",
    "auth.logout()",
    "auth.profile()",
    "dashboard.home()",
-   "games.add_game()",
    "games.games_list()",
-   "games.import_games()",
    "games.scan()",
-   "inventory.add_inventory_item()",
    "inventory.inventory_list()",
-   "inventory.inventory_requests_list()",
-   "inventory.low_stock_alerts()",
-   "inventory.request_inventory()",
-   "maintenance.general_maintenance()",
    "maintenance.maintenance_orders()",
-   "maintenance.maintenance_reports()",
    "rails.floor()",
-   "reports.graphs()",
    "reports.reports()"
   ],
   "manager": [
@@ -1438,20 +1389,11 @@
    "auth.logout()",
    "auth.profile()",
    "dashboard.home()",
-   "games.add_game()",
    "games.games_list()",
-   "games.import_games()",
    "games.scan()",
-   "inventory.add_inventory_item()",
    "inventory.inventory_list()",
-   "inventory.inventory_requests_list()",
-   "inventory.low_stock_alerts()",
-   "inventory.request_inventory()",
-   "maintenance.general_maintenance()",
    "maintenance.maintenance_orders()",
-   "maintenance.maintenance_reports()",
    "rails.floor()",
-   "reports.graphs()",
    "reports.reports()"
   ],
   "operator": [
@@ -1462,10 +1404,8 @@
    "games.games_list()",
    "games.scan()",
    "inventory.inventory_list()",
-   "inventory.inventory_requests_list()",
-   "inventory.request_inventory()",
-   "maintenance.general_maintenance()",
-   "maintenance.maintenance_orders()"
+   "maintenance.maintenance_orders()",
+   "rails.floor()"
   ],
   "readonly": [
    "auth.change_password()",
@@ -1473,7 +1413,9 @@
    "auth.profile()",
    "dashboard.home()",
    "games.games_list()",
-   "games.scan()"
+   "games.scan()",
+   "maintenance.maintenance_orders()",
+   "rails.floor()"
   ]
  },
  "/rails/": {

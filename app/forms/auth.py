@@ -21,37 +21,20 @@ class LoginForm(FlaskForm):
     submit = SubmitField("Login")
 
 
-class RegisterForm(FlaskForm):
-    username = StringField(
-        "Username", validators=[DataRequired(), Length(min=4, max=80)]
-    )
-    password = PasswordField(
-        "Password", validators=[DataRequired(), Length(min=8)]
-    )
-    confirm_password = PasswordField(
-        "Confirm Password",
-        validators=[DataRequired(), EqualTo("password")],
-    )
-    submit = SubmitField("Register")
-
-
 class ChangePasswordForm(FlaskForm):
-    current_password = PasswordField(
-        "Current Password", validators=[DataRequired()]
-    )
+    current_password = PasswordField("Current password", validators=[DataRequired()])
     new_password = PasswordField(
-        "New Password", validators=[DataRequired(), Length(min=8)]
-    )
+        "New password",
+        validators=[DataRequired(), Length(min=8, message="Use at least 8 characters.")])
     confirm_password = PasswordField(
-        "Confirm New Password",
-        validators=[DataRequired(), EqualTo("new_password")],
-    )
-    submit = SubmitField("Change Password")
+        "Type it again",
+        validators=[DataRequired(),
+                    EqualTo("new_password", message="The two passwords are different.")])
 
 
 class ProfileForm(FlaskForm):
     profile_picture = FileField(
-        "Profile Picture",
-        validators=[FileAllowed(["jpg", "jpeg", "png", "gif"])],
+        "Photo",
+        validators=[FileAllowed(["jpg", "jpeg", "png", "gif"],
+                                "That isn't a photo. Use PNG, JPG or GIF.")],
     )
-    submit = SubmitField("Update Profile")

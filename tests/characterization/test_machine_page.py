@@ -12,7 +12,7 @@ from test_routes_post import fresh, png_bytes
 
 
 def page(client, floor, role, game="raider"):
-    client.get("/logout")
+    client.post("/logout")
     login(client, role)
     resp = client.get(f"/game/{floor[game]}")
     assert resp.status_code == 200

@@ -9,7 +9,6 @@ from app.forms.auth import (
     ChangePasswordForm,
     LoginForm,
     ProfileForm,
-    RegisterForm,
 )
 from app.forms.game import MaintenancePhotoForm
 from app.forms.inventory import InventoryItemForm, StockAdjustmentForm
@@ -20,7 +19,6 @@ from app.forms.maintenance import (
 
 __all__ = [
     "LoginForm",
-    "RegisterForm",
     "ChangePasswordForm",
     "ProfileForm",
     "MaintenancePhotoForm",

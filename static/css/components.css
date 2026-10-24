@@ -119,8 +119,15 @@
   font: 600 var(--fs-md) / 1 var(--font-display);
   letter-spacing: var(--track-display);
 }
-.app-nav a:hover {
+.app-nav a:hover,
+.app-nav__user button:hover {
   background: var(--surface-raised);
+}
+/* Log out is a POST form (F-21); its button reads like the nav links beside it. */
+.app-nav__user button {
+  color: var(--text);
+  font: 600 var(--fs-sm) / 1 var(--font-display);
+  letter-spacing: var(--track-display);
 }
 .app-nav a[aria-current="page"] {
   color: var(--accent);
@@ -1188,4 +1195,33 @@ legend {
 }
 .report-page textarea {
   min-height: 9rem;
+}
+
+/* =========================================================================================
+   Accounts: profile photo, the one-time password reveal, the users list
+   ========================================================================================= */
+.profile__photo {
+  flex: none;
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--border-control);
+}
+.profile__photo--none {
+  display: inline-grid;
+  place-items: center;
+  font: 600 var(--fs-xl) / 1 var(--font-display);
+  color: var(--text-dim);
+  background: var(--surface-inset);
+}
+.secret {
+  display: inline-block;
+  padding: var(--sp-2) var(--sp-3);
+  font: var(--fs-lg) / 1.2 var(--font-body);
+  letter-spacing: 0.08em;
+  user-select: all;
+  background: var(--surface-inset);
+  border: 1px dashed var(--border-control);
+  border-radius: var(--r);
 }

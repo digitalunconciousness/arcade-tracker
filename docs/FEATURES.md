@@ -239,7 +239,7 @@ anything is changed.
   calls a `url_for('maintenance_orders')` endpoint that doesn't exist), `responsive.css` and
   `responsive.css.txt`.
 - **F-2 Dead Python:**
-  - `RegisterForm` (no `/register` route).
+  - `RegisterForm` (no `/register` route). *Removed in 4.7b.*
   - `admin_required` and `manager_required` decorators (unused).
   - `app/security/middleware.py` and `app/security/config.py` (never imported), so `setup_security_logging`
     never runs.
@@ -271,7 +271,7 @@ anything is changed.
   a work order still references it. The order keeps the filename, and the image 404s. It's manager-reachable.
 - **F-7 Game images never display.** *Fixed in 4.2: served by `games.game_image`.* G2 and G4 save to `uploads/`, but the templates load
   `static/uploads/<file>`, and nothing serves `uploads/`.
-- **F-8 Failed image saves still count.** *Fixed in 4.4 for work-order photos (refused, and saved as .jpg); the profile picture is fixed in the account step.* `compress_and_save_image` returns `False` on a non-image, but M9
+- **F-8 Failed image saves still count.** *Fixed in 4.4 for work-order photos and in 4.7b for the profile photo (refused, and saved as .jpg).* `compress_and_save_image` returns `False` on a non-image, but M9
   and A4 ignore that and attach the filename anyway, which produces broken photos. Files are always JPEG but
   keep their original extension (`.png`, `.gif`).
 - **F-9 A "Received" request can add stock twice.** *Fixed in 4.5: stock is added only on the change to Received, and a missing or unknown status keeps the old one.* I12 adds stock whenever the submitted status is
@@ -279,7 +279,8 @@ anything is changed.
   POST without `status` sets the status to `None`.
 - **F-10 Deleting a game orphans rows.** G8 uses bulk `query.delete()`, which skips the ORM cascades, so the
   work logs, session tags, part usage and requests of those orders are left orphaned or hit FK errors on
-  PostgreSQL. Deleting a user with history (X1) likely fails the same way.
+  PostgreSQL. Deleting a user with history (X1) likely fails the same way. *The user half is fixed in
+  4.7b: a user with work on record can be deactivated, not deleted.*
 - **F-11 The backups page can't back up production.** X5–X9 are SQLite-only (`arcade.db`), but production
   is PostgreSQL (`deploy/RUNBOOK.md` uses `pg_dump`). The page shows nothing useful and "Create backup" fails
   or backs up a stale file. `scripts/daily_backup.sh` has the same problem.
@@ -312,13 +313,14 @@ anything is changed.
   `../instance/arcade.db` or `../.env` can be restored over or deleted. Combined with CSRF being off, a
   forged POST to a signed-in admin could delete the live SQLite file. X8 checks the prefix but not for `..`.
   M10 deletes any filename in the photo folder, not only that order's photos.
-- **F-19 A fixed reset password.** X1 `reset_password` sets every reset account to `Arcade123!` and shows it
+- **F-19 A fixed reset password.** *Fixed in 4.7b: a random one-time password, shown to the admin once
+  on the page (never in a flash or a log), which the user must change before anything else opens.* X1 `reset_password` sets every reset account to `Arcade123!` and shows it
   in a flash message.
 - **F-20 Unauthenticated skeeball GETs:**
   - Only S7 `/skeeball/api/health` is unauthenticated in the current code. S8–S10 are behind login.
   - S7 should stay public only if something outside polls it, and then without the side effects.
   - The brief mentions several unauthenticated GETs; if production differs from this branch, tell me.
-- **F-21 CSRF:** *Enforced app-wide since 2026-10-08; logout is still a GET.*
+- **F-21 CSRF:** *Enforced app-wide since 2026-10-08; logout is a POST since 4.7b (a GET only asks).*
   - Raw POSTs with no token in their template: `coin_door_label_pick.html` (G19), `inventory_detail.html`
     (I6), `low_stock_alerts.html` (I8), `storage_admin.html` (X4), and one of the two forms in
     `maintenance_photos.html`.
@@ -386,6 +388,14 @@ anything is changed.
   left dangling rows; PostgreSQL refuses it with an FK error. Now a part used in a work order is kept (its
   page says why and suggests setting the stock to 0), its alerts go with it, and its requests keep the
   item name but lose the link.
+
+- **F-40 An admin could lock the tracker out of admin.** *Fixed in 4.7b.* X1 let an admin demote or
+  deactivate their own account; with one admin, nobody could then reach the admin pages. An admin can no
+  longer change their own role, deactivate or delete themselves. Since only an active admin can act, an
+  active admin always remains.
+- **F-41 A forced password change could be skipped.** *Fixed in 4.7b.* Login redirected a user with
+  `must_change_password` to the change page once; any link then skipped it, so a reset password stayed in
+  use. Now every page except change-password and log-out redirects there until it is changed.
 
 - **F-37 The PWA manifest names the real venue.** `static/manifest.json` carried the business's name in
   a public repository. It is renamed to "Arcade Tracker" in the base-shell step; the old value remains in

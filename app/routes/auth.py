@@ -15,12 +15,10 @@ from flask import (
     url_for,
 )
 from flask_login import current_user, login_required, login_user, logout_user
-from werkzeug.security import generate_password_hash
-from werkzeug.utils import secure_filename
 
 from app.extensions import db
 from app.models import User
-from app.forms.auth import LoginForm, RegisterForm, ChangePasswordForm, ProfileForm
+from app.forms.auth import ChangePasswordForm, LoginForm, ProfileForm
 from app.utils.helpers import allowed_file, compress_and_save_image
 from app.security.utils import (
     log_security_event,
@@ -119,9 +117,31 @@ def login():
     return render_template("login.html", form=form)
 
 
-@auth_bp.route("/logout")
+# Endpoints a signed-in user who must change their password can still reach.
+_PASSWORD_CHANGE_EXEMPT = {"auth.change_password", "auth.logout", "static"}
+
+
+@auth_bp.before_app_request
+def _hold_until_password_changed():
+    """A user with a one-time or reset password goes nowhere but the change-password page.
+
+    The login view redirected there once, and any link then skipped it, so a password an
+    admin had read off the screen stayed in use indefinitely (F-41). Machines (the API's
+    bearer tokens) and the coin-door form have no session, so they are untouched.
+    """
+    if (current_user.is_authenticated and current_user.must_change_password
+            and request.endpoint not in _PASSWORD_CHANGE_EXEMPT):
+        return redirect(url_for("auth.change_password"))
+    return None
+
+
+@auth_bp.route("/logout", methods=["GET", "POST"])
 @login_required
 def logout():
+    """POST signs out. GET only asks, so a link, a prefetch or an image tag on another site
+    cannot sign anyone out (F-21)."""
+    if request.method == "GET":
+        return render_template("logout.html")
     log_security_event(
         "LOGOUT",
         user_id=current_user.id,
@@ -178,73 +198,68 @@ def setup():
 def profile():
     form = ProfileForm()
     if form.validate_on_submit():
-        # Handle profile picture upload
-        if form.profile_picture.data:
-            file = form.profile_picture.data
-            if file and allowed_file(file.filename):
-                filename = secure_filename(file.filename)
-                name_part, ext = os.path.splitext(filename)
-                unique_filename = (
-                    f"profile_{current_user.id}_{uuid.uuid4().hex[:8]}{ext}"
-                )
+        if not form.profile_picture.data:
+            flash("Choose a photo first.", "error")
+            return redirect(url_for("auth.profile"))
+        upload = form.profile_picture.data
+        if not allowed_file(upload.filename):
+            flash("That isn't a photo. Use PNG, JPG or GIF.", "error")
+            return redirect(url_for("auth.profile"))
 
-                from flask import current_app
+        from flask import current_app
 
-                upload_dir = os.path.join(
-                    current_app.root_path,
-                    os.pardir,
-                    "static",
-                    "profile_pics",
-                )
-                upload_dir = os.path.abspath(upload_dir)
-                os.makedirs(upload_dir, exist_ok=True)
-                file_path = os.path.join(upload_dir, unique_filename)
+        folder = os.path.join(current_app.static_folder, "profile_pics")
+        os.makedirs(folder, exist_ok=True)
+        # Re-encoded to JPEG, so named .jpg (F-8: it kept the upload's extension).
+        name = f"profile_{current_user.id}_{uuid.uuid4().hex[:8]}.jpg"
+        path = os.path.join(folder, name)
+        if not compress_and_save_image(upload, path):
+            # F-8: an unreadable file used to become the profile picture anyway.
+            if os.path.exists(path):
+                os.remove(path)
+            flash(f"{upload.filename} could not be read as an image.", "error")
+            return redirect(url_for("auth.profile"))
 
-                # Delete old profile picture if it exists
-                if current_user.profile_picture:
-                    old_path = os.path.join(
-                        upload_dir, current_user.profile_picture
-                    )
-                    if os.path.exists(old_path):
-                        try:
-                            os.remove(old_path)
-                        except OSError:
-                            pass
-
-                compress_and_save_image(file, file_path)
-                current_user.profile_picture = unique_filename
-                db.session.commit()
-                flash("Profile picture updated successfully.", "success")
-            else:
-                flash(
-                    "Invalid file type. Please upload PNG, JPG, JPEG, or GIF.",
-                    "error",
-                )
-
+        old = current_user.profile_picture
+        current_user.profile_picture = name
+        db.session.commit()
+        if old and os.path.basename(old) == old:
+            try:
+                os.remove(os.path.join(folder, old))
+            except OSError:
+                pass
+        flash("Photo updated.", "success")
         return redirect(url_for("auth.profile"))
 
-    return render_template("profile.html", form=form)
+    from app.services.accounts import ROLE_TEXT
+
+    return render_template("profile.html", form=form, role_text=ROLE_TEXT), (
+        400 if form.errors else 200)
 
 
 @auth_bp.route("/change_password", methods=["GET", "POST"])
 @login_required
 def change_password():
     form = ChangePasswordForm()
-
     if form.validate_on_submit():
         if not current_user.check_password(form.current_password.data):
-            flash("Current password is incorrect.", "danger")
+            form.current_password.errors.append("That isn't your current password.")
+        elif form.new_password.data == form.current_password.data:
+            form.new_password.errors.append("Choose a password different from the current one.")
         else:
-            # Check password strength
-            is_strong, msg = check_password_strength(form.new_password.data)
-            if not is_strong:
-                flash(msg, "danger")
+            strong, why = check_password_strength(form.new_password.data)
+            if not strong:
+                form.new_password.errors.append(why + ".")
             else:
+                was_held = current_user.must_change_password
                 current_user.set_password(form.new_password.data)
-                if current_user.must_change_password:
-                    current_user.must_change_password = False
+                current_user.must_change_password = False
                 db.session.commit()
-                flash("Your password has been successfully updated.", "success")
-                return redirect(url_for("auth.profile"))
-
-    return render_template("change_password.html", form=form)
+                log_security_event("PASSWORD_CHANGED", user_id=current_user.id,
+                                   details=f"Username: {current_user.username}")
+                flash("Password changed.", "success")
+                # Out of the one-time-password hold, the tracker opens; a voluntary change
+                # goes back to the profile it started from.
+                return redirect(url_for("dashboard.home" if was_held else "auth.profile"))
+    status = 400 if request.method == "POST" else 200
+    return render_template("change_password.html", form=form), status

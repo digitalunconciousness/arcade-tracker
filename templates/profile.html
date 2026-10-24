@@ -1,100 +1,41 @@
-{% extends "base.html" %}
+{% extends "layout.html" %}
+{% import "ui.html" as ui %}
+{% block title %}Profile{% endblock %}
 
-{% block title %}User Profile{% endblock %}
+{% block page_head %}
+{% call ui.page_head(current_user.username, sub=role_text.get(current_user.role, current_user.role)) %}
+  <a class="btn btn--sm" href="{{ url_for('auth.change_password') }}">Change password</a>
+  {%- if current_user.has_role("admin") %}
+  <a class="btn btn--sm" href="{{ url_for('admin.manage_users') }}">Users</a>
+  {%- endif %}
+{% endcall %}
+{% endblock %}
 
 {% block content %}
-<div class="container">
-    <div class="row">
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-header">
-                    <h4>Profile Information</h4>
-                </div>
-                <div class="card-body text-center">
-                    {% if current_user.profile_picture %}
-                        <img src="{{ url_for('static', filename='profile_pics/' + current_user.profile_picture) }}" 
-                             alt="Profile Picture" 
-                             class="img-thumbnail rounded-circle mb-3"
-                             style="width: 150px; height: 150px; object-fit: cover;">
-                    {% else %}
-                        <div class="bg-secondary rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center" 
-                             style="width: 150px; height: 150px;">
-                            <i class="fas fa-user fa-5x text-white"></i>
-                        </div>
-                    {% endif %}
-                    
-                    <h5>{{ current_user.username }}</h5>
-                    <p class="text-muted">{{ current_user.role.title() }}</p>
-                    
-                    <div class="row text-center">
-                        <div class="col">
-                            <small class="text-muted">Member Since</small><br>
-                            <strong>{{ current_user.created_at.strftime('%b %d, %Y') }}</strong>
-                        </div>
-                        <div class="col">
-                            <small class="text-muted">Last Login</small><br>
-                            <strong>
-                                {% if current_user.last_login %}
-                                    {{ current_user.last_login.strftime('%b %d, %Y') }}
-                                {% else %}
-                                    Never
-                                {% endif %}
-                            </strong>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-md-8">
-            <div class="card">
-                <div class="card-header">
-                    <h4>Update Profile</h4>
-                </div>
-                <div class="card-body">
-                    <form method="POST" enctype="multipart/form-data">
-                        {{ form.hidden_tag() }}
-                        
-                        <div class="form-group">
-                            {{ form.profile_picture.label(class="form-label") }}
-                            {{ form.profile_picture(class="form-control-file") }}
-                            {% for error in form.profile_picture.errors %}
-                                <div class="text-danger">{{ error }}</div>
-                            {% endfor %}
-                            <small class="form-text text-muted">
-                                Supported formats: PNG, JPG, JPEG, GIF. Maximum size: 16MB.
-                            </small>
-                        </div>
-                        
-                        <div class="form-group">
-                            {{ form.submit(class="btn btn-success", style="background: linear-gradient(45deg, #00ffff, #00ff64); color: #000; font-weight: bold;") }}
-                        </div>
-                    </form>
-                </div>
-            </div>
-            
-            <div class="card mt-3">
-                <div class="card-header">
-                    <h4>Account Actions</h4>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <a href="{{ url_for('auth.change_password') }}" class="btn btn-outline-primary btn-block">
-                                <i class="fas fa-key"></i> Change Password
-                            </a>
-                        </div>
-                        <div class="col-md-6">
-                            {% if current_user.has_role('admin') %}
-                            <a href="{{ url_for('admin.manage_users') }}" class="btn btn-outline-secondary btn-block">
-                                <i class="fas fa-users"></i> Manage Users
-                            </a>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+<div class="stack">
+  <section class="card profile" aria-labelledby="photo-title">
+    <h2 id="photo-title">Photo</h2>
+    <div class="cluster">
+      {%- if current_user.profile_picture %}
+      <img class="profile__photo" src="{{ url_for('static', filename='profile_pics/' + current_user.profile_picture) }}" alt="Your photo">
+      {%- else %}
+      <span class="profile__photo profile__photo--none" aria-hidden="true">{{ current_user.username[:1]|upper }}</span>
+      {%- endif %}
+      <form class="form" method="post" enctype="multipart/form-data" novalidate>
+        {{ form.hidden_tag() }}
+        {{ ui.field(form.profile_picture, accept="image/png,image/jpeg,image/gif", help="PNG, JPG or GIF. It's resized and saved as a JPEG.") }}
+        <div class="form__actions"><button class="btn btn--primary" type="submit">Upload</button></div>
+      </form>
     </div>
+  </section>
+
+  <section class="card" aria-labelledby="account-title">
+    <h2 id="account-title">Account</h2>
+    <dl class="kv">
+      <dt>Role</dt><dd>{{ ui.chip("info", current_user.role) }}</dd>
+      <dt>Joined</dt><dd>{{ current_user.created_at.strftime("%Y-%m-%d") if current_user.created_at else "—" }}</dd>
+      <dt>Last sign-in</dt><dd>{{ current_user.last_login.strftime("%Y-%m-%d %H:%M") ~ " UTC" if current_user.last_login else "—" }}</dd>
+    </dl>
+  </section>
 </div>
 {% endblock %}

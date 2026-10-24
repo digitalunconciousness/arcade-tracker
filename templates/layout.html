@@ -74,7 +74,11 @@
         <div class="cluster">
           <span>{{ current_user.username }} · {{ current_user.role }}</span>
           <a class="btn btn--sm btn--ghost" href="{{ url_for('auth.profile') }}"{% if section == "account" %} aria-current="page"{% endif %}>Profile</a>
-          <a class="btn btn--sm btn--ghost" href="{{ url_for('auth.logout') }}">Log out</a>
+          {#- A POST, so no link, prefetch or other site can sign anyone out (F-21). #}
+          <form class="inline-form" method="post" action="{{ url_for('auth.logout') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn--sm btn--ghost" type="submit">Log out</button>
+          </form>
         </div>
       </li>
     </ul>

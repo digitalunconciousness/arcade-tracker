@@ -317,10 +317,7 @@ html, body {
     
     
     
-    .text-muted {
-        font-size: 8px !important;
-        display: block;
-    }
+    
     
     /* Compact action buttons - same style for both tables */
     table .btn, table button, td .btn, td button, td a.btn {

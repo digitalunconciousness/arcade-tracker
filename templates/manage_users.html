@@ -1,191 +1,79 @@
-{% extends "base.html" %}
-{% block title %}Manage Users - Arcade Tracker{% endblock %}
+{% extends "layout.html" %}
+{% import "ui.html" as ui %}
+{% block title %}Users{% endblock %}
+
+{% block page_head %}
+{% call ui.page_head("Users", sub=users|selectattr("is_active")|list|length ~ " active · " ~ users|rejectattr("is_active")|list|length ~ " deactivated") %}
+  <a class="btn btn--sm btn--primary" href="{{ url_for('admin.create_user') }}">Add user</a>
+  <a class="btn btn--sm" href="{{ url_for('games.coin_door_label_pick') }}">Coin-door labels</a>
+  <a class="btn btn--sm" href="{{ url_for('admin.storage_admin') }}">Storage</a>
+  <a class="btn btn--sm" href="{{ url_for('admin.backup_management') }}">Backups</a>
+{% endcall %}
+{% endblock %}
 
 {% block content %}
-<div class="background-animated">
-    <div class="glass-container">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
-            <h2 class="glow-title" style="margin: 0;"> Manage Users</h2>
-            <a href="{{ url_for('admin.create_user') }}" class="btn-add-user">
-                ➕ Add New User
-            </a>
-        </div>
+<div class="stack">
 
-        <table class="neon-table">
-            <thead>
-                <tr>
-                    <th>Username</th>
-                    <th>Role</th>
-                    <th>Last Login</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for user in users %}
-                <tr>
-                    <td>{{ user.username }}</td>
-                    <td>{{ user.role.title() }}</td>
-                    <td>
-                        {% if user.last_login %}
-                            <span style="color: #aaa; font-size: 13px;">{{ user.last_login.strftime('%Y-%m-%d %H:%M') }}</span>
-                        {% else %}
-                            <span style="color: #666; font-size: 13px; font-style: italic;">Never</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if user.is_active %}
-                            <span class="status active">✅ Active</span>
-                        {% else %}
-                            <span class="status inactive">❌ Disabled</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                            <form method="POST" action="{{ url_for('admin.manage_users') }}" style="display:inline; margin: 0;">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <input type="hidden" name="user_id" value="{{ user.id }}">
-                                <input type="hidden" name="action" value="toggle_active">
-                                <button type="submit"
-                                        onclick="return confirm('{{ '{} user {}'.format('Disable' if user.is_active else 'Enable', user.username) }}?')"
-                                        class="btn-outline-cyan">
-                                    {{ '🚫 Disable' if user.is_active else '✅ Enable' }}
-                                </button>
-                            </form>
-                            {% if current_user.id != user.id %}
-                            <form method="POST" action="{{ url_for('admin.manage_users') }}" style="display:inline; margin: 0;">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <input type="hidden" name="user_id" value="{{ user.id }}">
-                                <input type="hidden" name="action" value="delete_user">
-                                <button type="submit"
-                                        onclick="return confirm('PERMANENTLY DELETE user {{ user.username }}? This cannot be undone!')"
-                                        class="btn-outline-red">
-                                    🗑️ Delete
-                                </button>
-                            </form>
-                            {% endif %}
-                        </div>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+  {%- if revealed %}
+  {%- set who, password = revealed %}
+  <section class="card card--status is-info" aria-labelledby="secret-title" role="status">
+    <h2 id="secret-title">One-time password for {{ who.username }}</h2>
+    <p><span class="secret">{{ password }}</span></p>
+    <p>Give it to {{ who.username }} in person or by phone. It is shown only on this page, once; reloading makes a new one. At sign-in they must choose their own before anything else opens.</p>
+  </section>
+  {%- endif %}
+
+  <ul class="rows" aria-label="Accounts">
+    {%- for u in users %}
+    {%- set me = u.id == current_user.id %}
+    <li class="row users__row">
+      <span class="row__main">
+        <span class="row__title">{{ u.username }}{% if me %} <span class="badge is-info">you</span>{% endif %}</span>
+        <span class="row__meta">{{ role_text[u.role] if u.role in role_text else u.role }}</span>
+        <span class="row__meta">Last sign-in {{ u.last_login.strftime("%Y-%m-%d %H:%M") if u.last_login else "never" }}
+          {%- if u.must_change_password %} · must choose a new password{% endif %}
+          {%- if history[u.id] %} · {{ history[u.id] }} record{{ "" if history[u.id] == 1 else "s" }} of work{% endif %}</span>
+      </span>
+      <span class="row__end cluster">
+        {{ ui.chip("ok", "Active") if u.is_active else ui.chip("muted", "Deactivated") }}
+        {%- if not me %}
+        <form class="inline-form cluster" method="post" action="{{ url_for('admin.manage_users') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="action" value="change_role">
+          <input type="hidden" name="user_id" value="{{ u.id }}">
+          <label class="visually-hidden" for="role-{{ u.id }}">Role for {{ u.username }}</label>
+          <select id="role-{{ u.id }}" name="new_role">
+            {%- for r in roles %}<option value="{{ r }}"{% if r == u.role %} selected{% endif %}>{{ r }}</option>{% endfor %}
+          </select>
+          <button class="btn btn--sm" type="submit">Set role</button>
+        </form>
+        <form class="inline-form" method="post" action="{{ url_for('admin.manage_users') }}" data-confirm="{{ ('Deactivate ' ~ u.username ~ '? They can no longer sign in; their history stays.') if u.is_active else ('Let ' ~ u.username ~ ' sign in again?') }}" data-confirm-action="{{ 'Deactivate' if u.is_active else 'Reactivate' }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="action" value="toggle_active">
+          <input type="hidden" name="user_id" value="{{ u.id }}">
+          <button class="btn btn--sm{% if u.is_active %} btn--ghost{% endif %}" type="submit">{{ "Deactivate" if u.is_active else "Reactivate" }}</button>
+        </form>
+        <form class="inline-form" method="post" action="{{ url_for('admin.manage_users') }}" data-confirm="Reset {{ u.username }}'s password? Their current one stops working, and you'll see a one-time password to give them." data-confirm-action="Reset password">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="action" value="reset_password">
+          <input type="hidden" name="user_id" value="{{ u.id }}">
+          <button class="btn btn--sm btn--ghost" type="submit">Reset password</button>
+        </form>
+        {%- if not history[u.id] %}
+        <form class="inline-form" method="post" action="{{ url_for('admin.manage_users') }}" data-confirm="Delete {{ u.username }}? This cannot be undone." data-confirm-action="Delete user">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="action" value="delete_user">
+          <input type="hidden" name="user_id" value="{{ u.id }}">
+          <button class="btn btn--sm btn--danger" type="submit">Delete</button>
+        </form>
+        {%- endif %}
+        {%- else %}
+        <a class="btn btn--sm btn--ghost" href="{{ url_for('auth.change_password') }}">Change your password</a>
+        {%- endif %}
+      </span>
+    </li>
+    {%- endfor %}
+  </ul>
+  <p class="dim">Someone with work on record can be deactivated but not deleted, so the history keeps their name. You can't change your own role or deactivate yourself; another admin can.</p>
 </div>
-
-<style>
-.background-animated {
-    min-height: 100vh;
-    background: linear-gradient(-45deg, #000010, #001030, #002050, #000820);
-    background-size: 400% 400%;
-    animation: backgroundShift 20s ease infinite;
-    padding: 40px 20px;
-}
-@keyframes backgroundShift {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
-}
-
-.glass-container {
-    max-width: 900px;
-    margin: 0 auto;
-    background: rgba(0, 30, 60, 0.5);
-    border: 2px solid #00ffff;
-    border-radius: 12px;
-    padding: 30px;
-    backdrop-filter: blur(12px);
-    box-shadow: 0 0 25px rgba(0, 255, 255, 0.3);
-}
-
-.glow-title {
-    text-align: center;
-    color: #00ffff;
-    margin-bottom: 25px;
-    text-shadow: 0 0 15px rgba(0,255,255,0.6);
-    animation: glowShift 3s infinite alternate;
-}
-@keyframes glowShift {
-    0% { color: #00ffff; text-shadow: 0 0 10px #00ffff; }
-    100% { color: #ff00ff; text-shadow: 0 0 20px #ff00ff; }
-}
-
-.neon-table {
-    width: 100%;
-    border-collapse: collapse;
-    color: #fff;
-    font-size: 0.95em;
-}
-.neon-table th, .neon-table td {
-    border: 1px solid rgba(0, 255, 255, 0.3);
-    padding: 10px 14px;
-    text-align: left;
-}
-.neon-table th {
-    color: #00ffff;
-    text-transform: uppercase;
-    font-weight: bold;
-    border-bottom: 2px solid #00ffff;
-}
-.neon-table tr:nth-child(even) {
-    background: rgba(255, 255, 255, 0.05);
-}
-.status.active {
-    color: #00ffcc;
-    font-weight: bold;
-}
-.status.inactive {
-    color: #ff6666;
-    font-weight: bold;
-}
-
-.btn-outline-cyan {
-    border: 1px solid #00ffff;
-    color: #00ffff;
-    background: transparent;
-    border-radius: 6px;
-    padding: 6px 12px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-.btn-outline-cyan:hover {
-    background: #00ffff;
-    color: #000;
-    box-shadow: 0 0 15px rgba(0, 255, 255, 0.8);
-}
-
-.btn-outline-red {
-    border: 1px solid #ff4444;
-    color: #ff4444;
-    background: transparent;
-    border-radius: 6px;
-    padding: 6px 12px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-.btn-outline-red:hover {
-    background: #ff4444;
-    color: #fff;
-    box-shadow: 0 0 15px rgba(255, 68, 68, 0.8);
-}
-
-.btn-add-user {
-    background: linear-gradient(45deg, #00ff64, #00ffff);
-    color: #000;
-    padding: 10px 20px;
-    border-radius: 8px;
-    text-decoration: none;
-    font-weight: bold;
-    transition: all 0.3s ease;
-    box-shadow: 0 0 20px rgba(0, 255, 100, 0.4);
-}
-.btn-add-user:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 0 30px rgba(0, 255, 100, 0.8);
-}
-.btn-add-user:active, .btn-add-user:focus, .btn-add-user:visited {
-    color: #000;
-    text-decoration: none;
-}
-</style>
 {% endblock %}
