@@ -1,0 +1,17 @@
+{% extends "layout.html" %}
+{% import "ui.html" as ui %}
+{% block title %}Form expired{% endblock %}
+{% block content %}
+<div class="stack" style="max-width: 560px">
+  {{ ui.page_head("That form has expired") }}
+  <div class="state state--error" role="alert">
+    <p class="state__title">Nothing was saved</p>
+    <p>The page was open too long, or you signed out and back in since it loaded, so its
+      security check no longer matches. Go back, reload the page, and submit it again.</p>
+  </div>
+  <div class="cluster">
+    <a class="btn btn--primary" href="{{ request.referrer or url_for('dashboard.home') }}">Back to the form</a>
+    <a class="btn" href="{{ url_for('dashboard.home') }}">Dashboard</a>
+  </div>
+</div>
+{% endblock %}

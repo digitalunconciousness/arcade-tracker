@@ -33,15 +33,16 @@ PAGES = [
      "manager", 200, "Neon Raider", "text/csv"),
     ("/import_games", lambda f: "/import_games", "manager", 200, 'type="file"', "text/html"),
     ("/scan", lambda f: "/scan", "readonly", 200, "/g/", "text/html"),
-    ("/game/<int:game_id>/label", lambda f: f"/game/{f['raider']}/label", "readonly", 200,
+    ("/game/<int:game_id>/label", lambda f: f"/game/{f['raider']}/label", "operator", 200,
      "/g/neon-raider", "text/html"),
-    ("/labels", lambda f: "/labels", "readonly", 200, "Star Courier", "text/html"),
-    ("/labels/sheet", lambda f: f"/labels/sheet?ids={f['raider']},{f['pinball']}", "readonly",
+    ("/labels", lambda f: "/labels", "operator", 200, "Star Courier", "text/html"),
+    ("/labels/sheet", lambda f: f"/labels/sheet?ids={f['raider']},{f['pinball']}", "operator",
      200, "Pixel Pinball", "text/html"),
-    ("/labels/coindoor", lambda f: "/labels/coindoor", "readonly", 200, "Star Courier",
+    ("/labels/coindoor", lambda f: "/labels/coindoor", "manager", 200, "Star Courier",
      "text/html"),
+    # GET only shows the sheet; a machine with no code yet is offered the print button.
     ("/labels/coindoor/sheet", lambda f: f"/labels/coindoor/sheet?ids={f['raider']}",
-     "readonly", 200, "/report/", "text/html"),
+     "manager", 200, "Neon Raider", "text/html"),
     # maintenance
     ("/maintenance/game/<int:game_id>", lambda f: f"/maintenance/game/{f['raider']}",
      "operator", 200, "Neon Raider", "text/html"),
@@ -97,6 +98,7 @@ PAGES = [
      "text/html"),
     ("/admin/storage", lambda f: "/admin/storage", "admin", 200, "500", "text/html"),
     ("/backup_management", lambda f: "/backup_management", "admin", 200, None, "text/html"),
+    ("/styleguide", lambda f: "/styleguide", "admin", 200, "Every component", "text/html"),
     # GATBOX rail history (Phase 1 data; restyle only)
     ("/rails/", lambda f: "/rails/", "readonly", 200, "Neon Raider", "text/html"),
     ("/rails/machine/<slug>", lambda f: "/rails/machine/neon-raider", "readonly", 200,
@@ -113,6 +115,7 @@ PAGES = [
 ELSEWHERE = {
     "/g/<code>": "test_qr_path.py: a redirect, pinned on its own",
     "/download_backup/<filename>": "test_routes_post.py: needs a backup file on disk",
+    "/machine-images/<path:filename>": "test_machine_page.py: needs an uploaded image",
     "/login": "test_routes_post.py",
     "/logout": "test_routes_post.py",
     "/setup": "test_routes_post.py",
@@ -122,7 +125,7 @@ ELSEWHERE = {
     "/api/v1/machines/<slug>/orders": "tests/test_api_v1_contract.py",
     "/static/<path:filename>": "static files",
 }
-RETIRING = "/skeeball"  # struck by the owner 2026-10-08; retired in its own commit
+RETIRING = "/skeeball"  # retired 2026-10-08; test_route_authentication asserts it is gone
 
 
 def test_every_get_route_is_in_the_matrix(app):

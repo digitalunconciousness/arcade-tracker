@@ -1,63 +1,37 @@
-{% extends "base.html" %}
+{% extends "layout.html" %}
+{% import "ui.html" as ui %}
+{% set n = labels|length %}
+{% block title %}Coin-door labels{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ asset('css/labels.css') }}">{% endblock %}
 
-{% block title %}Coin-door label sheet — {{ labels|length }} machine{{ '' if labels|length == 1 else 's' }}{% endblock %}
+{% block page_head %}
+{% call ui.page_head("Coin-door labels", sub=n ~ " label" ~ ("" if n == 1 else "s") ~ " · inside the coin door only", back=url_for("games.coin_door_label_pick"), back_label="Choose machines") %}
+  {%- if n %}<button class="btn btn--sm btn--primary" type="button" data-print>Print {{ n }}</button>{% endif %}
+{% endcall %}
+{% endblock %}
 
 {% block content %}
-<div class="container">
-    <div class="page-header no-print">
-        <h1>Coin-door label sheet</h1>
-        <div>
-            <button onclick="window.print()" class="btn btn-primary">Print {{ labels|length }} label{{ '' if labels|length == 1 else 's' }}</button>
-            <a href="{{ url_for('games.coin_door_label_pick') }}" class="btn btn-secondary">Choose again</a>
-        </div>
-    </div>
+<div class="stack">
+  <div class="banners label-notes" role="note"><div class="banner is-warn"><div class="banner__body">
+    <span class="banner__title">Each label is a key</span>
+    <p>Anyone who scans it can file a work order for that machine without logging in. Fit it inside the coin door, never on the outside, and don't leave spare copies lying around. If one leaks, retire it from the coin-door labels page.</p>
+  </div></div></div>
 
-    <div class="no-print" style="border: 2px solid #c00; padding: 12px; margin-bottom: 16px;">
-        <strong>Inside the coin door, not on the cabinet.</strong>
-        Each QR lets whoever reads it file a maintenance request for that machine with no
-        login. A label on the outside, or photographed, is a credential given away. Rotate a
-        machine's token if that happens — it will show up here as needing a reprint.
-        {% if fresh %}
-        <p style="margin: 8px 0 0;">
-            {{ fresh }} of these {{ 'is a' if fresh == 1 else 'are' }} new token{{ '' if fresh == 1 else 's' }},
-            minted just now by opening this page.
-        </p>
-        {% endif %}
-    </div>
+  {%- if unprinted %}
+  <section class="card card--status is-info label-notes" aria-labelledby="unprinted-title">
+    <h2 id="unprinted-title">{{ unprinted|length }} machine{{ "" if unprinted|length == 1 else "s" }} ha{{ "s" if unprinted|length == 1 else "ve" }} no code yet</h2>
+    <p>{{ unprinted|map(attribute="name")|join(", ") }}. The button makes their codes and adds them to this sheet.</p>
+    <form class="inline-form" method="post" action="{{ url_for('games.coin_door_label_sheet') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="ids" value="{{ ids }}">
+      <input type="hidden" name="format" value="{{ fmt.key }}">
+      <button class="btn btn--primary" type="submit">Make their labels</button>
+    </form>
+  </section>
+  {%- endif %}
 
-    <p class="no-print" style="opacity: 0.8; font-size: 0.9em;">
-        Check the link under one label before printing: it must be the address that works from
-        a phone inside the building, which for this site is the tunnel.
-    </p>
-
-    <div class="label-sheet">
-        {% for label in labels %}
-        <div class="label-card">
-            <img src="{{ label.qr }}" alt="Report QR code for {{ label.game.name }}" class="label-qr">
-            <div class="label-name">{{ label.game.name }}</div>
-            <div class="label-mfr">Something wrong? Scan this.</div>
-            {# The URL is printed so it can be checked before a sheet is committed to paper --
-               and because a QR nobody can read by eye is a QR nobody can verify. #}
-            <div class="label-code" style="font-size: 7pt; word-break: break-all;">{{ label.url }}</div>
-        </div>
-        {% endfor %}
-    </div>
+  {%- if n %}
+  {% include "_label_sheet.html" %}
+  {%- endif %}
 </div>
-
-<style>
-    .label-sheet { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; align-items: start; }
-    .label-card {
-        text-align: center; padding: 10px 8px; border: 1px dashed #999; border-radius: 6px;
-        background: #fff; color: #000;
-        /* A label split across two sheets of paper is wasted paper and a reprint. */
-        break-inside: avoid; page-break-inside: avoid;
-    }
-    .label-qr { width: 100%; max-width: 150px; height: auto; }
-    .label-name { font-weight: 700; font-size: 10pt; margin-top: 4px; }
-    .label-mfr { font-size: 8pt; }
-    @media print {
-        .no-print { display: none !important; }
-        body { background: #fff; color: #000; }
-    }
-</style>
 {% endblock %}

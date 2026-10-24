@@ -5,7 +5,7 @@
 
 {% if game.image_filename %}
 <div style="text-align: center; margin: 20px 0;">
-    <img src="{{ url_for('static', filename='uploads/' + game.image_filename) }}" 
+    <img src="{{ url_for('games.game_image', filename=game.image_filename) }}" 
          alt="{{ game.name }} Cabinet" 
          style="max-width: 200px; max-height: 250px; border-radius: 8px; border: 2px solid var(--neon-cyan); box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);">
     <p style="color: var(--text-secondary); margin: 10px 0;">Current cabinet image</p>

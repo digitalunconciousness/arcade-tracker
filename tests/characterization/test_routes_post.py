@@ -71,8 +71,9 @@ POSTS = [
     (lambda f: "/create_backup", "admin"),
     (lambda f: "/restore_backup", "admin"),
     (lambda f: "/delete_backup", "admin"),
-    # Only a session is required today (F-17): a readonly user can rotate a token.
-    (lambda f: f"/game/{f['raider']}/report-token/rotate", "readonly"),
+    # Coin-door labels are keys: printing (which mints) and retiring them is managers' (F-17).
+    (lambda f: f"/game/{f['raider']}/report-token/rotate", "manager"),
+    (lambda f: "/labels/coindoor/sheet", "manager"),
 ]
 BELOW = {"readonly": "anon", "operator": "readonly", "manager": "operator", "admin": "manager"}
 
@@ -103,7 +104,6 @@ def test_every_post_route_is_listed(app, floor):
     missing = sorted(
         r.endpoint for r in app.url_map.iter_rules()
         if "POST" in r.methods and r.endpoint not in covered | exempt
-        and not r.endpoint.startswith("skeeball.")
     )
     assert missing == []
 
@@ -166,13 +166,39 @@ class TestAuth:
         resp = client.post("/setup", data={"username": "intruder", "password": "x"})
         assert resp.headers["Location"] == "/login"
 
+    def test_setup_page_opens_on_an_empty_database(self, client, app):
+        """F-36, fixed in the base-shell step: this was a 500 on every fresh install."""
+        resp = client.get("/setup")
+        assert resp.status_code == 200
+        assert 'name="confirm"' in resp.get_data(as_text=True)
+
     def test_setup_creates_the_first_admin(self, client, app):
         from app.models import User
 
-        resp = client.post("/setup", data={"username": "first-admin", "password": "pw"})
+        resp = client.post("/setup", data={"username": "first-admin",
+                                           "password": "Synthetic-Passw0rd!",
+                                           "confirm": "Synthetic-Passw0rd!"})
         assert resp.headers["Location"] == "/login"
         user = User.query.filter_by(username="first-admin").one()
         assert user.role == "admin" and user.must_change_password is False
+
+    @pytest.mark.parametrize(("data", "message"), [
+        ({"username": "ab", "password": "Synthetic-Passw0rd!", "confirm": "Synthetic-Passw0rd!"},
+         "at least 3 characters"),
+        ({"username": "first-admin", "password": "short", "confirm": "short"},
+         "at least 8 characters"),
+        ({"username": "first-admin", "password": "alllowercase1", "confirm": "alllowercase1"},
+         "uppercase, lowercase"),
+        ({"username": "first-admin", "password": "Synthetic-Passw0rd!", "confirm": "different"},
+         "two passwords are different"),
+    ])
+    def test_setup_validates_on_the_server(self, client, app, data, message):
+        from app.models import User
+
+        resp = client.post("/setup", data=data)
+        assert resp.status_code == 400
+        assert message in resp.get_data(as_text=True)
+        assert User.query.count() == 0
 
     def test_change_password_checks_current_and_strength(self, client, floor):
         from app.models import User
@@ -330,7 +356,7 @@ class TestGames:
         g.mint_report_token()
         db.session.commit()
         old = g.report_token
-        login(client, "operator")
+        login(client, "manager")
         client.post(f"/game/{floor['raider']}/report-token/rotate")
         g = fresh(Game, floor["raider"])
         assert g.report_token != old and g.report_label_stale is True
@@ -385,7 +411,7 @@ class TestMaintenance:
             "item_action_0": "use",
             "inventory_item_1": str(floor["fuse"]), "inventory_quantity_1": "4",
             "item_action_1": "request", "urgency_1": "Urgent"})
-        assert resp.headers["Location"] == "/maintenance_orders"
+        assert resp.headers["Location"] == f"/maintenance_detail/{floor['open_order']}"
         order = fresh(MaintenanceRecord, floor["open_order"])
         assert order.status == "Fixed" and order.date_fixed is not None
         assert order.cost == 4.0
@@ -427,19 +453,12 @@ class TestMaintenance:
         assert fresh(MaintenanceRecord, floor["open_order"]).get_photos() == []
         assert not on_disk.exists()
 
-    def test_photo_upload_refuses_a_missing_token_field(self, client, floor, sandbox):
-        login(client, "operator")
-        resp = client.post(f"/maintenance_photos/{floor['open_order']}", data={
-            "photos": [(io.BytesIO(png_bytes()), "a.png")]}, content_type="multipart/form-data")
-        assert ("error", "Security token missing. Please try again.") in flashes(client)
-        assert resp.headers["Location"] == f"/maintenance_photos/{floor['open_order']}"
-
     def test_photo_upload_refuses_other_extensions(self, client, floor, sandbox):
         login(client, "operator")
         client.post(f"/maintenance_photos/{floor['open_order']}", data={
             "csrf_token": "present", "photos": [(io.BytesIO(b"MZ"), "tool.exe")]},
             content_type="multipart/form-data")
-        assert any("invalid file type" in m for _, m in flashes(client))
+        assert any("not a photo" in m for _, m in flashes(client))
 
 
 # ---------------------------------------------------------------------------------------
@@ -518,7 +537,7 @@ class TestInventory:
     def test_a_request_with_no_quantity_is_refused(self, client, floor):
         login(client, "operator")
         resp = client.post("/inventory/request", data={"item_name": "x", "quantity": "0"})
-        assert resp.headers["Location"] == "/inventory/request"
+        assert resp.status_code == 400  # shown again with its errors since 4.5
 
     def test_receiving_a_request_adds_stock(self, client, floor):
         from app.models import InventoryItem, InventoryRequest

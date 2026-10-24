@@ -9,9 +9,8 @@ Three things about this blueprint differ deliberately from the rest of the appli
 * **No `@login_required`, ever.** `login_manager.login_view` is set and there is no
   `unauthorized_handler`, so that decorator answers an unauthenticated caller with a 302 to
   an HTML login form. A machine client needs a 401 and JSON. `requires_device` is the check.
-* **CSRF-exempt explicitly.** `WTF_CSRF_CHECK_DEFAULT` is already False, so these routes are
-  unchecked today whatever we do; saying so means they keep working if that default is ever
-  tightened, instead of failing mysteriously.
+* **CSRF-exempt explicitly.** CSRF is enforced app-wide (since 2026-10-08); a bearer-token
+  client has no cookie to forge and no form to carry a token, so this blueprint opts out.
 * **Rate limited before authentication.** The limit decorator sits outside
   `requires_device` on purpose: verifying a token runs scrypt, which is deliberately slow,
   so an unauthenticated flood would otherwise be a CPU exhaustion attack.

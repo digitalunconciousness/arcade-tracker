@@ -1,49 +1,65 @@
-{% extends "base.html" %}
+{% extends "layout.html" %}
+{% import "ui.html" as ui %}
+{% block title %}Machine labels{% endblock %}
 
-{% block title %}Print labels{% endblock %}
+{% block page_head %}
+{% call ui.page_head("Machine labels", sub="QR labels for the outside of each cabinet", back=url_for("games.games_list"), back_label="Machines") %}
+  {%- if current_user.has_role("manager") %}
+  <a class="btn btn--sm" href="{{ url_for('games.coin_door_label_pick') }}">Coin-door labels</a>
+  {%- endif %}
+{% endcall %}
+{% endblock %}
 
 {% block content %}
-<div class="container">
-    <div class="page-header">
-        <h1>Print labels</h1>
+<div class="stack">
+  <p class="dim">Each code opens the machine's page on a phone and sets the machine on GATBOX at the bench. They are safe to show: they carry the machine's ID, nothing more.</p>
+
+  {%- if without_barcode %}
+  <div class="banners" role="status"><div class="banner is-warn"><div class="banner__body">
+    <span class="banner__title">{{ without_barcode|length }} machine{{ "" if without_barcode|length == 1 else "s" }} without an ID</span>
+    <p>{{ "It is" if without_barcode|length == 1 else "They are" }} left off the sheet: {% for game in without_barcode %}<a href="{{ url_for('games.edit_game', game_id=game.id) }}">{{ game.name }}</a>{% if not loop.last %}, {% endif %}{% endfor %}. Give each one its roster slug first.</p>
+  </div></div></div>
+  {%- endif %}
+
+  <form id="print-form" class="filters" method="get" action="{{ url_for('games.label_sheet') }}">
+    {#- Always sent, so unticking everything selects nothing rather than every machine. #}
+    <input type="hidden" name="ids" value="">
+    <div class="field">
+      <label for="format">Print on</label>
+      <select id="format" name="format">
+        {%- for f in formats %}<option value="{{ f.key }}">{{ f.name }}</option>{% endfor %}
+      </select>
     </div>
+    <div class="field field--check">
+      <input id="all" type="checkbox" data-select-all="ids" checked>
+      <label for="all">All machines · <span data-selected-count="ids">{{ games|length - without_barcode|length }} selected</span></label>
+    </div>
+    <div class="filters__actions">
+      <button class="btn btn--primary" type="submit">Make the sheet</button>
+    </div>
+  </form>
 
-    {% if without_barcode %}
-    <p style="border: 2px solid #c00; padding: 12px;">
-        <strong>{{ without_barcode|length }} machine{{ '' if without_barcode|length == 1 else 's' }} ha{{ 's' if without_barcode|length == 1 else 've' }} no ID</strong>
-        and cannot be printed. Nothing here invents one: a printed label makes an identifier
-        permanent, and GATBOX has to recognise it. Set each one's roster slug first.
-    </p>
-    {% endif %}
-
-    <form method="get" action="{{ url_for('games.label_sheet') }}">
-        <p>
-            <button type="submit" class="btn btn-primary">Print sheet</button>
-            <button type="button" class="btn btn-secondary" onclick="document.querySelectorAll('.pick').forEach(c => c.checked = true)">Select all</button>
-            <button type="button" class="btn btn-secondary" onclick="document.querySelectorAll('.pick').forEach(c => c.checked = false)">Select none</button>
-            <a href="{{ url_for('games.games_list') }}" class="btn btn-secondary">Back</a>
-        </p>
-
-        <table class="table">
-            <thead><tr><th></th><th>Machine</th><th>ID</th><th>Location</th></tr></thead>
-            <tbody>
-            {% for game in games %}
-            <tr>
-                <td>
-                    {% if game.barcode %}
-                    <input type="checkbox" class="pick" name="ids" value="{{ game.id }}" checked>
-                    {% endif %}
-                </td>
-                <td>{{ game.name }}</td>
-                <td>
-                    {% if game.barcode %}<code>{{ game.barcode }}</code>
-                    {% else %}<a href="{{ url_for('games.edit_game', game_id=game.id) }}">no ID — set one</a>{% endif %}
-                </td>
-                <td>{{ game.location }}</td>
-            </tr>
-            {% endfor %}
-            </tbody>
-        </table>
-    </form>
+  {%- if games %}
+  <ul class="rows" aria-label="Machines">
+    {%- for game in games %}
+    <li class="row">
+      <span class="row__main">
+        {%- if game.barcode %}
+        <span class="field--check">
+          <input class="pick" id="g{{ game.id }}" type="checkbox" name="ids" value="{{ game.id }}" form="print-form" checked>
+          <label class="row__title" for="g{{ game.id }}">{{ game.name }}</label>
+        </span>
+        <span class="row__meta">{{ game.location or "No location" }} · {{ game.barcode }}</span>
+        {%- else %}
+        <span class="row__title">{{ game.name }}</span>
+        <span class="row__meta">{{ game.location or "No location" }} · <a href="{{ url_for('games.edit_game', game_id=game.id) }}">no ID — set one</a></span>
+        {%- endif %}
+      </span>
+    </li>
+    {%- endfor %}
+  </ul>
+  {%- else %}
+  {{ ui.empty("No machines yet") }}
+  {%- endif %}
 </div>
 {% endblock %}

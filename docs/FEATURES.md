@@ -262,19 +262,19 @@ anything is changed.
   - About 30 historical `*.md` files and two PDFs.
 
   I'd move them to `docs/history/`, not delete them. Say if you want any gone outright.
-- **F-5 Debug leftovers:** `print("DEBUG: …")` dumps of full form data, including the CSRF token, in M9 and
+- **F-5 Debug leftovers:** *The prints are gone since 4.5 (M9 in 4.4, I2 in 4.5); P5 was struck.* `print("DEBUG: …")` dumps of full form data, including the CSRF token, in M9 and
   I2. The "debug" PDF route P5 is linked from no page (reachable by URL only).
 
 ### Broken or wrong (needs a decision or a fix)
 
 - **F-6 Photo cleanup deletes live photos.** X4 removes every file older than a year without checking whether
   a work order still references it. The order keeps the filename, and the image 404s. It's manager-reachable.
-- **F-7 Game images never display.** G2 and G4 save to `uploads/`, but the templates load
+- **F-7 Game images never display.** *Fixed in 4.2: served by `games.game_image`.* G2 and G4 save to `uploads/`, but the templates load
   `static/uploads/<file>`, and nothing serves `uploads/`.
-- **F-8 Failed image saves still count.** `compress_and_save_image` returns `False` on a non-image, but M9
+- **F-8 Failed image saves still count.** *Fixed in 4.4 for work-order photos (refused, and saved as .jpg); the profile picture is fixed in the account step.* `compress_and_save_image` returns `False` on a non-image, but M9
   and A4 ignore that and attach the filename anyway, which produces broken photos. Files are always JPEG but
   keep their original extension (`.png`, `.gif`).
-- **F-9 A "Received" request can add stock twice.** I12 adds stock whenever the submitted status is
+- **F-9 A "Received" request can add stock twice.** *Fixed in 4.5: stock is added only on the change to Received, and a missing or unknown status keeps the old one.* I12 adds stock whenever the submitted status is
   *Received*, not only on the change to it, so re-saving notes on a received request adds stock again. A
   POST without `status` sets the status to `None`.
 - **F-10 Deleting a game orphans rows.** G8 uses bulk `query.delete()`, which skips the ORM cascades, so the
@@ -283,32 +283,32 @@ anything is changed.
 - **F-11 The backups page can't back up production.** X5–X9 are SQLite-only (`arcade.db`), but production
   is PostgreSQL (`deploy/RUNBOOK.md` uses `pg_dump`). The page shows nothing useful and "Create backup" fails
   or backs up a stale file. `scripts/daily_backup.sh` has the same problem.
-- **F-12 The 500 errors I can see:**
+- **F-12 The 500 errors I can see:** *The work-order PDFs escape user text since 4.4.*
   - G5 with a bad or empty `date` field.
   - G4 with a non-numeric year.
   - The PDF exports when a description contains text that looks like a ReportLab tag, such as an
     unclosed `<b>` or a `<br>`. Plain `<` and `&` are fine; checked by `test_flags.py`.
   - The skeeball DB init runs `sqlite_master`, which fails on PostgreSQL (the error is swallowed, and the
     lane is never linked).
-- **F-13 M3 mutates ORM objects** to strip newlines for its inline JavaScript. That's harmless today because
+- **F-13 M3 mutates ORM objects** *Fixed in 4.4: the page builds no JavaScript strings now.* to strip newlines for its inline JavaScript. That's harmless today because
   the request never commits, but it's one autoflush away from rewriting machine names.
 - **F-14 Writes on GET:**
   - `/` and `/reports` commit the monthly rankings.
-  - G14 mints a barcode.
-  - G18 mints report tokens.
+  - G14 mints a barcode (operator and up since 4.7a; it says so when it does).
+  - G18 mints report tokens. *Fixed in 4.7a: only the print button (a POST) mints; opening the sheet changes nothing.*
   - S7, an unauthenticated GET, starts threads and creates a Game row.
 - **F-15 The P2 location filter can only return nothing.** The query is already Floor-only, so any other
   location gives an empty result.
 
 ### Access control (security pass, Step 5)
 
-- **F-16 `/g/<code>` requires operator.** It redirects to M1, which is operator-only, so a **readonly**
+- **F-16 `/g/<code>` requires operator.** *Fixed in 4.2: it lands on the machine page.* It redirects to M1, which is operator-only, so a **readonly**
   user who scans a QR label gets "permission denied" on the dashboard. Decide what readonly should see on the
   machine page.
-- **F-17 Any signed-in user, readonly included, can:** reboot the skeeball Pi (S27), drive its GPIO (S14),
+- **F-17 Any signed-in user, readonly included, can:** *Fixed in 4.7a for the coin-door labels: printing and retiring them is manager and up, and public labels are operator and up. The skeeball items went with skeeball.* reboot the skeeball Pi (S27), drive its GPIO (S14),
   switch GPIO mode, write revenue (S25, S26), reset lanes, rotate coin-door tokens (G19), and mint tokens by
   printing (G18).
-- **F-18 Path traversal in backups.** X7 and X9 join a form value onto `backups/` with no check, so
+- **F-18 Path traversal in backups.** *The photo half is fixed in 4.4 (only an order's own photo can be deleted); the backup half is the admin step.* X7 and X9 join a form value onto `backups/` with no check, so
   `../instance/arcade.db` or `../.env` can be restored over or deleted. Combined with CSRF being off, a
   forged POST to a signed-in admin could delete the live SQLite file. X8 checks the prefix but not for `..`.
   M10 deletes any filename in the photo folder, not only that order's photos.
@@ -318,7 +318,7 @@ anything is changed.
   - Only S7 `/skeeball/api/health` is unauthenticated in the current code. S8–S10 are behind login.
   - S7 should stay public only if something outside polls it, and then without the side effects.
   - The brief mentions several unauthenticated GETs; if production differs from this branch, tell me.
-- **F-21 CSRF:**
+- **F-21 CSRF:** *Enforced app-wide since 2026-10-08; logout is still a GET.*
   - Raw POSTs with no token in their template: `coin_door_label_pick.html` (G19), `inventory_detail.html`
     (I6), `low_stock_alerts.html` (I8), `storage_admin.html` (X4), and one of the two forms in
     `maintenance_photos.html`.
@@ -351,7 +351,7 @@ anything is changed.
 
 - **F-29 A rail session with partial figures is a 500.** `rails_session.html` formats `powered_min` and
   `powered_max` whenever `powered_mean` is set, so a session that has a mean but no range crashes the page.
-- **F-30 User text inside inline JavaScript.** `inventory_request_detail.html` (and the newline-stripping
+- **F-30 User text inside inline JavaScript.** *Fixed in 4.5 for the inventory pages, which have no inline handlers at all now; M3 (F-13) is fixed since 4.4.* `inventory_request_detail.html` (and the newline-stripping
   in M3, F-13) put item names and notes inside `onclick="…('{{ … }}')"`. Jinja's escaping is decoded back
   by the HTML parser before the JavaScript runs, so a quote in an item name breaks the button, and a
   crafted one runs script.
@@ -363,10 +363,10 @@ anything is changed.
 
   `test_visibility.py` pins today's behaviour as a snapshot. **Decision needed:** the redesign should show
   each role exactly what its routes allow.
-- **F-32 Zero stock is rejected.** `DataRequired` on `stock_quantity` and `minimum_stock` treats 0 as
+- **F-32 Zero stock is rejected.** *Fixed in 4.5 (InputRequired; a count of 0 works too).* `DataRequired` on `stock_quantity` and `minimum_stock` treats 0 as
   missing, so an item with no stock can't be added or edited down to 0.
-- **F-33 Fields that are never saved.** `InventoryItemForm` has category, location and image fields that
-  the views never save.
+- **F-33 Fields that are never saved.** *Fixed in 4.5: removed from the form.* `InventoryItemForm` has category, location and image fields that
+  the views never save. (The page never rendered them; the tests posted `category` and it was dropped.)
 - **F-34 "Download backup" can never work.** X8 checks `backups/<f>` relative to the working directory,
   but `send_file` resolves a relative path against `app.root_path` (the `app/` package), so it raises and
   returns a 500.
@@ -374,6 +374,22 @@ anything is changed.
 - **F-35 The dashboard's low-stock table is blank.** `index.html` reads `item.current_stock` and
   `item.min_stock`; the fields are `stock_quantity` and `minimum_stock`, and Jinja renders a missing
   attribute as empty. Found in the baseline screenshots.
+
+- **F-36 First-run setup is a 500.** *Fixed in 4.1.* `setup.html` renders `form.hidden_tag()` and form fields, but the
+  `/setup` view never passes a form, so `GET /setup` on an empty database crashes. A fresh install can
+  only get its first admin from `scripts/create_admin.py`.
+- **F-38 "Damaged" and "Returned" set the stock instead of taking it off.** *Fixed in 4.5.* I5 only knew
+  added, removed, used and adjusted; the other two choices on its own form fell through to "set the stock
+  to", so writing off 2 damaged belts left 2 in stock. Found while moving I5 onto the service.
+- **F-39 Deleting a part with history fails on PostgreSQL.** *Fixed in 4.5.* I6 deleted the item with
+  its alerts, its requests and any work-order part usage still pointing at it. SQLite let it through and
+  left dangling rows; PostgreSQL refuses it with an FK error. Now a part used in a work order is kept (its
+  page says why and suggests setting the stock to 0), its alerts go with it, and its requests keep the
+  item name but lose the link.
+
+- **F-37 The PWA manifest names the real venue.** `static/manifest.json` carried the business's name in
+  a public repository. It is renamed to "Arcade Tracker" in the base-shell step; the old value remains in
+  git history.
 
 ---
 
@@ -387,7 +403,18 @@ anything is changed.
    login through the label inside the door (R1, G17–G19). For F-16 (a readonly user scanning the outside
    label), the default is a read-only machine page for readonly users and the work-order form for operators
    and up. Same `/g/<barcode>` URL, same barcodes.
-3. **ngrok is retired.** Its leftovers (`scripts/setup_autostart.sh`'s ngrok unit) go in the cleanup.
-4. **Skeeball:** retire it (see 1).
+3. **ngrok is retired.** `scripts/setup_autostart.sh`, which installed the missing ngrok unit, moved to
+   `docs/history/` on 2026-10-08. The Cloudflare tunnel is the only public path.
+4. **Skeeball:** retired on 2026-10-08 (see 1 and `docs/history/skeeball/README.md`).
 5. **In-app backups stay.** The path traversal (F-18) and the download (F-34) get fixed in Step 5.
    PostgreSQL support (F-11) is a separate, later change.
+
+### Decisions of 2026-10-22 (Step 4.7)
+
+6. **Coin-door labels are a manager's to hand out.** Printing them (which mints the code) and
+   retiring them is manager and up; printing public labels is operator and up (F-17).
+7. **Three print formats:** plain US Letter paper (12 to a page, cut out), Avery 22806 (2 in
+   squares, 12 to a sheet) and a label printer (one 2¼ × 1¼ in label per page). Another
+   format is one entry in `app/services/labels.py` and one block in `static/css/labels.css`.
+8. **On PostgreSQL the backups page says so** and turns Create and Restore off until in-app
+   PostgreSQL backups exist (F-11).

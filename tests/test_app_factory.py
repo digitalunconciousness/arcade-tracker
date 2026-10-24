@@ -9,7 +9,7 @@ from __future__ import annotations
 
 EXPECTED_BLUEPRINTS = {
     "admin", "auth", "dashboard", "games", "inventory",
-    "maintenance", "reports", "skeeball",
+    "maintenance", "reports",
     # _register_blueprints swallows an ImportError with a printed warning, so a broken
     # blueprint is simply absent and every one of its routes 404s. Naming it here turns
     # that silence into a failing test.
@@ -19,6 +19,8 @@ EXPECTED_BLUEPRINTS = {
     # unauthenticated write endpoint here, and keeping it separate is what makes
     # "this cannot reach anything else" a thing you can read off the route table.
     "report",
+    # The design system's living style guide (admin only).
+    "styleguide",
 }
 
 

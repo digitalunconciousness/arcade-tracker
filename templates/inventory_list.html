@@ -1,342 +1,89 @@
-{% extends "base.html" %}
+{% extends "layout.html" %}
+{% import "ui.html" as ui %}
+{% block title %}Parts{% endblock %}
 
-{% block title %}Inventory Management - Arcade Tracker{% endblock %}
+{% block page_head %}
+{% call ui.page_head("Parts", sub=data.items|length ~ (" shown" if search or low_only else " in the catalogue")) %}
+  <a class="btn btn--sm btn--primary" href="{{ url_for('inventory.request_inventory') }}">Request a part</a>
+  <a class="btn btn--sm" href="{{ url_for('inventory.inventory_requests_list') }}">Requests{% if data.my_pending %} <span class="tabs__count">{{ data.my_pending }}</span>{% endif %}</a>
+  {%- if current_user.has_role("manager") %}
+  <a class="btn btn--sm" href="{{ url_for('inventory.add_inventory_item') }}">Add part</a>
+  {%- if data.low_count %}<a class="btn btn--sm" href="{{ url_for('inventory.low_stock_alerts') }}">Low-stock alerts</a>{% endif %}
+  {%- endif %}
+{% endcall %}
+{% endblock %}
 
 {% block content %}
-<link rel="stylesheet" href="{{ url_for('static', filename='shared-styles.css') }}">
+<div class="stack">
 
-<div class="container">
-    <div class="page-header">
-        <h2 style="color: #00ffff; text-shadow: 0 0 10px rgba(0, 255, 255, 0.6); margin: 0;"> Inventory Management</h2>
-        <div class="header-actions">
-            {% if current_user.has_role('operator') %}
-                <a href="{{ url_for('inventory.request_inventory') }}" class="btn-header" style="background: #9d00ff; color: #fff;"> Request Items</a>
-                <a href="{{ url_for('inventory.inventory_requests_list') }}" class="btn-header" style="background: #00d9ff; color: #000;">
-                     My Requests
-                    {% if pending_requests_count > 0 %}
-                        ({{ pending_requests_count }})
-                    {% endif %}
-                </a>
-            {% endif %}
-            {% if current_user.has_role('manager') %}
-                <a href="{{ url_for('inventory.add_inventory_item') }}" class="btn-header" style="background: #00ff64; color: #000;"> Add Item</a>
-            {% endif %}
-            {% if low_stock_count > 0 %}
-                <a href="{{ url_for('inventory.low_stock_alerts') }}" class="btn-header" style="background: #ff6400; color: #fff;">
-                     Low Stock ({{ low_stock_count }})
-                </a>
-            {% endif %}
-        </div>
-    </div>
+  <dl class="readouts">
+    {{ ui.readout("Low or out", data.low_count, "at or below reorder level", "warn" if data.low_count else none) }}
+    {{ ui.readout("Stock value", "$%.2f"|format(data.total_value)) }}
+  </dl>
 
-<div class="stats-grid">
-    <div class="stat-card">
-        <h3>Total Items</h3>
-        <div class="stat-value">{{ items|length }}</div>
+  <form class="filters" method="get" action="{{ url_for('inventory.inventory_list') }}" role="search">
+    <div class="field filters__search">
+      <label for="search">Search</label>
+      <input id="search" name="search" type="search" value="{{ search }}" placeholder="Name, part number, supplier" autocomplete="off">
     </div>
-    <div class="stat-card">
-        <h3>Low Stock Items</h3>
-        <div class="stat-value warning">{{ low_stock_count }}</div>
+    <div class="field field--check">
+      <input id="low_stock" name="low_stock" type="checkbox" value="1"{% if low_only %} checked{% endif %}>
+      <label for="low_stock">Low stock only</label>
     </div>
-    <div class="stat-card">
-        <h3>Total Inventory Value</h3>
-        <div class="stat-value">${{ "%.2f"|format(total_value) }}</div>
+    <div class="filters__actions">
+      <button class="btn" type="submit">Apply</button>
+      {%- if search or low_only %}<a class="btn btn--ghost" href="{{ url_for('inventory.inventory_list') }}">Clear</a>{% endif %}
     </div>
+  </form>
+
+  {%- if data.items %}
+  <ul class="rows" aria-label="Parts">
+    {%- for item in data.items %}
+    <li><a class="row" href="{{ url_for('inventory.inventory_detail', item_id=item.id) }}">
+      <span class="row__main">
+        <span class="row__title">{{ item.name }}</span>
+        <span class="row__meta">
+          {%- set bits = [] %}
+          {%- if item.part_number %}{% set _ = bits.append(item.part_number) %}{% endif %}
+          {%- if item.supplier %}{% set _ = bits.append(item.supplier) %}{% endif %}
+          {%- set _ = bits.append("$%.2f each"|format(item.unit_price or 0)) %}
+          {{- bits|join(" · ") }}</span>
+      </span>
+      <span class="row__end">
+        {%- if item.stock_quantity == 0 %}{{ ui.chip("fault", "Out · reorder at " ~ item.minimum_stock) }}
+        {%- elif item.is_low_stock() %}{{ ui.chip("warn", item.stock_quantity ~ " left · reorder at " ~ item.minimum_stock) }}
+        {%- else %}{{ ui.chip("ok", item.stock_quantity ~ " in stock") }}{% endif %}
+      </span>
+    </a></li>
+    {%- endfor %}
+  </ul>
+  {%- elif search or low_only %}
+  {{ ui.empty("No parts match", "Try another word, or clear the filters.", url_for("inventory.inventory_list"), "Clear filters") }}
+  {%- elif current_user.has_role("manager") %}
+  {{ ui.empty("No parts yet", "Add the spares you keep on the shelf, so a repair can take them out of stock.", url_for("inventory.add_inventory_item"), "Add part") }}
+  {%- else %}
+  {{ ui.empty("No parts yet", "A manager adds the spares kept on the shelf. You can still request a part.") }}
+  {%- endif %}
+
+  {%- if data.recent_requests %}
+  <section aria-labelledby="recent-title">
+    <div class="card__head">
+      <h2 id="recent-title">{{ "Recent requests" if current_user.has_role("manager") else "Your recent requests" }}</h2>
+      <a class="btn btn--sm btn--ghost" href="{{ url_for('inventory.inventory_requests_list') }}">All requests →</a>
+    </div>
+    <ul class="rows">
+      {%- for req in data.recent_requests %}
+      <li><a class="row" href="{{ url_for('inventory.inventory_request_detail', request_id=req.id) }}">
+        <span class="row__main">
+          <span class="row__title">{{ req.item_name }} × {{ req.quantity_requested }}</span>
+          <span class="row__meta">#{{ req.id }} · {{ req.requested_by.username }} · {{ req.date_requested.strftime("%Y-%m-%d") }}</span>
+        </span>
+        <span class="row__end">{{ ui.status(req.status) }}</span>
+      </a></li>
+      {%- endfor %}
+    </ul>
+  </section>
+  {%- endif %}
+
 </div>
-
-    <!-- Filter Bar -->
-    <div class="filters">
-        <form method="GET">
-            <div class="filter-row">
-                <input type="text" name="search" value="{{ search }}" placeholder=" Search items, descriptions, part numbers..." class="form-control">
-                <label class="checkbox-label">
-                    <input type="checkbox" name="low_stock" {% if low_stock_only %}checked{% endif %}> Low Stock
-                </label>
-                <button type="submit" class="btn-filter"> SEARCH</button>
-                {% if search or low_stock_only %}
-                    <a href="{{ url_for('inventory.inventory_list') }}" class="btn-clear">CLEAR</a>
-                {% endif %}
-            </div>
-        </form>
-    </div>
-
-<!-- Recent Inventory Requests -->
-{% if recent_requests %}
-<div style="background: rgba(0, 20, 40, 0.6); border: 2px solid #9c27b0; border-radius: 8px; padding: 20px; margin-bottom: 30px;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-        <h3 style="color: #9c27b0; margin: 0;"> Recent Inventory Requests</h3>
-        <a href="{{ url_for('inventory.inventory_requests_list') }}" style="color: var(--neon-cyan); text-decoration: none; font-size: 14px;">View All →</a>
-    </div>
-    <table style="width: 100%; color: #fff; border-collapse: collapse;">
-        <thead>
-            <tr style="border-bottom: 2px solid #9c27b0;">
-                <th style="padding: 10px; text-align: left; color: #9c27b0; font-size: 12px; text-transform: uppercase;">ID</th>
-                <th style="padding: 10px; text-align: left; color: #9c27b0; font-size: 12px; text-transform: uppercase;">Item</th>
-                <th style="padding: 10px; text-align: center; color: #9c27b0; font-size: 12px; text-transform: uppercase;">Qty</th>
-                <th style="padding: 10px; text-align: center; color: #9c27b0; font-size: 12px; text-transform: uppercase;">Status</th>
-                <th style="padding: 10px; text-align: left; color: #9c27b0; font-size: 12px; text-transform: uppercase;">Requested By</th>
-                <th style="padding: 10px; text-align: right; color: #9c27b0; font-size: 12px; text-transform: uppercase;">Date</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for req in recent_requests %}
-            <tr style="border-bottom: 1px solid rgba(156, 39, 176, 0.2); cursor: pointer; transition: background 0.2s;" 
-                onclick="window.location.href='{{ url_for('inventory.inventory_request_detail', request_id=req.id) }}';"
-                onmouseover="this.style.background='rgba(156, 39, 176, 0.15)';"
-                onmouseout="this.style.background='';"
-                title="Click to view full details and history">
-                <td style="padding: 10px;">
-                    <a href="{{ url_for('inventory.inventory_request_detail', request_id=req.id) }}" 
-                       style="color: var(--neon-cyan); text-decoration: none; font-weight: bold;" 
-                       onclick="event.stopPropagation();">#{{ req.id }}</a>
-                </td>
-                <td style="padding: 10px;">{{ req.item_name }}</td>
-                <td style="padding: 10px; text-align: center; font-weight: bold;">{{ req.quantity_requested }}</td>
-                <td style="padding: 10px; text-align: center;">
-                    {% if req.status == 'Pending' %}
-                        <span style="color: #ffaa00; font-size: 13px;">⏳ Pending</span>
-                    {% elif req.status == 'Approved' %}
-                        <span style="color: var(--neon-cyan); font-size: 13px;"> Approved</span>
-                    {% elif req.status == 'Ordered' %}
-                        <span style="color: var(--neon-purple); font-size: 13px;"> Ordered</span>
-                    {% elif req.status == 'Received' %}
-                        <span style="color: var(--neon-green); font-size: 13px;"> Received</span>
-                    {% elif req.status == 'Rejected' %}
-                        <span style="color: #ff4444; font-size: 13px;"> Rejected</span>
-                    {% endif %}
-                </td>
-                <td style="padding: 10px; font-size: 14px;">{{ req.requested_by.username }}</td>
-                <td style="padding: 10px; text-align: right; font-size: 13px; color: #888;">{{ req.date_requested.strftime('%Y-%m-%d %H:%M') }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</div>
-{% endif %}
-
-<!-- Inventory Table -->
-<div class="table-responsive">
-    <table class="clickable-table">
-        <thead>
-            <tr>
-                <th>ITEM NAME</th>
-                <th>STOCK</th>
-                <th>MIN STOCK</th>
-                <th>UNIT PRICE</th>
-                <th>TOTAL VALUE</th>
-                <th>SUPPLIER</th>
-                <th>PART NUMBER</th>
-                <th>ACTIONS</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for item in items %}
-            <tr class="clickable-row" onclick="window.location='{{ url_for('inventory.inventory_detail', item_id=item.id) }}'" style="cursor: pointer; {% if item.is_low_stock() %}border-left-color: #ff6400;{% endif %}">
-                <td>
-                    <div>
-                        <strong style="color: #00d9ff;">{{ item.name }}</strong>
-                        {% if item.is_low_stock() %}
-                            <span style="background: rgba(255, 100, 0, 0.2); color: #ff6400; padding: 2px 8px; border-radius: 10px; font-size: 11px; margin-left: 8px; border: 1px solid #ff6400;"> LOW</span>
-                        {% endif %}
-                    </div>
-                    {% if item.description %}
-                        <small style="color: #888; display: block; margin-top: 4px;">{{ item.description[:60] }}{% if item.description|length > 60 %}...{% endif %}</small>
-                    {% endif %}
-                </td>
-                <td>
-                    <span style="font-weight: bold; {% if item.is_low_stock() %}color: #ff6400;{% else %}color: #00ff64;{% endif %}">
-                        {{ item.stock_quantity }}
-                    </span>
-                </td>
-                <td>{{ item.minimum_stock }}</td>
-                <td>${{ "%.2f"|format(item.unit_price) }}</td>
-                <td style="font-weight: bold; color: #ffc800;">${{ "%.2f"|format(item.total_value()) }}</td>
-                <td>{{ item.supplier or '—' }}</td>
-                <td><small>{{ item.part_number or '—' }}</small></td>
-                <td onclick="event.stopPropagation();">
-                    <div style="display: flex; gap: 4px; flex-wrap: wrap;">
-                        {% if current_user.has_role('operator') %}
-                            <a href="{{ url_for('inventory.adjust_stock', item_id=item.id) }}" class="action-btn-sm" style="border-color: #00d9ff; color: #00d9ff;" title="Adjust Stock">📊</a>
-                        {% endif %}
-                        {% if current_user.has_role('manager') %}
-                            <a href="{{ url_for('inventory.edit_inventory_item', item_id=item.id) }}" class="action-btn-sm" style="border-color: #00ff64; color: #00ff64;" title="Edit Item">✏️</a>
-                            <form method="post" action="{{ url_for('inventory.delete_inventory_item', item_id=item.id) }}" style="display: inline; margin: 0;" onsubmit="return confirm('Delete {{ item.name }}? This cannot be undone!');">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <button type="submit" class="btn-delete-inline" title="Delete Item">🗑️</button>
-                            </form>
-                        {% endif %}
-                    </div>
-                </td>
-            </tr>
-            {% else %}
-            <tr>
-                <td colspan="8" style="text-align: center; padding: 40px; color: #888;">
-                    {% if search or low_stock_only %}
-                        No items found matching your criteria.
-                    {% else %}
-                        No inventory items found. {% if current_user.has_role('manager') %}<a href="{{ url_for('inventory.add_inventory_item') }}" style="color: #00d9ff;">Add your first item</a>.{% endif %}
-                    {% endif %}
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</div>
-</div>
-
-<style>
-.container {
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 20px;
-}
-
-.page-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 30px;
-    padding-bottom: 15px;
-    border-bottom: 3px solid #00d9ff;
-    flex-wrap: wrap;
-    gap: 15px;
-}
-
-.header-actions {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-}
-
-.btn-header {
-    padding: 10px 20px;
-    border: none;
-    border-radius: 6px;
-    font-weight: bold;
-    text-decoration: none;
-    cursor: pointer;
-    transition: all 0.3s;
-    font-size: 14px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-}
-
-.btn-header:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-}
-
-.stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 20px;
-    margin-bottom: 30px;
-}
-
-.stat-card {
-    background: linear-gradient(145deg, #1a1a2e, #16213e);
-    border: 2px solid #00d9ff;
-    border-radius: 8px;
-    padding: 20px;
-    box-shadow: 0 4px 15px rgba(0, 217, 255, 0.2);
-    text-align: center;
-}
-
-.stat-card h3 {
-    margin: 0 0 10px 0;
-    color: #888;
-    font-size: 14px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
-
-.stat-value {
-    font-size: 32px;
-    font-weight: bold;
-    color: #00d9ff;
-}
-
-.stat-value.warning {
-    color: #ff6400;
-}
-
-.warning-row {
-    background-color: rgba(255, 193, 7, 0.1);
-}
-
-.item-name a {
-    font-weight: bold;
-    color: var(--primary-color);
-    text-decoration: none;
-}
-
-.item-name a:hover {
-    text-decoration: underline;
-}
-
-.item-description {
-    font-size: 0.9em;
-    color: var(--text-secondary);
-    margin-top: 4px;
-}
-
-.stock-quantity.low-stock {
-    color: var(--warning-color);
-    font-weight: bold;
-}
-
-.badge {
-    display: inline-block;
-    padding: 2px 6px;
-    border-radius: 3px;
-    font-size: 0.8em;
-    margin-left: 8px;
-}
-
-.badge-warning {
-    background-color: var(--warning-color);
-    color: white;
-}
-
-.search-section {
-    margin: 20px 0;
-    padding: 20px;
-    background: var(--card-bg);
-    border-radius: 8px;
-}
-
-.search-inputs {
-    display: flex;
-    gap: 15px;
-    align-items: center;
-    margin-bottom: 15px;
-}
-
-.search-input {
-    flex: 1;
-    padding: 8px 12px;
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    background: var(--input-bg);
-    color: var(--text-color);
-}
-
-.checkbox-label {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    white-space: nowrap;
-    font-size: 13px;
-    padding: 8px 16px;
-    background: rgba(0, 217, 255, 0.1);
-    border-radius: 6px;
-    border: 1px solid rgba(0, 217, 255, 0.3);
-    color: #fff;
-    flex-shrink: 0;
-}
-
-.checkbox-label input[type="checkbox"] {
-    margin: 0;
-    cursor: pointer;
-}
-</style>
 {% endblock %}

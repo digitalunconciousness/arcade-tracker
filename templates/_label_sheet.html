@@ -1,0 +1,52 @@
+{#- The printable part of every label page. Included (it shares the page's context), never
+    extended. Needs: labels, kind ("public" or "coindoor"), fmt, formats, pages, ids,
+    example_url, address_problem, base_url_set. -#}
+{% import "ui.html" as ui %}
+
+<div class="stack label-notes">
+  {%- if address_problem %}
+  <div class="banners" role="alert"><div class="banner is-fault"><div class="banner__body">
+    <span class="banner__title">These QR codes will not work from a phone on mobile data</span>
+    <p>They point at <code>{{ example_url }}</code>, and {{ address_problem }}. Set <code>BASE_URL</code> in the server's <code>.env</code> to the public address (see deploy/RUNBOOK.md), or open this page through the public address, then print.</p>
+  </div></div></div>
+  {%- elif not base_url_set %}
+  <p class="dim">The codes point at <code>{{ example_url }}</code>, the address this page was opened from. Scan one before printing the rest.</p>
+  {%- else %}
+  <p class="dim">The codes point at <code>{{ example_url }}</code>.</p>
+  {%- endif %}
+
+  <nav class="tabs" aria-label="Label format">
+    {%- for f in formats %}
+    <a href="{{ url_for(request.endpoint, format=f.key, ids=ids, **(request.view_args or {})) }}"{% if f.key == fmt.key %} aria-current="page"{% endif %}>{{ f.name }}</a>
+    {%- endfor %}
+  </nav>
+  <p class="dim">{{ fmt.detail }} Print at 100% scale with margins set to None.</p>
+  {%- if labels %}
+  <details>
+    <summary>Addresses on this sheet ({{ labels|length }})</summary>
+    <ul class="dim">{% for label in labels %}<li>{{ label.game.name }}: <code>{{ label.url }}</code></li>{% endfor %}</ul>
+  </details>
+  {%- endif %}
+</div>
+
+<div class="sheet-preview" aria-label="Print preview">
+  {%- for page in pages %}
+  <div class="sheet sheet--{{ fmt.key }}">
+    {%- for label in page %}
+    <div class="label-card">
+      <img class="label-qr" src="{{ label.qr }}" alt="QR code for {{ label.game.name }}">
+      <div class="label-text">
+        <div class="label-name">{{ label.game.name }}</div>
+        {%- if kind == "coindoor" %}
+        <div class="label-meta">Problem? Scan to report it.</div>
+        <div class="label-note">Inside the coin door only</div>
+        {%- else %}
+        {%- if label.game.manufacturer %}<div class="label-meta">{{ label.game.manufacturer }}</div>{% endif %}
+        <div class="label-meta">{{ label.game.barcode }}</div>
+        {%- endif %}
+      </div>
+    </div>
+    {%- endfor %}
+  </div>
+  {%- endfor %}
+</div>

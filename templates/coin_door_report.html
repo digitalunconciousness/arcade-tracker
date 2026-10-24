@@ -1,52 +1,56 @@
 <!DOCTYPE html>
-{# Standalone, not an extension of base.html. base.html is the application shell: its nav is
-   gated on current_user.is_authenticated, but it also pulls in the chart library and every
-   other asset a dashboard needs, and one future link added outside that gate would quietly
-   undo the containment this page exists to have. A page with nothing to click is easier to
-   keep that way than one that inherits a navigation bar. #}
+{#- Standalone, not an extension of layout.html. The shell carries the navigation, and one
+    future link added outside its login gate would quietly undo the containment this page
+    exists to have. A page with nothing to click is easier to keep that way than one that
+    inherits a navigation bar. It uses the design system's stylesheets and no script. -#}
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    {# A phone in a dark arcade, held in one hand: this is the only client this page has. #}
-    <title>Report a problem — {{ game.name }}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/cyberpunk.css') }}">
+  <meta charset="utf-8">
+  {#- A phone in a dark arcade, held in one hand: this is the only client this page has. #}
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Report a problem · {{ game.name }}</title>
+  <link rel="stylesheet" href="{{ asset('css/tokens.css') }}">
+  <link rel="stylesheet" href="{{ asset('css/base.css') }}">
+  <link rel="stylesheet" href="{{ asset('css/components.css') }}">
 </head>
 <body>
-<div class="container" style="max-width: 34rem; padding: 1rem;">
-    <h1>Report a problem</h1>
-    <h2>{{ game.name }}</h2>
+<main class="app-main report-page">
+  <p class="report-page__kicker">Report a problem</p>
+  <h1>{{ game.name }}</h1>
 
-    {% if open_count %}
-        <p class="alert alert-warning">
-            {{ open_count }} report{{ '' if open_count == 1 else 's' }} already open for this
-            machine. File another only if this is something different.
-        </p>
-    {% else %}
-        <p class="muted">Nothing reported for this machine right now.</p>
-    {% endif %}
+  {%- with messages = get_flashed_messages(with_categories=true) %}
+  {%- if messages %}
+  <div class="banners" role="status">
+    {%- for category, message in messages %}
+    <div class="banner is-{{ 'ok' if category == 'success' else 'fault' }}"><div class="banner__body">{{ message }}</div></div>
+    {%- endfor %}
+  </div>
+  {%- endif %}
+  {%- endwith %}
 
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% for category, message in messages %}
-            <p class="alert alert-{{ 'success' if category == 'success' else 'danger' }}">{{ message }}</p>
-        {% endfor %}
-    {% endwith %}
+  {%- if open_count %}
+  <p class="chip is-warn">{{ open_count }} report{{ '' if open_count == 1 else 's' }} already open for this machine</p>
+  <p class="dim">File another only if this is something different.</p>
+  {%- else %}
+  <p class="chip is-ok">Nothing reported for this machine right now</p>
+  {%- endif %}
 
-    <form method="post" action="{{ url_for('report.report_form', token=token) }}">
-        {# CSRFProtect is global. Without this field the form 400s for the first real person
-           to use it, and never in the suite -- conftest switches CSRF off for every test. #}
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <label for="issue_description">What is wrong?</label>
-        <textarea id="issue_description" name="issue_description" rows="6" required
-                  maxlength="2000"
-                  placeholder="What happens, and what you were doing when it happened."></textarea>
-        <button type="submit">Send it</button>
-    </form>
+  <form class="form" method="post" action="{{ url_for('report.report_form', token=token) }}">
+    {#- The blueprint is CSRF-exempt (app/routes/report.py says why); the field is harmless and
+        keeps the form working if that ever changes. #}
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="field">
+      <label for="issue_description">What is wrong?</label>
+      <textarea id="issue_description" name="issue_description" rows="6" required maxlength="2000"
+                placeholder="What happens, and what you were doing when it happened."></textarea>
+    </div>
+    <div class="form__actions">
+      <button class="btn btn--primary btn--block" type="submit">Send it</button>
+    </div>
+  </form>
 
-    <p class="muted">
-        No login needed — you opened the coin door, which is the point. Nobody is notified
-        personally; this goes into the work queue.
-    </p>
-</div>
+  <p class="dim">No login needed: you opened the coin door, which is the point. Nobody is notified personally; this goes into the work queue.</p>
+</main>
 </body>
 </html>

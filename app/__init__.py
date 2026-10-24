@@ -10,7 +10,7 @@ import os
 import uuid
 
 from dotenv import load_dotenv
-from flask import Flask, Response
+from flask import Flask, Response, request
 
 from app.extensions import csrf, db, limiter, login_manager, migrate
 
@@ -40,6 +40,7 @@ def create_app() -> Flask:
     _init_extensions(app)
     _register_blueprints(app)
     _register_context_processors(app)
+    _register_error_handlers(app)
     _register_after_request(app)
 
     return app
@@ -78,7 +79,11 @@ def _configure_app(app: Flask) -> None:
     app.config["BASE_URL"] = os.environ.get("BASE_URL", "")
 
     # CSRF ---------------------------------------------------------
-    app.config["WTF_CSRF_CHECK_DEFAULT"] = False
+    # Enforced on every POST (Flask-WTF's default; it was switched off until 2026-10-08).
+    # The device API is exempt in app/routes/api_v1.py. Tokens live as long as the session
+    # rather than the default hour, so a form opened at the start of a shift still submits.
+    app.config["WTF_CSRF_CHECK_DEFAULT"] = True
+    app.config["WTF_CSRF_TIME_LIMIT"] = None
 
     # Session / Remember-me ----------------------------------------
     import datetime as dt
@@ -136,10 +141,10 @@ def _register_blueprints(app: Flask) -> None:
         ("app.routes.inventory", "inventory_bp"),
         ("app.routes.reports", "reports_bp"),
         ("app.routes.admin", "admin_bp"),
-        ("app.routes.skeeball", "skeeball_bp"),
         ("app.routes.api_v1", "api_v1_bp"),
         ("app.routes.rails", "rails_bp"),
         ("app.routes.report", "report_bp"),
+        ("app.routes.styleguide", "styleguide_bp"),
     ]
 
     import importlib
@@ -158,6 +163,10 @@ def _register_context_processors(app: Flask) -> None:
     """Register Jinja2 context processors for global template helpers."""
     from datetime import date as _date
     from flask import url_for as _url_for
+
+    from app.ui import register as register_ui_filters
+
+    register_ui_filters(app)
 
     @app.context_processor
     def utility_processor() -> dict:
@@ -199,6 +208,41 @@ CSP = (
     "form-action 'self'; "
     "frame-ancestors 'self'"
 )
+
+
+ERROR_PAGES = {
+    403: ("Not allowed", "Your account cannot open this page. If you need it, ask an admin "
+          "to change your role.", "warn"),
+    404: ("Nothing here", "That page or record does not exist. It may have been deleted, or the "
+          "link is mistyped. Machine labels still work: scan the code again.", "info"),
+    500: ("Something broke", "The tracker hit an error and nothing was saved. Try again; if it "
+          "keeps happening, tell an admin what you were doing.", "fault"),
+}
+
+
+def _register_error_handlers(app: Flask) -> None:
+    from flask import jsonify, render_template
+    from flask_wtf.csrf import CSRFError
+
+    def page(code: int):
+        title, text, tone = ERROR_PAGES[code]
+        # Machine clients get JSON: /api/v1 is read by GATBOX, not a browser.
+        if request.path.startswith("/api/"):
+            return jsonify({"error": title.lower()}), code
+        try:
+            return render_template("errors/error.html", code=code, title=title, text=text,
+                                   tone=tone), code
+        except Exception:  # noqa: BLE001 -- the error page must not raise its own error
+            return f"{code} {title}", code
+
+    for code in ERROR_PAGES:
+        app.register_error_handler(code, lambda error, code=code: page(code))
+
+    @app.errorhandler(CSRFError)
+    def csrf_error(error):  # noqa: ANN202
+        app.logger.warning("CSRF refused: %s %s (%s)", request.method, request.path,
+                           error.description)
+        return render_template("errors/csrf.html"), 400
 
 
 def _register_after_request(app: Flask) -> None:

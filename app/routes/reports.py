@@ -24,80 +24,10 @@ from app.models import (
     MaintenanceRecord,
     PlayRecord,
 )
+from app.services.rankings import update_monthly_rankings_if_due
 from app.utils.decorators import requires_role
 
 reports_bp = Blueprint("reports", __name__)
-
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-def _update_top_rankings():
-    """Deprecated: replaced by update_monthly_rankings_if_due()."""
-    return
-
-
-def update_monthly_rankings_if_due():
-    """Increment Top5/Top10 counters once per calendar month.
-
-    Considers only Floor games with Working counters.  Uses PlayRecord
-    revenue summed over the previous calendar month.  Safe to call
-    multiple times — updates at most once per month.
-    """
-    today = date.today()
-    current_month_start = today.replace(day=1)
-
-    # Determine previous month range
-    prev_month_end = current_month_start - dt.timedelta(days=1)
-    prev_month_start = prev_month_end.replace(day=1)
-
-    # Check if rankings already updated this month
-    last_updates = db.session.query(
-        db.func.max(Game.last_ranking_update)
-    ).scalar()
-    if last_updates and last_updates >= current_month_start:
-        return  # Already updated for this month
-
-    # Build revenue per game for previous month
-    records = (
-        PlayRecord.query.join(Game)
-        .filter(
-            PlayRecord.date_recorded >= prev_month_start,
-            PlayRecord.date_recorded <= prev_month_end,
-            Game.location == "Floor",
-            Game.counter_status == "Working",
-        )
-        .all()
-    )
-
-    if not records:
-        # Mark update to avoid repeated work this month even if no data
-        for g in Game.query.all():
-            g.last_ranking_update = current_month_start
-        db.session.commit()
-        return
-
-    revenue_by_game: dict[int, float] = {}
-    for r in records:
-        revenue_by_game.setdefault(r.game_id, 0.0)
-        revenue_by_game[r.game_id] += r.revenue or 0.0
-
-    # Rank games by revenue
-    ranked = sorted(revenue_by_game.items(), key=lambda kv: kv[1], reverse=True)
-
-    top5_ids = {gid for gid, _ in ranked[:5]}
-    top10_ids = {gid for gid, _ in ranked[:10]}
-
-    games = Game.query.all()
-    for g in games:
-        if g.id in top5_ids:
-            g.times_in_top_5 = (g.times_in_top_5 or 0) + 1
-        if g.id in top10_ids:
-            g.times_in_top_10 = (g.times_in_top_10 or 0) + 1
-        g.last_ranking_update = current_month_start
-
-    db.session.commit()
 
 
 # ---------------------------------------------------------------------------
@@ -169,7 +99,7 @@ def reports():
         .all()
     )
 
-    update_monthly_rankings_if_due()
+    update_monthly_rankings_if_due()  # writes on GET (F-14), as before
 
     return render_template(
         "reports.html",

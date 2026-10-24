@@ -1,0 +1,202 @@
+{% extends "layout.html" %}
+{% import "ui.html" as ui %}
+{% block title %}Style guide{% endblock %}
+
+{% block page_head %}
+{% call ui.page_head("Style guide", sub="Every component in every state. Tokens: static/css/tokens.css") %}
+  <a class="btn btn--sm" href="#buttons">Buttons</a>
+  <a class="btn btn--sm" href="#forms">Forms</a>
+  <a class="btn btn--sm" href="#states">States</a>
+{% endcall %}
+{% endblock %}
+
+{% block content %}
+<div class="stack">
+
+<section class="card" aria-labelledby="sg-colour">
+  <h2 id="sg-colour">Colour means status</h2>
+  <p class="dim">Magenta marks where you are and the main action. Lime, amber, red and cyan are
+    reserved for ok, warning, fault and information, and always come with words.</p>
+  <div class="cluster">
+    {{ ui.chip("ok", "OK") }} {{ ui.chip("warn", "Warning") }} {{ ui.chip("fault", "Fault") }}
+    {{ ui.chip("info", "Info") }} {{ ui.chip("muted", "Muted") }}
+  </div>
+  <h3 style="margin-top: var(--sp-4)">Every stored status</h3>
+  <div class="cluster">
+    {% for value in tones %}{{ ui.status(value) }} {% endfor %}
+  </div>
+  <h3 style="margin-top: var(--sp-4)">Badges</h3>
+  <div class="cluster">
+    <span class="badge is-ok">synced</span> <span class="badge is-warn">stale</span>
+    <span class="badge is-fault">over-voltage</span> <span class="badge is-info">gatbox</span>
+    <span class="badge is-muted">coin door</span>
+  </div>
+</section>
+
+<section class="card" aria-labelledby="sg-type">
+  <h2 id="sg-type">Type</h2>
+  <h1>Heading 1 · Chakra Petch</h1>
+  <h2>Heading 2 · Work orders</h2>
+  <h3>Heading 3 · Parts used</h3>
+  <h4>Heading 4 · section label</h4>
+  <p>Body text is Share Tech Mono at 16px, readable at arm's length under barcade lighting.
+    <a href="#sg-type">A link</a> is cyan and underlined. <span class="dim">Dim text is for
+    secondary detail.</span> Numbers line up: <span class="num">1,240</span> /
+    <span class="num">  87</span>.</p>
+</section>
+
+<section class="card" id="buttons" aria-labelledby="sg-buttons">
+  <h2 id="sg-buttons">Buttons</h2>
+  <p class="dim">At least 44px tall. Tab through them to see the focus ring.</p>
+  <div class="cluster">
+    <button class="btn btn--primary" type="button">Primary</button>
+    <button class="btn" type="button">Default</button>
+    <button class="btn btn--ghost" type="button">Ghost</button>
+    <button class="btn btn--danger" type="button">Delete</button>
+    <a class="btn" href="#buttons">Link button</a>
+  </div>
+  <div class="cluster" style="margin-top: var(--sp-3)">
+    <button class="btn btn--primary btn--sm" type="button">Small primary</button>
+    <button class="btn btn--sm" type="button">Small</button>
+    <button class="btn btn--danger btn--sm" type="button">Small delete</button>
+  </div>
+  <div class="cluster" style="margin-top: var(--sp-3)">
+    <button class="btn btn--primary" type="button" disabled>Disabled</button>
+    <button class="btn" type="button" disabled>Disabled</button>
+    <button class="btn btn--primary" type="button" aria-busy="true">Saving</button>
+  </div>
+  <div style="margin-top: var(--sp-3); max-width: 390px">
+    <button class="btn btn--primary btn--block" type="button">Full width (phone primary action)</button>
+  </div>
+  <div class="cluster" style="margin-top: var(--sp-3)">
+    {{ ui.danger_form("#", "Delete with confirm", "Delete the synthetic record? This cannot be undone.", "Delete") }}
+  </div>
+</section>
+
+<section class="card" aria-labelledby="sg-banners">
+  <h2 id="sg-banners">Banners</h2>
+  <p class="dim">Flash messages use these: success is ok, error is fault, warning is warn, info is info.</p>
+  <div class="banners">
+    <div class="banner is-ok"><div class="banner__body">Recorded 10 plays ($5.00) for "Neon Raider".</div><button class="banner__close" type="button" aria-label="Dismiss">×</button></div>
+    <div class="banner is-warn"><div class="banner__body"><span class="banner__title">Counter broken</span><p>Plays cannot be recorded until the counter is fixed.</p></div></div>
+    <div class="banner is-fault"><div class="banner__body"><span class="banner__title">Insufficient stock</span><p>Drive Belt: 2 in stock, 4 requested.</p></div><button class="banner__close" type="button" aria-label="Dismiss">×</button></div>
+    <div class="banner is-info"><div class="banner__body">Tracking not configured: add EASYPOST_API_KEY to .env.</div></div>
+  </div>
+</section>
+
+<section class="card" aria-labelledby="sg-readouts">
+  <h2 id="sg-readouts">Readouts</h2>
+  <dl class="readouts">
+    {{ ui.readout("Machines", "3", "2 on the floor") }}
+    {{ ui.readout("Open orders", "4", "1 critical", tone="fault") }}
+    {{ ui.readout("Revenue · 30 d", "$1,240.50") }}
+    {{ ui.readout("Low stock", "1", "Glass Fuse 2A", tone="warn") }}
+  </dl>
+  <h3>Key / value</h3>
+  <dl class="kv">
+    <dt>Manufacturer</dt><dd>Synthwave Co</dd>
+    <dt>Location</dt><dd>Floor · A3</dd>
+    <dt>Status</dt><dd>{{ ui.status("Working") }}</dd>
+    <dt>Barcode</dt><dd><code>neon-raider</code></dd>
+  </dl>
+</section>
+
+<section aria-labelledby="sg-cards">
+  <h2 id="sg-cards">Cards and tiles</h2>
+  <div class="grid">
+    <div class="card"><div class="card__head"><h3>Card</h3>{{ ui.status("Open") }}</div><p>A plain panel with a heading row.</p></div>
+    <div class="card card--status is-fault"><h3>Status card</h3><p>A left edge in the status colour, for a machine that is down.</p></div>
+    <div class="card card--status is-ok"><h3>Status card</h3><p>Back in service.</p></div>
+  </div>
+  <h3 style="margin-top: var(--sp-4)">Tiles (pickers, quick actions)</h3>
+  <div class="tiles">
+    <a class="tile" href="#sg-cards"><b>Neon Raider</b><span class="dim">Floor · Working</span></a>
+    <a class="tile" href="#sg-cards" aria-current="true"><b>Pixel Pinball</b><span class="dim">Selected</span></a>
+    <a class="tile" href="#sg-cards"><b>Star Courier</b><span class="dim">Counter broken</span></a>
+  </div>
+</section>
+
+<section aria-labelledby="sg-rows">
+  <h2 id="sg-rows">Rows (lists on a phone)</h2>
+  <ul class="rows">
+    <li><a class="row" href="#sg-rows"><span class="row__main"><span class="row__title">Neon Raider</span><span class="row__meta">Synthwave Co · Floor A3</span></span><span class="row__end">{{ ui.status("Working") }}</span></a></li>
+    <li><a class="row" href="#sg-rows"><span class="row__main"><span class="row__title">Pixel Pinball</span><span class="row__meta">Flipper Labs · Warehouse</span></span><span class="row__end">{{ ui.status("Not_Working") }}</span></a></li>
+    <li><div class="row"><span class="row__main"><span class="row__title">Joystick drifts left</span><span class="row__meta">#12 · Tech A · 3 days ago</span></span><span class="row__end">{{ ui.status("High") }} {{ ui.status("Open") }}</span></div></li>
+  </ul>
+</section>
+
+<section aria-labelledby="sg-table">
+  <h2 id="sg-table">Table (stacks below 700px)</h2>
+  <div class="table-wrap">
+    <table class="table table--stack">
+      <thead><tr><th>Item</th><th>Part no.</th><th class="num">In stock</th><th class="num">Minimum</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td data-label="Item">Drive Belt</td><td data-label="Part no."><code>BELT-01</code></td><td data-label="In stock" class="num">10</td><td data-label="Minimum" class="num">2</td><td data-label="Status">{{ ui.chip("ok", "In stock") }}</td></tr>
+        <tr><td data-label="Item">Glass Fuse 2A</td><td data-label="Part no."><code>FUSE-2A</code></td><td data-label="In stock" class="num">1</td><td data-label="Minimum" class="num">5</td><td data-label="Status">{{ ui.chip("warn", "Low") }}</td></tr>
+        <tr><td data-label="Item">Trackball 2in</td><td data-label="Part no.">—</td><td data-label="In stock" class="num">0</td><td data-label="Minimum" class="num">1</td><td data-label="Status">{{ ui.chip("fault", "Out") }}</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="card" id="forms" aria-labelledby="sg-forms">
+  <h2 id="sg-forms">Forms</h2>
+  <div class="grid">
+    <div>
+      <h3>Valid</h3>
+      <div class="form">
+        {{ ui.field(clean.name) }}
+        {{ ui.field(clean.coins, help="The number on the coin meter now. Plays are the difference from the last reading.") }}
+        {{ ui.field(clean.location) }}
+        {{ ui.field(clean.notes, placeholder="Anything the next tech should know") }}
+        {{ ui.field(clean.disabled, disabled=true, help="Printed on the label; never changes.") }}
+        <div class="field field--check"><input type="checkbox" id="sg-check" checked><label for="sg-check">Counter working</label></div>
+        <div class="field"><label for="sg-file">Photos</label><input type="file" id="sg-file" accept="image/*" multiple></div>
+        <div class="form__actions"><button class="btn btn--primary" type="button">Save</button><button class="btn btn--ghost" type="button">Cancel</button></div>
+      </div>
+    </div>
+    <div>
+      <h3>With server-side errors</h3>
+      <div class="form">
+        {{ ui.field(broken.name) }}
+        {{ ui.field(broken.coins) }}
+        <fieldset>
+          <legend>Parts used</legend>
+          <div class="field-row">
+            <div class="field"><label for="sg-part">Item</label><select id="sg-part"><option>Drive Belt (10)</option></select></div>
+            <div class="field"><label for="sg-qty">Qty</label><input id="sg-qty" type="number" min="0" value="1"></div>
+          </div>
+        </fieldset>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section aria-labelledby="sg-tabs">
+  <h2 id="sg-tabs">Tabs</h2>
+  <nav class="tabs" aria-label="Example tabs">
+    <a href="#sg-tabs" aria-current="page">Open <span class="tabs__count">4</span></a>
+    <a href="#sg-tabs">Closed <span class="tabs__count">12</span></a>
+    <a href="#sg-tabs">All <span class="tabs__count">16</span></a>
+  </nav>
+</section>
+
+<section id="states" aria-labelledby="sg-states">
+  <h2 id="sg-states">Empty, loading and error states</h2>
+  <div class="grid">
+    {{ ui.empty("No work orders open", "Every machine is running. A report from a coin-door label shows up here.") }}
+    {{ ui.empty("No machines yet", "Add one, or import the roster.", "#states", "Add a machine") }}
+    <div class="state state--loading" role="status"><p class="state__title">Loading rail history</p><p>Fetching the last 50 sessions.</p></div>
+    {{ ui.error_state("Couldn't reach the tracking service", "EasyPost answered 503. The request is unchanged.", "#states") }}
+  </div>
+</section>
+
+<section aria-labelledby="sg-chart">
+  <h2 id="sg-chart">Chart frame</h2>
+  <div class="grid">
+    <div class="chart"><div class="chart__empty">No plays recorded in the last 30 days.</div></div>
+  </div>
+</section>
+
+</div>
+{% endblock %}
