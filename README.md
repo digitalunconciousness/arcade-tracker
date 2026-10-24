@@ -421,7 +421,7 @@ arcade-tracker/
 ├── run.sh             # Startup script
 ├── arcade.db          # SQLite database (created on first run)
 ├── templates/         # HTML templates
-│   ├── base.html
+│   ├── layout.html
 │   ├── index.html
 │   ├── games.html
 │   ├── add_game.html

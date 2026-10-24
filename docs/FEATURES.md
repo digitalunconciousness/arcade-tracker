@@ -353,7 +353,8 @@ anything is changed.
   - S11 and S23–S27 have no UI caller.
 
   Keep them, hide them behind admin, or strike?
-- **F-27 The light theme toggle in `base.html`** goes away, per your answer.
+- **F-27 The light theme toggle in `base.html`** goes away, per your answer. *Done: `layout.html` has none,
+  and `base.html` was deleted in 4.8d.*
 - **F-28 S3 is the stats page in your brief, but it shows local lane counters.** The Pi :5002 proxy feeds
   S8–S10, which S3's JavaScript polls.
 

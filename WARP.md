@@ -280,7 +280,7 @@ Environment variables in `.env` (see `.env.example`):
 1. Add route handler in `app.py` (following existing patterns)
 2. Add permission decorator if needed: `@requires_role('manager')`
 3. Create/update template in `templates/`
-4. Update navigation in `templates/base.html`
+4. Update navigation in `templates/layout.html` (an item appears only for roles that can open it)
 5. Test with different user roles
 
 ### Adding New Features
