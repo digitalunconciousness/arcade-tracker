@@ -66,6 +66,16 @@ answer them by ID.
 | G18 | `/labels/coindoor/sheet` | GET | login | `coin_door_label_sheet.html` | — | Printable coin-door labels encoding `<BASE_URL>/report/<token>`. **Writes on GET:** mints missing report tokens and clears the stale flag. |
 | G19 | `/game/<id>/report-token/rotate` | POST | **login** | — | raw | Retires a machine's coin-door token and marks its label stale. |
 
+**Collection round** (`app/routes/collection.py`, prefix `/round`; feature step 3, added 2026-10-25):
+
+| ID | Route | Methods | Role | Template | Form | What it does |
+|----|-------|---------|------|----------|------|--------------|
+| C1 | `/round/` | GET | operator | `round.html` | — | Every floor machine that isn't retired, in walking order (floor position, then name), with today's reading or "to read", flags, and totals. Opens the round. |
+| C2 | `/round/<id>` | GET, POST | operator | `round_stop.html` | raw | One machine's meter: saves a reading dated today (a first reading only sets the starting point) and moves to the next machine still to read. Holds back a reading far above usual until confirmed. |
+| C3 | `/round/end` | POST | operator | — | raw | Closes the round, so scanning a label opens the machine page again. |
+
+While a round is open (today's date in the session), G13 sends a floor machine to C2 instead of its page.
+
 ## 4. Coin-door reporting (`app/routes/report.py`): the only unauthenticated write
 
 | ID | Route | Methods | Role | Template | Form | What it does |
@@ -478,3 +488,12 @@ anything is changed.
    format is one entry in `app/services/labels.py` and one block in `static/css/labels.css`.
 8. **On PostgreSQL the backups page says so** and turns Create and Restore off until in-app
    PostgreSQL backups exist (F-11).
+
+### Decisions of 2026-10-25 (feature work)
+
+9. **A work order says whether its machine can still be played**, and a "down" order sets the
+   machine's status until it is fixed (feature step 2, `app/services/downtime.py`).
+10. **Collection round:** a round is one day's readings (collection is about weekly, and a round
+    is finished the day it starts). While one is open, scanning a label opens the meter entry. It
+    flags no plays since the last reading, far more plays than usual (held until confirmed), and a
+    gap of 30 days or more. Plays come first and the token value second.

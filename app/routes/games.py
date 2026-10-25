@@ -484,6 +484,12 @@ def resolve_barcode(code):
     if game is None:
         flash(f"No machine found for scanned code '{code}'.", "error")
         return redirect(url_for("games.scan"))
+    # During a collection round the label opens the meter entry instead (feature step 3).
+    from app.routes.collection import round_open
+    from app.services.collection import on_round
+
+    if round_open() and current_user.has_role("operator") and on_round(game):
+        return redirect(url_for("collection.stop", game_id=game.id))
     return redirect(url_for("games.game_detail", game_id=game.id))
 
 

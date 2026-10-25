@@ -1,0 +1,59 @@
+{% extends "layout.html" %}
+{% import "ui.html" as ui %}
+{% block title %}Collection round{% endblock %}
+
+{% block page_head %}
+{% call ui.page_head("Collection round", sub=today().strftime("%A %d %B") ~ " · " ~ summary.read ~ " of " ~ summary.readable ~ " read") %}
+  {%- if next_stop %}
+  <a class="btn btn--sm btn--primary" href="{{ url_for('collection.stop', game_id=next_stop.game.id) }}">{{ "Next machine" if summary.read else "Start" }}</a>
+  {%- endif %}
+  <form class="inline-form" method="post" action="{{ url_for('collection.end') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button class="btn btn--sm btn--ghost" type="submit">End round</button>
+  </form>
+{% endcall %}
+{% endblock %}
+
+{% block content %}
+<div class="stack">
+  <p class="measure mt-0">Walk the floor and read each coin meter. Scanning a machine's label opens its meter
+  until you end the round or the day ends. A round is today's readings: a machine read today is done.</p>
+
+  <dl class="readouts">
+    {{ ui.readout("Read", summary.read ~ " of " ~ summary.readable) }}
+    {{ ui.readout("Plays", "{:,}".format(summary.plays), detail="$%.2f in tokens"|format(summary.value)) }}
+    {{ ui.readout("Flagged", summary.flagged, tone="warn" if summary.flagged else none) }}
+    {%- if summary.broken %}
+    {{ ui.readout("Meter broken", summary.broken, detail="skipped", tone="fault") }}
+    {%- endif %}
+  </dl>
+
+  {%- if not stops %}
+  {{ ui.empty("No machines on the floor", "Machines on the floor that aren't retired are on the round.", url_for('games.games_list'), "Machines") }}
+  {%- elif not next_stop %}
+  <div class="banners" role="status"><div class="banner is-ok"><div class="banner__body"><span class="banner__title">Round done</span><p>Every machine with a working meter has been read today.</p></div></div></div>
+  {%- endif %}
+
+  <ul class="rows" aria-label="Machines on the round">
+    {%- for s in stops %}
+    <li><a class="row" href="{{ url_for('collection.stop', game_id=s.game.id) }}">
+      <span class="row__main">
+        <span class="row__title">{{ s.game.name }}</span>
+        <span class="row__meta">{{ s.game.floor_position or "No position" }}
+          {%- if s.last %} · last read {{ s.last.date_recorded.strftime("%d %b") }} at {{ "{:,}".format(s.last.coin_count) }}{% else %} · never read{% endif %}</span>
+      </span>
+      <span class="row__end">
+        {%- if s.done %}
+        {{ ui.chip("ok", "{:,} plays".format(s.read_today.plays_count) if not s.first_reading else "Starting point") }}
+        {%- for f in s.flags %}{{ ui.chip("warn", {"none": "No plays", "high": "Far above usual", "gap": "Long gap"}[f.kind]) }}{% endfor %}
+        {%- elif not s.meter_ok %}
+        {{ ui.chip("fault", "Meter broken") }}
+        {%- else %}
+        {{ ui.chip("muted", "To read") }}
+        {%- endif %}
+      </span>
+    </a></li>
+    {%- endfor %}
+  </ul>
+</div>
+{% endblock %}

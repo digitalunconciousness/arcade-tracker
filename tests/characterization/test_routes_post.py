@@ -45,6 +45,8 @@ POSTS = [
     (lambda f: f"/edit_game/{f['raider']}", "operator"),
     (lambda f: f"/record_plays/{f['raider']}", "operator"),
     (lambda f: "/delete_play_record/1", "manager"),
+    (lambda f: f"/round/{f['raider']}", "operator"),
+    (lambda f: "/round/end", "operator"),
     (lambda f: f"/add_baseline/{f['courier']}", "operator"),
     (lambda f: f"/delete_game/{f['pinball']}", "admin"),
     (lambda f: "/bulk_update_games", "manager"),
