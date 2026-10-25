@@ -132,7 +132,10 @@ def _init_extensions(app: Flask) -> None:
     def load_user(user_id: str):  # noqa: ANN202
         from app.models import User
 
-        return db.session.get(User, int(user_id))
+        # A deactivated account is signed out on its next request. UserMixin.is_authenticated
+        # already says so; refusing it here too keeps that true if User ever overrides it.
+        user = db.session.get(User, int(user_id))
+        return user if user is not None and user.is_active else None
 
 
 def _register_blueprints(app: Flask) -> None:

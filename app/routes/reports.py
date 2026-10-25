@@ -426,8 +426,10 @@ def export_report():
             story.append(Image(revenue_chart_path, width=6 * inch, height=3.6 * inch))
             story.append(Spacer(1, 12))
             charts_added += 1
-    except Exception as e:
-        story.append(Paragraph(f"Daily Revenue Chart: Error - {e}", styles["Normal"]))
+    except Exception:
+        current_app.logger.exception("PDF report: daily revenue chart failed")
+        story.append(Paragraph("Daily Revenue Chart: could not be drawn (see the server log).",
+                               styles["Normal"]))
 
     # Chart 2: Top 10 Games by Total Revenue
     try:
@@ -464,8 +466,10 @@ def export_report():
             story.append(Image(top_games_chart_path, width=6 * inch, height=3.6 * inch))
             story.append(Spacer(1, 12))
             charts_added += 1
-    except Exception as e:
-        story.append(Paragraph(f"Top Games Chart: Error - {e}", styles["Normal"]))
+    except Exception:
+        current_app.logger.exception("PDF report: top games chart failed")
+        story.append(Paragraph("Top Games Chart: could not be drawn (see the server log).",
+                               styles["Normal"]))
 
     # Chart 3: Game Status Distribution
     try:
@@ -495,8 +499,10 @@ def export_report():
             story.append(Paragraph("Game Status Distribution", styles["Heading2"]))
             story.append(Image(status_chart_path, width=5 * inch, height=5 * inch))
             charts_added += 1
-    except Exception as e:
-        story.append(Paragraph(f"Status Chart: Error - {e}", styles["Normal"]))
+    except Exception:
+        current_app.logger.exception("PDF report: status chart failed")
+        story.append(Paragraph("Status Chart: could not be drawn (see the server log).",
+                               styles["Normal"]))
 
     if charts_added == 0:
         story.append(Paragraph("Charts could not be generated. Please check server logs.", styles["Normal"]))

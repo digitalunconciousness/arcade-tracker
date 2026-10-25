@@ -24,6 +24,10 @@ def allowed_file(filename: str) -> bool:
 # The formats an upload may be decoded as. Not "MPO": Pillow opens those through the JPEG
 # plugin, and naming it raises KeyError.
 UPLOAD_FORMATS = ("JPEG", "PNG", "GIF")
+# Largest image decoded, in pixels. A 48 MP phone photo (8064 x 6048) fits; a 200 MP
+# "hi-res mode" shot or a crafted file would take most of a gigabyte to decode. Pillow's own
+# limit only warns below about 179 MP.
+MAX_UPLOAD_PIXELS = 64_000_000
 
 
 def compress_and_save_image(
@@ -57,6 +61,9 @@ def compress_and_save_image(
         from PIL import Image, ImageOps
 
         img = Image.open(file, formats=UPLOAD_FORMATS)
+        width, height = img.size          # read from the header; nothing is decoded yet
+        if width * height > MAX_UPLOAD_PIXELS:
+            return False
         img = ImageOps.exif_transpose(img)
 
         # Convert RGBA/P modes to RGB for JPEG compatibility
