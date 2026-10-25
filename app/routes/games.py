@@ -203,7 +203,16 @@ def record_plays(game_id):
     db.session.commit()
     flash(f'Recorded {record.plays_count:,} plays (${record.revenue:.2f}) for "{game.name}". '
           f"Meter: {record.coin_count:,}.", "success")
+    _raise_maintenance(game)
     return redirect(url_for("games.game_detail", game_id=game.id))
+
+
+def _raise_maintenance(game):
+    """New plays may bring preventive maintenance due (feature step 5)."""
+    from app.services.upkeep import raise_due
+
+    for order in raise_due([game]):
+        flash(f"{game.name} is due for maintenance: work order #{order.id} raised.", "info")
 
 
 @games_bp.route("/delete_play_record/<int:record_id>", methods=["POST"])

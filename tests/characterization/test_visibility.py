@@ -35,7 +35,7 @@ ROLES = [r for r in LEVEL if r != "anon"]
 
 
 # Which seeded table a URL argument points into, and that table's seeded ids by name.
-ARG_TABLE = {"game_id": "game", "item_id": "item", "record_id": "order",
+ARG_TABLE = {"game_id": "game", "item_id": "item", "record_id": "order", "task_id": "task",
              "maintenance_id": "order", "request_id": "request", "alert_id": "alert"}
 # delete_play_record's record_id is a play record, not a work order.
 ENDPOINT_ARG_TABLE = {("games.delete_play_record", "record_id"): "play"}
@@ -50,6 +50,7 @@ def _names(floor: dict) -> dict:
                   floor["general"]: "general"},
         "request": {floor["request"]: "request"},
         "alert": {floor["alert"]: "alert"},
+        "task": {floor["task"]: "task"},
         "play": {},
     }
 
@@ -149,7 +150,7 @@ def _minimum_roles() -> dict[str, str]:
     from test_routes_post import POSTS
 
     floor = {k: 1 for k in ("raider", "pinball", "courier", "belt", "fuse", "alert",
-                            "open_order", "closed_order", "general", "request")}
+                            "open_order", "closed_order", "general", "request", "task")}
     floor["session_uid"] = "d" * 32
     adapter = current_app.url_map.bind("localhost")
     out = {}

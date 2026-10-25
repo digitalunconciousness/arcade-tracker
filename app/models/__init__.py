@@ -20,6 +20,7 @@ from app.models.inventory import (
 )
 from app.models.maintenance import MaintenanceRecord, WorkLog
 from app.models.rail import RailSession, RailSessionTag, Reading
+from app.models.upkeep import MaintenanceTask
 from app.models.user import User
 
 _attach_indexes()
@@ -42,4 +43,5 @@ __all__ = [
     "RailSessionTag",
     "Reading",
     "GameEvent",
+    "MaintenanceTask",
 ]

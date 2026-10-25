@@ -1,0 +1,58 @@
+{% extends "layout.html" %}
+{% import "ui.html" as ui %}
+{% set manager = current_user.has_role("manager") %}
+{% block title %}Maintenance tasks{% endblock %}
+
+{% block page_head %}
+{% call ui.page_head("Maintenance tasks", sub="Preventive work that comes due by plays or by days", back=url_for("maintenance.maintenance_orders"), back_label="Work orders") %}
+  {%- if manager %}<a class="btn btn--sm btn--primary" href="{{ url_for('upkeep.new') }}">New task</a>{% endif %}
+{% endcall %}
+{% endblock %}
+
+{% block content %}
+<div class="stack">
+  <p class="measure mt-0">When a task comes due on a machine on the floor, a work order is raised for it, marked
+  still playable. Closing that order as Fixed starts the count again; Deferred raises it again 7 days later.</p>
+
+  {%- if not tasks %}
+  {{ ui.empty("No maintenance tasks yet", "For example: clean the coin mech every 5,000 plays or 90 days.", url_for('upkeep.new') if manager else none, "New task" if manager else none) }}
+  {%- endif %}
+
+  {%- for task in tasks %}
+  <section class="card" aria-labelledby="task-{{ task.id }}">
+    <div class="card__head">
+      <h2 id="task-{{ task.id }}">{{ task.name }}</h2>
+      <div class="cluster">
+        {%- if not task.active %}{{ ui.chip("muted", "Paused") }}{% endif %}
+        {%- if manager %}<a class="btn btn--sm" href="{{ url_for('upkeep.edit', task_id=task.id) }}">Edit</a>{% endif %}
+      </div>
+    </div>
+    <p class="dim">{{ task.rule }} · {{ task.scope }}</p>
+    {%- if task.instructions %}<p>{{ task.instructions }}</p>{% endif %}
+    {%- set rows = by_task.get(task.id, []) %}
+    {%- if not task.active %}
+    <p class="dim">Paused: nothing is raised while it is paused.</p>
+    {%- elif rows %}
+    <ul class="rows">
+      {%- for s in rows %}
+      <li><a class="row" href="{{ url_for('maintenance.maintenance_detail', record_id=s.open_order.id) if s.open_order else url_for('games.game_detail', game_id=s.game.id) }}">
+        <span class="row__main">
+          <span class="row__title">{{ s.game.name }}</span>
+          <span class="row__meta">{{ s.reason() }}</span>
+        </span>
+        <span class="row__end">
+          {%- if s.state == "open" %}{{ ui.chip("info", "Order #" ~ s.open_order.id ~ " open") }}
+          {%- elif s.state == "due" %}{{ ui.chip("warn", "Due") }}
+          {%- elif s.state == "deferred" %}{{ ui.chip("muted", "Deferred to " ~ s.deferred_until.strftime("%d %b")) }}
+          {%- else %}{{ ui.chip("ok", (s.share * 100)|round|int ~ "% of the way") }}{% endif %}
+        </span>
+      </a></li>
+      {%- endfor %}
+    </ul>
+    {%- else %}
+    <p class="dim">No machine on the floor it applies to.</p>
+    {%- endif %}
+  </section>
+  {%- endfor %}
+</div>
+{% endblock %}

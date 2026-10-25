@@ -83,6 +83,19 @@ While a round is open (today's date in the session), G13 sends a floor machine t
 | R1 | `/rotation/` | GET | manager | `rotation.html` | GET form | Floor games ranked by plays per working day (quietest first, with fade since going out, days down and settling), warehouse games by how they did the last time out, and suggested swaps. Window, pairing and settle time are query options. |
 | R2 | `/rotation/swap` | POST | manager | — | raw | Moves a floor game to the warehouse and a warehouse game onto the floor in its place (it takes the floor position). Both moves are in each game's history. |
 
+**Preventive maintenance** (`app/routes/upkeep.py`, prefix `/maintenance/tasks`; feature step 5, added 2026-10-25):
+
+| ID | Route | Methods | Role | Template | Form | What it does |
+|----|-------|---------|------|----------|------|--------------|
+| P1 | `/maintenance/tasks/` | GET | login | `upkeep.html` | — | Each task with where every machine it applies to stands (plays and days since last done, due, order open, deferred). **Writes on GET:** raises any order that has come due. |
+| P2 | `/maintenance/tasks/new` | GET, POST | manager | `upkeep_form.html` | raw | A task: name, instructions, every N plays and/or N days, and every machine, all pinball, all video or one machine. |
+| P3 | `/maintenance/tasks/<id>/edit` | GET, POST | manager | `upkeep_form.html` | raw | Edits a task, or pauses it. |
+| P4 | `/maintenance/tasks/<id>/delete` | POST | manager | — | raw | Deletes a task; the orders it raised stay as ordinary orders. |
+
+A due task raises one playable order (`source="pm"`, `pm_task_id`). Due by plays is checked after a
+reading (G5, C2); due by days when P1 or `/maintenance_orders` (M3) is opened, which therefore
+**write on GET** too: nothing here runs on a timer.
+
 ## 4. Coin-door reporting (`app/routes/report.py`): the only unauthenticated write
 
 | ID | Route | Methods | Role | Template | Form | What it does |
@@ -508,3 +521,7 @@ anything is changed.
     or video) and how long a new game settles (none to 90 days) are the operator's choice, because
     other arcades will want other settings; the defaults are 90 days, same type, 30 days. Managers
     get a Swap button that makes the move.
+12. **Preventive maintenance:** due after N plays or N days, whichever first; a due task raises a
+    playable work order once; a task applies to every machine, a type or one machine (floor
+    machines only); Fixed restarts the count and Deferred raises it again 7 days later;
+    managers set tasks up, everyone can see them.

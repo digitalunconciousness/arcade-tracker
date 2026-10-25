@@ -21,7 +21,8 @@ def seed_floor() -> dict:
     from app.extensions import db
     from app.models import (
         Device, Game, InventoryItem, InventoryRequest, InventoryRequestHistory, LowStockAlert,
-        MaintenanceRecord, PlayRecord, RailSession, Reading, StockHistory, User, WorkLog,
+        MaintenanceRecord, MaintenanceTask, PlayRecord, RailSession, Reading, StockHistory,
+        User, WorkLog,
     )
 
     users = {}
@@ -110,10 +111,16 @@ def seed_floor() -> dict:
                                mode="VDC", ol=False))
     db.session.commit()
 
+    # Feature step 5. A year between services, so it never comes due during a test run.
+    task = MaintenanceTask(name="Lube the trackball", every_days=365, applies_to="machine",
+                           game_id=raider.id, created_by_id=users["manager"].id)
+    db.session.add(task)
+    db.session.commit()
+
     return {
         "users": {role: u.id for role, u in users.items()},
         "raider": raider.id, "pinball": pinball.id, "courier": courier.id,
         "belt": belt.id, "fuse": fuse.id, "alert": alert.id,
         "open_order": open_order.id, "closed_order": closed_order.id, "general": general.id,
-        "request": req.id, "session_uid": session.uid,
+        "request": req.id, "session_uid": session.uid, "task": task.id,
     }

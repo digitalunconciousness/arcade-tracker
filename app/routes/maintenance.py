@@ -185,8 +185,11 @@ def general_maintenance():
 @login_required
 def maintenance_orders():
     """Every work order: open, closed or all, searchable and sortable."""
+    from app.services.upkeep import raise_due
     from app.services.work_orders import SORTS, list_orders
 
+    # Due by days has no reading to trigger it, so it is checked here (feature step 5).
+    raise_due()
     orders = list_orders(request.args.get("tab", "open"), request.args.get("search", "").strip(),
                          request.args.get("sort", ""))
     return render_template("maintenance_orders.html", o=orders, sorts=SORTS)

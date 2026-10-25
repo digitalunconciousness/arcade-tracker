@@ -10,6 +10,7 @@ from flask_login import login_required
 from app.extensions import db
 from app.models import Game
 from app.services import collection as rounds
+from app.services.upkeep import raise_due
 from app.utils.decorators import requires_role
 
 collection_bp = Blueprint("collection", __name__, url_prefix="/round")
@@ -109,6 +110,8 @@ def stop(game_id):
         if f.kind == "high":
             continue        # already shown and confirmed; the round's list still marks it
         flash(f"{game.name}: {f.text}", "warning")
+    for order in raise_due([game]):         # new plays may bring maintenance due (step 5)
+        flash(f"{game.name} is due for maintenance: work order #{order.id} raised.", "info")
     return _onward(after)
 
 

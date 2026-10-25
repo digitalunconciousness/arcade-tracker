@@ -37,6 +37,11 @@ class MaintenanceRecord(db.Model):
     machine_down: bool | None = db.Column(db.Boolean, nullable=True)
     technician: str | None = db.Column(db.String(50), nullable=True)
     photos: str | None = db.Column(db.Text, nullable=True)
+    # The preventive maintenance task that raised it (feature step 5, app/services/upkeep.py).
+    pm_task_id: int | None = db.Column(
+        db.Integer, db.ForeignKey("maintenance_task.id", ondelete="SET NULL",
+                                  name="fk_maintenance_record_pm_task_id"),
+        nullable=True, index=True)
 
     # Where this order came from, and how not to create it twice.
     #
@@ -61,6 +66,7 @@ class MaintenanceRecord(db.Model):
         cascade="all, delete-orphan",
         order_by="RailSessionTag.created",
     )
+    pm_task = db.relationship("MaintenanceTask")
     work_logs = db.relationship(
         "WorkLog",
         backref="maintenance_record",
