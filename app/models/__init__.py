@@ -7,6 +7,7 @@ Usage::
 
 from app.models.device import Device
 from app.models.game import Game, PlayRecord
+from app.models.indexes import attach as _attach_indexes
 from app.models.inventory import (
     InventoryItem,
     InventoryRequest,
@@ -17,8 +18,10 @@ from app.models.inventory import (
     item_game_compatibility,
 )
 from app.models.maintenance import MaintenanceRecord, WorkLog
-from app.models.rail import Reading, RailSession, RailSessionTag
+from app.models.rail import RailSession, RailSessionTag, Reading
 from app.models.user import User
+
+_attach_indexes()
 
 __all__ = [
     "User",
