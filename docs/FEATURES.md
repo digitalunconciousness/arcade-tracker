@@ -414,6 +414,12 @@ anything is changed.
   `must_change_password` to the change page once; any link then skipped it, so a reset password stayed in
   use. Now every page except change-password and log-out redirects there until it is changed.
 
+- **F-42 Portrait phone photos are stored sideways.** Found in 5.7. A phone saves a portrait photo as
+  landscape pixels plus an EXIF "rotate 90°" flag. `compress_and_save_image` re-encodes without applying
+  that flag (`ImageOps.exif_transpose`) and the saved JPEG drops it, so machine and work-order photos taken
+  upright show on their side. Proposed fix in `docs/DEPENDENCIES.md` (5.7), alongside limiting uploads
+  to JPEG, PNG and GIF.
+
 - **F-37 The PWA manifest names the real venue.** `static/manifest.json` carried the business's name in
   a public repository. It is renamed to "Arcade Tracker" in the base-shell step; the old value remains in
   git history.
