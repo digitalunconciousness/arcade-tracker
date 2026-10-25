@@ -116,7 +116,8 @@ def test_the_full_form_keeps_priority(client, floor):
 
     login(client, "operator")
     client.post(f"/maintenance/game/{floor['raider']}", data={
-        "issue_description": "Marquee light out", "status": "Open", "priority": "Low"})
+        "issue_description": "Marquee light out", "status": "Open", "priority": "Low",
+        "machine_down": "no"})
     assert MaintenanceRecord.query.filter_by(issue_description="Marquee light out").one().priority == "Low"
 
 

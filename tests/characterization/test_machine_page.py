@@ -25,7 +25,7 @@ def test_the_quick_report_files_an_open_order_and_returns_here(client, floor):
     login(client, "operator")
     resp = client.post(f"/maintenance/game/{floor['raider']}", data={
         "status": "Open", "issue_description": "Fire button sticks", "priority": "High",
-        "technician": ""})
+        "technician": "", "machine_down": "no"})
     assert resp.headers["Location"] == f"/game/{floor['raider']}"
     order = MaintenanceRecord.query.filter_by(issue_description="Fire button sticks").one()
     assert (order.status, order.priority, order.game_id) == ("Open", "High", floor["raider"])

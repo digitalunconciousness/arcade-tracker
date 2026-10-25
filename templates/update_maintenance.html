@@ -73,6 +73,11 @@
     </div>
   </fieldset>
 
+  {%- if r.game_id %}
+  {%- set down_now = {"yes": true, "no": false}.get(form.get("machine_down")) if form.get("machine_down") else r.machine_down %}
+  {{ ui.machine_down_choice(down_now, required=r.machine_down is not none) }}
+  {%- endif %}
+
   <fieldset>
     <legend>The order</legend>
     <div class="field-row">

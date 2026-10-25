@@ -45,7 +45,12 @@ def _record(session: Session, flush_context, instances) -> None:
             if new is None or old == new:
                 continue
             events.append({"game": obj, "kind": kind, "old_value": old, "new_value": new,
-                           "source": "change"})
+                           "source": "change",
+                           # set by app/services/downtime.py when a work order made the change
+                           "maintenance_id": getattr(obj, "_history_order_id", None)
+                           if kind == "status" else None})
+        if hasattr(obj, "_history_order_id"):
+            del obj._history_order_id
     if not events:
         return
     actor = _actor_id()

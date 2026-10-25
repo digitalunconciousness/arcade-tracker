@@ -34,6 +34,9 @@
   {%- endif %}
 
   {{ ui.field(form.issue_description, rows=4, placeholder="What it does, when it started, what you tried") }}
+  {%- if game %}
+  {{ ui.machine_down_choice(machine_down, down_error) }}
+  {%- endif %}
 
   <div class="field-row">
     <div class="field">

@@ -23,6 +23,8 @@
   <div class="cluster">
     {{ ui.status(r.status) }}
     {%- if r.priority %}{{ ui.status(r.priority) }}{% endif %}
+    {%- if r.machine_down is sameas true %}{{ ui.chip("fault", "Machine down") }}
+    {%- elif r.machine_down is sameas false %}{{ ui.chip("muted", "Still playable") }}{% endif %}
     {%- if r.source in ("gatbox", "coindoor") %}<span class="badge is-info">from {{ sources[r.source] }}</span>{% endif %}
     {%- if r.game %}<a class="btn btn--sm btn--ghost" href="{{ url_for('games.game_detail', game_id=r.game.id) }}">Machine page →</a>{% endif %}
   </div>

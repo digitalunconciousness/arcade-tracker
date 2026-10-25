@@ -30,6 +30,11 @@ class MaintenanceRecord(db.Model):
     date_fixed: datetime | None = db.Column(db.DateTime, nullable=True)
     status: str = db.Column(db.String(20), default="Open")
     priority: str = db.Column(db.String(20), default="Medium")
+    # Whether this fault takes the machine out of play (feature step 2). Staff must choose
+    # when they raise an order for a machine; None means it was never stated (older orders,
+    # coin-door reports, GATBOX, general orders), and such an order never changes status.
+    # app/services/downtime.py keeps Game.status in step with the open "down" orders.
+    machine_down: bool | None = db.Column(db.Boolean, nullable=True)
     technician: str | None = db.Column(db.String(50), nullable=True)
     photos: str | None = db.Column(db.Text, nullable=True)
 

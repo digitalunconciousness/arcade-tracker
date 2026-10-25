@@ -37,6 +37,7 @@
         <textarea id="issue_description" name="issue_description" rows="3" required
                   placeholder="What it does, when it started, what you tried"></textarea>
       </div>
+      {{ ui.machine_down_choice() }}
       <div class="field-row">
         <div class="field">
           <label for="priority">Priority</label>
@@ -188,7 +189,8 @@
             {%- elif e.kind == "location" %}Moved from {{ "the " ~ e.old_value if e.old_value in ("Floor", "Warehouse") else e.old_value }} to {{ place }}
             {%- else %}Status changed: {{ e.old_value|status_label }} → {{ e.new_value|status_label }}{% endif -%}
           </span>
-          <span class="row__meta">{{ e.occurred_at.strftime("%Y-%m-%d %H:%M") }} UTC{% if e.user %} · {{ e.user.username }}{% endif %}</span>
+          <span class="row__meta">{{ e.occurred_at.strftime("%Y-%m-%d %H:%M") }} UTC{% if e.user %} · {{ e.user.username }}{% endif %}
+            {%- if e.order %} · <a href="{{ url_for('maintenance.maintenance_detail', record_id=e.order.id) }}">work order #{{ e.order.id }}</a>{% endif %}</span>
         </span>
         {%- if e.kind == "status" %}<span class="row__end">{{ ui.status(e.new_value) }}</span>{% endif %}
       </li>

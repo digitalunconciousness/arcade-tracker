@@ -55,6 +55,8 @@ INTRODUCED_BY = {
     ("maintenance_record", "rail_session_id"): "d4e5f6a7b8c9",
     ("game", "report_token"): "e6f7a8b9c0d1",
     ("game", "report_label_stale"): "e6f7a8b9c0d1",
+    ("maintenance_record", "machine_down"): "e3f4a5b6c7d8",
+    ("game_event", "maintenance_id"): "e3f4a5b6c7d8",
 }
 
 # Which migration created each table. Only tables a migration actually creates belong here:
@@ -87,6 +89,7 @@ PREDECESSOR = {
     "b1c2d3e4f5a6": "e6f7a8b9c0d1",
     "c7d8e9f0a1b2": "b1c2d3e4f5a6",
     "d1e2f3a4b5c6": "c7d8e9f0a1b2",
+    "e3f4a5b6c7d8": "d1e2f3a4b5c6",
 }
 
 # Every index app/models/indexes.py declares came from this revision.
@@ -95,7 +98,7 @@ INDEXES_INTRODUCED_BY = "c7d8e9f0a1b2"
 ORDER = ["5a026e6869ec", "ebead5244def", "3e5463d29981", "e7582856b8aa",
          "8dcea35845db", "b547f37c117c", "7a61de1d1679", "c1a2b3d4e5f6",
          "f1c2d3e4a5b6", "d4e5f6a7b8c9", "e6f7a8b9c0d1", "b1c2d3e4f5a6",
-         "c7d8e9f0a1b2", "d1e2f3a4b5c6"]
+         "c7d8e9f0a1b2", "d1e2f3a4b5c6", "e3f4a5b6c7d8"]
 
 
 def check_encoding(db) -> dict | None:

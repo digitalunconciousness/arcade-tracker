@@ -147,6 +147,6 @@ def test_the_migration_gives_existing_machines_a_baseline_once(app, floor):
 
     migrate(downgrade, "c7d8e9f0a1b2")
     assert not sa.inspect(db.engine).has_table("game_event")
-    migrate(upgrade, "d1e2f3a4b5c6")
-    migrate(upgrade, "d1e2f3a4b5c6")              # nothing more to do
+    migrate(upgrade, "head")                      # the model has later columns, so all the way
+    migrate(upgrade, "head")                      # nothing more to do
     assert GameEvent.query.filter_by(source="baseline").count() == 2 * games

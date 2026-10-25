@@ -374,7 +374,7 @@ class TestGames:
 
 def _order_form(**extra):
     data = {"issue_description": "Screen rolls vertically", "status": "Open",
-            "technician": "Tech C", "cost": "",
+            "technician": "Tech C", "cost": "", "machine_down": "no",
             "inventory_items-0-item_id": "-1", "inventory_items-0-quantity_used": ""}
     data.update(extra)
     return data

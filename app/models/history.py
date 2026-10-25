@@ -46,9 +46,15 @@ class GameEvent(db.Model):
     user_id: int | None = db.Column(db.Integer, db.ForeignKey("user.id", ondelete="SET NULL"),
                                     nullable=True, index=True)
     source: str = db.Column(db.String(10), nullable=False, default="change")
+    # The work order that made this change, when one did (app/services/downtime.py).
+    maintenance_id: int | None = db.Column(
+        db.Integer, db.ForeignKey("maintenance_record.id", ondelete="SET NULL",
+                                  name="fk_game_event_maintenance_id"),
+        nullable=True, index=True)
 
     game = db.relationship("Game")
     user = db.relationship("User")
+    order = db.relationship("MaintenanceRecord")
 
     def __repr__(self) -> str:
         return (f"<GameEvent game={self.game_id} {self.kind} {self.old_value!r}->"
