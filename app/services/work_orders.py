@@ -32,8 +32,6 @@ URGENCIES = ("Low", "Normal", "High", "Urgent")
 SOURCES = {"gatbox": "GATBOX at the bench", "coindoor": "the coin door", "web": "this app"}
 PRIORITY_RANK = {"Critical": 0, "High": 1, "Medium": 2, "Low": 3}
 
-MAX_PHOTOS_PER_RECORD = 10
-MAX_TOTAL_STORAGE_MB = 500
 MAX_PART_ROWS = 10
 
 
@@ -185,19 +183,28 @@ def photo_dir(static_folder: str) -> str:
 
 def save_photos(record: MaintenanceRecord, files, static_folder: str,
                 on_saved=None) -> tuple[int, list[str]]:
-    """Save uploaded photos for *record*: re-encoded to JPEG, at most 10 per order.
+    """Save uploaded photos for *record*: re-encoded to JPEG, at most MAX_PHOTOS_PER_RECORD per
+    order, while the photo folder is under MAX_TOTAL_STORAGE_MB (both settings, app/config.py).
 
     Returns (saved, problems). A file Pillow cannot read is refused and nothing is attached
     (F-8: it used to be attached anyway, as a broken photo). Files are named .jpg, because
     that is what they are. ``on_saved(path, name)`` runs after each save (the S3 copy).
     """
-    from app.utils.helpers import allowed_file, compress_and_save_image, get_directory_size
+    from flask import current_app
 
+    from app.utils.helpers import (
+        allowed_file,
+        compress_and_save_image,
+        get_directory_size,
+    )
+
+    max_photos = current_app.config["MAX_PHOTOS_PER_RECORD"]
+    max_mb = current_app.config["MAX_STORAGE_MB"]
     folder = photo_dir(static_folder)
     os.makedirs(folder, exist_ok=True)
     problems: list[str] = []
-    if get_directory_size(folder) > MAX_TOTAL_STORAGE_MB:
-        return 0, [f"Photo storage is full ({MAX_TOTAL_STORAGE_MB} MB). Ask an admin to clean up."]
+    if get_directory_size(folder) > max_mb:
+        return 0, [f"Photo storage is full ({max_mb} MB). Ask an admin to clean up."]
 
     saved = 0
     for upload in files:
@@ -206,8 +213,8 @@ def save_photos(record: MaintenanceRecord, files, static_folder: str,
         if not allowed_file(upload.filename):
             problems.append(f"{upload.filename}: not a photo (PNG, JPG or GIF).")
             continue
-        if len(record.get_photos()) >= MAX_PHOTOS_PER_RECORD:
-            problems.append(f"An order holds at most {MAX_PHOTOS_PER_RECORD} photos.")
+        if len(record.get_photos()) >= max_photos:
+            problems.append(f"An order holds at most {max_photos} photos.")
             break
         name = f"maintenance_{record.id}_{uuid.uuid4().hex[:8]}.jpg"
         path = os.path.join(folder, name)

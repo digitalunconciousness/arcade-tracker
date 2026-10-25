@@ -1,9 +1,8 @@
 """Maintenance blueprint — work orders, photos, reports, PDF export."""
 
-import io
-import os
 import datetime as dt
-from datetime import datetime, date
+import io
+from datetime import date, datetime
 
 from flask import (
     Blueprint,
@@ -19,13 +18,13 @@ from flask import (
 from flask_login import current_user, login_required
 
 from app.extensions import db
+from app.forms.maintenance import MaintenanceWithInventoryForm
 from app.models import (
     Game,
     InventoryItem,
     MaintenanceRecord,
     WorkLog,
 )
-from app.forms.maintenance import MaintenanceWithInventoryForm
 from app.utils.decorators import requires_role
 
 maintenance_bp = Blueprint("maintenance", __name__)
@@ -39,36 +38,35 @@ def _p(text) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Optional S3 copy of each photo (USE_CLOUD_STORAGE=true and the AWS_* settings)
+# Optional S3 copy of each photo (USE_CLOUD_STORAGE=true and the AWS_* settings, read and
+# checked in app/config.py). The local copy is always the one the app serves.
 # ---------------------------------------------------------------------------
-USE_CLOUD_STORAGE = os.getenv("USE_CLOUD_STORAGE", "false").lower() == "true"
-AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
-AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
-AWS_BUCKET_NAME = os.getenv("AWS_BUCKET_NAME", "arcade-tracker-photos")
-AWS_REGION = os.getenv("AWS_REGION", "us-east-1")
+def _cloud_photos() -> bool:
+    return bool(current_app.config.get("CLOUD_PHOTOS"))
 
 
 def _upload_to_cloud(file_data, filename):
     """Copy a saved photo to S3. The local copy stays the one the app serves."""
-    if not USE_CLOUD_STORAGE:
+    if not _cloud_photos():
         return None
+    cfg = current_app.config
     try:
         import boto3
 
         s3_client = boto3.client(
             "s3",
-            aws_access_key_id=AWS_ACCESS_KEY_ID,
-            aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
-            region_name=AWS_REGION,
+            aws_access_key_id=cfg["AWS_ACCESS_KEY_ID"],
+            aws_secret_access_key=cfg["AWS_SECRET_ACCESS_KEY"],
+            region_name=cfg["AWS_REGION"],
         )
         s3_client.put_object(
-            Bucket=AWS_BUCKET_NAME,
+            Bucket=cfg["AWS_BUCKET_NAME"],
             Key=f"maintenance_photos/{filename}",
             Body=file_data,
             ContentType="image/jpeg",
         )
         return (
-            f"https://{AWS_BUCKET_NAME}.s3.{AWS_REGION}.amazonaws.com/"
+            f"https://{cfg['AWS_BUCKET_NAME']}.s3.{cfg['AWS_REGION']}.amazonaws.com/"
             f"maintenance_photos/{filename}"
         )
     except Exception as e:  # noqa: BLE001 -- a failed copy must not lose the local photo
@@ -213,8 +211,14 @@ def _float(name, errors, label):
 @requires_role("operator")
 def update_maintenance(record_id):
     """Log work on an order: status, notes, time, cost, and parts used or requested."""
-    from app.services.work_orders import (MAX_PART_ROWS, PRIORITIES, STATUSES, URGENCIES,
-                                          request_parts, use_parts)
+    from app.services.work_orders import (
+        MAX_PART_ROWS,
+        PRIORITIES,
+        STATUSES,
+        URGENCIES,
+        request_parts,
+        use_parts,
+    )
 
     record = db.get_or_404(MaintenanceRecord, record_id)
     items, _choices = _inventory_choices()
@@ -352,7 +356,13 @@ def download_maintenance_record(record_id):
     from reportlab.lib.pagesizes import letter
     from reportlab.lib.styles import getSampleStyleSheet
     from reportlab.lib.units import inch
-    from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+    from reportlab.platypus import (
+        Paragraph,
+        SimpleDocTemplate,
+        Spacer,
+        Table,
+        TableStyle,
+    )
 
     record = MaintenanceRecord.query.get_or_404(record_id)
 
@@ -508,13 +518,13 @@ def download_maintenance_record(record_id):
 @requires_role("operator")
 def maintenance_photos(maintenance_id):
     """Add photos to a work order (and, for managers, remove them)."""
-    from app.services.work_orders import MAX_PHOTOS_PER_RECORD, save_photos
+    from app.services.work_orders import save_photos
 
     record = db.get_or_404(MaintenanceRecord, maintenance_id)
     if request.method == "POST":
         saved, problems = save_photos(record, request.files.getlist("photos"),
                                       current_app.static_folder,
-                                      on_saved=_copy_to_cloud if USE_CLOUD_STORAGE else None)
+                                      on_saved=_copy_to_cloud if _cloud_photos() else None)
         for problem in problems:
             flash(problem, "warning")
         if saved:
@@ -526,7 +536,7 @@ def maintenance_photos(maintenance_id):
         return redirect(url_for("maintenance.maintenance_photos", maintenance_id=record.id))
 
     return render_template("maintenance_photos.html", maintenance=record,
-                           max_photos=MAX_PHOTOS_PER_RECORD)
+                           max_photos=current_app.config["MAX_PHOTOS_PER_RECORD"])
 
 
 @maintenance_bp.route(
@@ -610,7 +620,13 @@ def export_maintenance_report():
     from reportlab.lib import colors
     from reportlab.lib.pagesizes import letter
     from reportlab.lib.styles import getSampleStyleSheet
-    from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+    from reportlab.platypus import (
+        Paragraph,
+        SimpleDocTemplate,
+        Spacer,
+        Table,
+        TableStyle,
+    )
 
     report_type = request.args.get("type", "all")
     try:

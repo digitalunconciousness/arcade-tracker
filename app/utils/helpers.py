@@ -255,32 +255,3 @@ def import_games_from_roster(data: dict) -> dict:
                 result["errors"].append(f"{entry.get('name', '?')}: {exc}")
 
     return result
-
-
-def encrypt_file(data: bytes) -> bytes:
-    """Encrypt *data* using Fernet with the application's ``BACKUP_KEY``.
-
-    Requires :data:`flask.current_app` to be available (i.e. call inside
-    a request or application context).
-
-    Returns:
-        The encrypted ciphertext bytes.
-    """
-    from cryptography.fernet import Fernet
-    from flask import current_app
-
-    key = current_app.config["BACKUP_KEY"]
-    return Fernet(key).encrypt(data)
-
-
-def decrypt_file(data: bytes) -> bytes:
-    """Decrypt *data* using Fernet with the application's ``BACKUP_KEY``.
-
-    Returns:
-        The original plaintext bytes.
-    """
-    from cryptography.fernet import Fernet
-    from flask import current_app
-
-    key = current_app.config["BACKUP_KEY"]
-    return Fernet(key).decrypt(data)

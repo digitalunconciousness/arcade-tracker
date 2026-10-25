@@ -130,6 +130,13 @@ step "Installing dependencies into $VENV"
     || die "the database driver does not import; the application cannot reach PostgreSQL"
 
 # --- 4. migrate ---------------------------------------------------------------
+step "Checking the configuration"
+# With the new code, before anything changes: a setting it can't run with stops the deploy
+# here, while the old version is still serving (Step 5.6).
+if ! ( cd "$REPO" && "$VENV/bin/python" scripts/check_config.py ); then
+    die "fix .env (see above), then run deploy.sh again; nothing was migrated or restarted"
+fi
+
 step "Applying migrations"
 ( cd "$REPO" && "$VENV/bin/flask" --app run:app db upgrade ) || die "flask db upgrade failed; the database may be half-migrated -- restore from $dump"
 

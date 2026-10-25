@@ -587,11 +587,11 @@ class TestInventory:
         client.post(f"/inventory/requests/{floor['request']}/delete")
         assert fresh(InventoryRequest, floor["request"]) is None
 
-    def test_tracking_needs_a_number_then_an_api_key(self, client, floor, monkeypatch):
+    def test_tracking_needs_a_number_then_an_api_key(self, app, client, floor):
         from app.extensions import db
         from app.models import InventoryRequest
 
-        monkeypatch.delenv("EASYPOST_API_KEY", raising=False)
+        app.config["EASYPOST_API_KEY"] = ""             # read at startup (app/config.py)
         login(client, "manager")
         client.post(f"/inventory/requests/{floor['request']}/update_tracking")
         assert ("error", "No tracking number available for this request.") in flashes(client)

@@ -86,7 +86,7 @@ def _request_id() -> str:
 
 
 def configure(app: Flask) -> None:
-    level = os.environ.get("LOG_LEVEL", "INFO").upper()
+    level = app.config.get("LOG_LEVEL", "INFO")
     handler = logging.StreamHandler(sys.stderr)
     handler.setFormatter(Logfmt())
     handler.addFilter(RequestId())
