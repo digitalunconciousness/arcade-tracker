@@ -1,8 +1,7 @@
 # Dependency upgrade proposal (Step 5.7, 2026-10-25)
 
-A proposal for the owner to approve. **Nothing here is applied yet.** If approved, it lands as one
-step that changes `requirements.txt` and the two small code changes in [Code that goes with it](#code-that-goes-with-it),
-with the usual tests and a deploy.
+Approved by the owner on 2026-10-25 and **applied** the same day: `requirements.txt`, and the two
+code changes in [Code that goes with it](#code-that-goes-with-it) with tests (`tests/test_uploads.py`).
 
 ## How this was checked
 
@@ -68,8 +67,19 @@ waitress 3.0.2, Flask-Limiter 4.1.1, segno 1.6.6. None of these has a known advi
 | playwright 1.63 → 1.64 (dev) | Must match the browser build it drives; do it with the next screenshot work. |
 | Python 3.11 | Supported until October 2027. Moving means a Debian upgrade on the server, which is its own job. |
 
-## If approved
+## As applied
 
-One commit: `requirements.txt` as above, `cryptography` removed, the two code changes with tests (a
-TIFF named `.png` is refused; a rotated phone JPEG is saved upright). The full suite on 3.11 and 3.13,
-the photo and PDF comparison again, then a normal `deploy.sh`, which installs the new versions.
+- Full suite: 1,101 passed on Python 3.11 and on 3.13.
+- Photo comparison again: a rotated phone JPEG is now saved upright (200×400, was 400×200); the
+  transparent PNG, the animated GIF and the non-image are unchanged.
+- PDFs: the full report and revenue report are pixel-identical to today's. The maintenance report and
+  work order differ only in the times printed on the synthetic data, which the test seed stamps
+  relative to the moment it runs (checked by diffing their text).
+
+**On the server**, `deploy.sh` installs the new versions. `pip install -r` never removes a package,
+so take `cryptography` out by hand once, after checking nothing else there needs it:
+
+```bash
+/opt/arcade-tracker-venv/bin/pip show cryptography | grep Required-by   # expect "Required-by:" with nothing after it
+/opt/arcade-tracker-venv/bin/pip uninstall -y cryptography
+```
