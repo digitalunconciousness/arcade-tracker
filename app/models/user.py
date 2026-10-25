@@ -52,10 +52,15 @@ class User(UserMixin, db.Model):
     # Role helpers
     # ------------------------------------------------------------------
     def has_role(self, role: str) -> bool:
-        """Return ``True`` if the user's role is >= *role* in the hierarchy."""
-        user_level = self.ROLE_HIERARCHY.get(self.role, 0)
-        required_level = self.ROLE_HIERARCHY.get(role, 0)
-        return user_level >= required_level
+        """Return ``True`` if the user's role is >= *role* in the hierarchy.
+
+        An unknown *role* (a typo) grants nothing rather than everything, and so does an
+        unknown role on the user.
+        """
+        required_level = self.ROLE_HIERARCHY.get(role)
+        if required_level is None:
+            return False
+        return self.ROLE_HIERARCHY.get(self.role, 0) >= required_level
 
     # ------------------------------------------------------------------
     # Flask-Login interface

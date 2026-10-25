@@ -349,6 +349,32 @@ anything is changed.
   ignored (F-8). There's no size check per file, only the 50 MB request cap. *Since 4.8a machine photos are
   re-encoded as JPEG and a file Pillow can't read is refused.*
 
+- **F-43 Security review of 2026-10-25.** Four reviewers (auth, public surface, uploads and files,
+  injection), every finding checked against the code before it counted. *Fixed in the same pass,
+  each with a test in `tests/test_security_fixes.py`:*
+  - The login page's `next=` could leave the site: `/\evil.example` and `/<tab>/evil.example` passed
+    the "starts with one slash" check, and browsers read both as `//evil.example`.
+  - `has_role()` granted an unknown role to everyone (a typo in a decorator would have opened the page);
+    it now grants nothing, and `requires_role()` refuses an unknown role at start-up.
+  - Uploads had no pixel limit below Pillow's 179 MP; now 64 MP (a 48 MP phone photo fits).
+  - Three PDF chart errors put the exception's text into ReportLab markup, where a `<` broke the report;
+    the tracking page flashed the carrier's raw error. Both now say something plain and log the detail.
+  - Not a hole after all: a deactivated user was already signed out on the next request (Flask-Login's
+    `is_authenticated` is `is_active`). The user loader refuses them too now, as a second guard.
+
+  *Follow-up, after the feature work and before the final security review and Step 6 (owner's order):*
+  - **Device scope.** A device token can file orders and readings for any machine. Give each device an
+    allow-list of machines. This changes the `/api/v1` contract, so it goes with GATBOX's copy.
+  - **Text lengths on `/api/v1/ingest`.** `issue`, `technician`, `note` and `file` have no limit in the
+    contract; `technician` (50) and `file` (64) are shorter columns, so on PostgreSQL an over-long one
+    fails the whole batch. Set limits in the same contract change rather than now: the contract stays
+    untouched until then.
+
+  *Considered and left:* failed device-token log lines are not rate-limited (the route is); the token
+  lookup is not constant-time (it finds the device by its public id, then checks the 256-bit secret
+  against a hash, so timing gives nothing away); a few GETs
+  write (the monthly ranking, F-14); cookies are not Secure on plain-HTTP LAN logins (F-22's choice).
+
 ### Unreachable or unclear
 
 - **F-25 Two tunnel setups.** `scripts/setup_autostart.sh` installs `arcade-tracker-ngrok.service`, which

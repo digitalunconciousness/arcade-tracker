@@ -21,7 +21,13 @@ def requires_role(role: str):
     page and flash an error for authenticated users who lack the
     required role. Unauthorized access attempts are logged as security
     events.
+    A role that doesn't exist is refused when the route is defined, so a typo fails at start-up
+    instead of quietly locking the page (``has_role`` grants nothing for it).
     """
+    from app.models.user import User
+
+    if role not in User.ROLE_HIERARCHY:
+        raise ValueError(f"requires_role: unknown role {role!r}")
 
     def decorator(f):
         @wraps(f)

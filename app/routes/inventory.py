@@ -285,7 +285,8 @@ def update_request_tracking(request_id):
         flash("The easypost package is not installed on the server.", "error")
     except Exception as e:  # noqa: BLE001 -- any carrier or network failure is reported
         db.session.rollback()
-        flash(f"Could not fetch tracking: {e}", "error")
+        flash("Could not fetch tracking. Try again later; the detail is in the server log.",
+              "error")
         log_security_event("TRACKING_UPDATE_FAILED", user_id=current_user.id,
                            details=f"Request #{req.id}, Error: {e}")
     else:

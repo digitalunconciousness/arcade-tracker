@@ -233,8 +233,14 @@ def is_safe_redirect_url(target):
     if not target:
         return False
 
-    # Only allow local relative URLs and block protocol-relative URLs.
-    if target.startswith("/") and not target.startswith("//"):
-        return True
+    # A path on this site and nothing else. Browsers read a backslash as a slash, so
+    # "/\evil.example" is "//evil.example", another site; they also drop tabs and newlines,
+    # so "/\t/evil.example" is too. Neither may appear, and what's left must parse with no
+    # scheme or host.
+    if "\\" in target or any(ord(c) < 32 or ord(c) == 127 for c in target):
+        return False
+    from urllib.parse import urlsplit
 
-    return False
+    parts = urlsplit(target)
+    return (not parts.scheme and not parts.netloc
+            and target.startswith("/") and not target.startswith("//"))
