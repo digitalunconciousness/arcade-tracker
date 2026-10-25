@@ -45,6 +45,9 @@ def create_app() -> Flask:
         app.logger.warning("%s", warning, extra={"fields": {"event": "CONFIG_WARNING"}})
     _create_directories(app)
     _init_extensions(app)
+    from app.services.history import install as install_history
+
+    install_history()
     _register_blueprints(app)
     _register_context_processors(app)
     _register_error_handlers(app)

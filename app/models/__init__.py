@@ -7,6 +7,7 @@ Usage::
 
 from app.models.device import Device
 from app.models.game import Game, PlayRecord
+from app.models.history import GameEvent
 from app.models.indexes import attach as _attach_indexes
 from app.models.inventory import (
     InventoryItem,
@@ -40,4 +41,5 @@ __all__ = [
     "RailSession",
     "RailSessionTag",
     "Reading",
+    "GameEvent",
 ]

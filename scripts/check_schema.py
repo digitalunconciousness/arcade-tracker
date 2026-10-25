@@ -69,6 +69,7 @@ TABLE_INTRODUCED_BY = {
     "rail_session": "d4e5f6a7b8c9",
     "reading": "d4e5f6a7b8c9",
     "rail_session_tag": "b1c2d3e4f5a6",
+    "game_event": "d1e2f3a4b5c6",
 }
 
 # The revision that precedes each, i.e. what to stamp so `upgrade` will apply it.
@@ -85,6 +86,7 @@ PREDECESSOR = {
     "e6f7a8b9c0d1": "d4e5f6a7b8c9",
     "b1c2d3e4f5a6": "e6f7a8b9c0d1",
     "c7d8e9f0a1b2": "b1c2d3e4f5a6",
+    "d1e2f3a4b5c6": "c7d8e9f0a1b2",
 }
 
 # Every index app/models/indexes.py declares came from this revision.
@@ -93,7 +95,7 @@ INDEXES_INTRODUCED_BY = "c7d8e9f0a1b2"
 ORDER = ["5a026e6869ec", "ebead5244def", "3e5463d29981", "e7582856b8aa",
          "8dcea35845db", "b547f37c117c", "7a61de1d1679", "c1a2b3d4e5f6",
          "f1c2d3e4a5b6", "d4e5f6a7b8c9", "e6f7a8b9c0d1", "b1c2d3e4f5a6",
-         "c7d8e9f0a1b2"]
+         "c7d8e9f0a1b2", "d1e2f3a4b5c6"]
 
 
 def check_encoding(db) -> dict | None:

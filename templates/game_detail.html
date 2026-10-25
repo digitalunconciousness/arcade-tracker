@@ -174,6 +174,31 @@
     <p class="mt-3"><a href="{{ page.manual_url }}" target="_blank" rel="noopener noreferrer">Manuals on the Killer List of Videogames ↗</a></p>
   </section>
 
+  <section aria-labelledby="moves-title">
+    <h2 id="moves-title">Where it's been</h2>
+    {%- if page.moves %}
+    <ul class="rows">
+      {%- for e in page.moves %}
+      {%- set place = "the " ~ e.new_value if e.new_value in ("Floor", "Warehouse") else e.new_value %}
+      <li class="row">
+        <span class="row__main">
+          <span class="row__title">
+            {%- if e.source == "baseline" %}{{ place if e.kind == "location" else (e.new_value|status_label) }} when history started
+            {%- elif e.source == "created" %}{{ ("Added to " ~ place) if e.kind == "location" else ("Added as " ~ (e.new_value|status_label|lower)) }}
+            {%- elif e.kind == "location" %}Moved from {{ "the " ~ e.old_value if e.old_value in ("Floor", "Warehouse") else e.old_value }} to {{ place }}
+            {%- else %}Status changed: {{ e.old_value|status_label }} → {{ e.new_value|status_label }}{% endif -%}
+          </span>
+          <span class="row__meta">{{ e.occurred_at.strftime("%Y-%m-%d %H:%M") }} UTC{% if e.user %} · {{ e.user.username }}{% endif %}</span>
+        </span>
+        {%- if e.kind == "status" %}<span class="row__end">{{ ui.status(e.new_value) }}</span>{% endif %}
+      </li>
+      {%- endfor %}
+    </ul>
+    {%- else %}
+    {{ ui.empty("No moves recorded yet") }}
+    {%- endif %}
+  </section>
+
   {%- if current_user.has_role("manager") %}
   <section class="card" aria-labelledby="coindoor-title">
     <div class="card__head">

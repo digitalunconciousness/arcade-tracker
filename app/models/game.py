@@ -19,10 +19,14 @@ class Game(db.Model):
     manufacturer: str | None = db.Column(db.String(50), nullable=True)
     year: int | None = db.Column(db.Integer, nullable=True)
     genre: str | None = db.Column(db.String(50), nullable=True)
-    location: str = db.Column(db.String(20), default="Warehouse")
+    # active_history: load the old value before it's overwritten, so the history hook
+    # (app/services/history.py) can record what it was, and skip a "change" to the same value.
+    location = db.column_property(db.Column(db.String(20), default="Warehouse"),
+                                  active_history=True)
     floor_position: str | None = db.Column(db.String(50), nullable=True)
     warehouse_section: str | None = db.Column(db.String(50), nullable=True)
-    status: str = db.Column(db.String(20), default="Working")
+    status = db.column_property(db.Column(db.String(20), default="Working"),
+                                active_history=True)
     coins_per_play: float = db.Column(db.Float, default=0.25)
     total_plays: int = db.Column(db.Integer, default=0)
     total_revenue: float = db.Column(db.Float, default=0.0)
