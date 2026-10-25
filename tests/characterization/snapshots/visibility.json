@@ -393,7 +393,8 @@
    "inventory.inventory_list()",
    "maintenance.maintenance_orders()",
    "rails.floor()",
-   "reports.reports()"
+   "reports.reports()",
+   "rotation.overview()"
   ],
   "manager": [
    "auth.logout()",
@@ -412,7 +413,8 @@
    "inventory.inventory_list()",
    "maintenance.maintenance_orders()",
    "rails.floor()",
-   "reports.reports()"
+   "reports.reports()",
+   "rotation.overview()"
   ],
   "operator": [
    "auth.logout()",
@@ -1520,7 +1522,8 @@
    "reports.export_report()",
    "reports.graphs()",
    "reports.reports()",
-   "reports.revenue_reports()"
+   "reports.revenue_reports()",
+   "rotation.overview()"
   ],
   "manager": [
    "auth.logout()",
@@ -1542,7 +1545,8 @@
    "reports.export_report()",
    "reports.graphs()",
    "reports.reports()",
-   "reports.revenue_reports()"
+   "reports.revenue_reports()",
+   "rotation.overview()"
   ]
  },
  "/revenue_reports": {
@@ -1574,6 +1578,41 @@
    "reports.export_revenue_report()",
    "reports.reports()",
    "reports.revenue_reports()"
+  ]
+ },
+ "/rotation/": {
+  "admin": [
+   "admin.manage_users()",
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.game_detail(game_id=courier)",
+   "games.game_detail(game_id=pinball)",
+   "games.game_detail(game_id=raider)",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "rails.floor()",
+   "reports.reports()",
+   "rotation.overview()",
+   "rotation.swap()"
+  ],
+  "manager": [
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.game_detail(game_id=courier)",
+   "games.game_detail(game_id=pinball)",
+   "games.game_detail(game_id=raider)",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "rails.floor()",
+   "reports.reports()",
+   "rotation.overview()",
+   "rotation.swap()"
   ]
  },
  "/round/": {

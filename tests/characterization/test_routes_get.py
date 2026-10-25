@@ -33,6 +33,7 @@ PAGES = [
     ("/round/", lambda f: "/round/", "operator", 200, "Neon Raider", "text/html"),
     ("/round/<int:game_id>", lambda f: f"/round/{f['raider']}", "operator", 200, "140",
      "text/html"),
+    ("/rotation/", lambda f: "/rotation/", "manager", 200, "Neon Raider", "text/html"),
     ("/export_selected_games", lambda f: f"/export_selected_games?game_ids={f['raider']}",
      "manager", 200, "Neon Raider", "text/csv"),
     ("/import_games", lambda f: "/import_games", "manager", 200, 'type="file"', "text/html"),

@@ -12,6 +12,7 @@
   <a class="btn btn--sm" href="{{ url_for('games.label_sheet_pick') }}">Labels</a>
   {%- endif %}
   {%- if manager %}
+  <a class="btn btn--sm" href="{{ url_for('rotation.overview') }}">Rotation</a>
   <a class="btn btn--sm" href="{{ url_for('games.import_games') }}">Import roster</a>
   {%- endif %}
 {% endcall %}

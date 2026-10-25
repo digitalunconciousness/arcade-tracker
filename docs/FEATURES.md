@@ -76,6 +76,13 @@ answer them by ID.
 
 While a round is open (today's date in the session), G13 sends a floor machine to C2 instead of its page.
 
+**Rotation planner** (`app/routes/rotation.py`, prefix `/rotation`; feature step 4, added 2026-10-25):
+
+| ID | Route | Methods | Role | Template | Form | What it does |
+|----|-------|---------|------|----------|------|--------------|
+| R1 | `/rotation/` | GET | manager | `rotation.html` | GET form | Floor games ranked by plays per working day (quietest first, with fade since going out, days down and settling), warehouse games by how they did the last time out, and suggested swaps. Window, pairing and settle time are query options. |
+| R2 | `/rotation/swap` | POST | manager | — | raw | Moves a floor game to the warehouse and a warehouse game onto the floor in its place (it takes the floor position). Both moves are in each game's history. |
+
 ## 4. Coin-door reporting (`app/routes/report.py`): the only unauthenticated write
 
 | ID | Route | Methods | Role | Template | Form | What it does |
@@ -497,3 +504,7 @@ anything is changed.
     is finished the day it starts). While one is open, scanning a label opens the meter entry. It
     flags no plays since the last reading, far more plays than usual (held until confirmed), and a
     gap of 30 days or more. Plays come first and the token value second.
+11. **Rotation planner:** the window (30 to 365 days), whether swaps pair like with like (pinball
+    or video) and how long a new game settles (none to 90 days) are the operator's choice, because
+    other arcades will want other settings; the defaults are 90 days, same type, 30 days. Managers
+    get a Swap button that makes the move.
