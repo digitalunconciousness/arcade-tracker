@@ -4,6 +4,9 @@
 
 {% block page_head %}
 {% call ui.page_head("Dashboard", sub=today().strftime("%A %d %B %Y")) %}
+  {%- if current_user.has_role("operator") %}
+  <a class="btn btn--sm btn--primary" href="{{ url_for('collection.overview') }}">Collection round</a>
+  {%- endif %}
   {%- if current_user.has_role("manager") %}
   <a class="btn btn--sm" href="{{ url_for('reports.graphs') }}">Analytics</a>
   <a class="btn btn--sm" href="{{ url_for('reports.reports') }}">Reports</a>

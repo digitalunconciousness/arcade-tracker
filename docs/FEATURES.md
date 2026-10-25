@@ -66,6 +66,36 @@ answer them by ID.
 | G18 | `/labels/coindoor/sheet` | GET | login | `coin_door_label_sheet.html` | — | Printable coin-door labels encoding `<BASE_URL>/report/<token>`. **Writes on GET:** mints missing report tokens and clears the stale flag. |
 | G19 | `/game/<id>/report-token/rotate` | POST | **login** | — | raw | Retires a machine's coin-door token and marks its label stale. |
 
+**Collection round** (`app/routes/collection.py`, prefix `/round`; feature step 3, added 2026-10-25):
+
+| ID | Route | Methods | Role | Template | Form | What it does |
+|----|-------|---------|------|----------|------|--------------|
+| C1 | `/round/` | GET | operator | `round.html` | — | Every floor machine that isn't retired, in walking order (floor position, then name), with today's reading or "to read", flags, and totals. Opens the round. |
+| C2 | `/round/<id>` | GET, POST | operator | `round_stop.html` | raw | One machine's meter: saves a reading dated today (a first reading only sets the starting point) and moves to the next machine still to read. Holds back a reading far above usual until confirmed. |
+| C3 | `/round/end` | POST | operator | — | raw | Closes the round, so scanning a label opens the machine page again. |
+
+While a round is open (today's date in the session), G13 sends a floor machine to C2 instead of its page.
+
+**Rotation planner** (`app/routes/rotation.py`, prefix `/rotation`; feature step 4, added 2026-10-25):
+
+| ID | Route | Methods | Role | Template | Form | What it does |
+|----|-------|---------|------|----------|------|--------------|
+| R1 | `/rotation/` | GET | manager | `rotation.html` | GET form | Floor games ranked by plays per working day (quietest first, with fade since going out, days down and settling), warehouse games by how they did the last time out, and suggested swaps. Window, pairing and settle time are query options. |
+| R2 | `/rotation/swap` | POST | manager | — | raw | Moves a floor game to the warehouse and a warehouse game onto the floor in its place (it takes the floor position). Both moves are in each game's history. |
+
+**Preventive maintenance** (`app/routes/upkeep.py`, prefix `/maintenance/tasks`; feature step 5, added 2026-10-25):
+
+| ID | Route | Methods | Role | Template | Form | What it does |
+|----|-------|---------|------|----------|------|--------------|
+| P1 | `/maintenance/tasks/` | GET | login | `upkeep.html` | — | Each task with where every machine it applies to stands (plays and days since last done, due, order open, deferred). **Writes on GET:** raises any order that has come due. |
+| P2 | `/maintenance/tasks/new` | GET, POST | manager | `upkeep_form.html` | raw | A task: name, instructions, every N plays and/or N days, and every machine, all pinball, all video or one machine. |
+| P3 | `/maintenance/tasks/<id>/edit` | GET, POST | manager | `upkeep_form.html` | raw | Edits a task, or pauses it. |
+| P4 | `/maintenance/tasks/<id>/delete` | POST | manager | — | raw | Deletes a task; the orders it raised stay as ordinary orders. |
+
+A due task raises one playable order (`source="pm"`, `pm_task_id`). Due by plays is checked after a
+reading (G5, C2); due by days when P1 or `/maintenance_orders` (M3) is opened, which therefore
+**write on GET** too: nothing here runs on a timer.
+
 ## 4. Coin-door reporting (`app/routes/report.py`): the only unauthenticated write
 
 | ID | Route | Methods | Role | Template | Form | What it does |
@@ -478,3 +508,20 @@ anything is changed.
    format is one entry in `app/services/labels.py` and one block in `static/css/labels.css`.
 8. **On PostgreSQL the backups page says so** and turns Create and Restore off until in-app
    PostgreSQL backups exist (F-11).
+
+### Decisions of 2026-10-25 (feature work)
+
+9. **A work order says whether its machine can still be played**, and a "down" order sets the
+   machine's status until it is fixed (feature step 2, `app/services/downtime.py`).
+10. **Collection round:** a round is one day's readings (collection is about weekly, and a round
+    is finished the day it starts). While one is open, scanning a label opens the meter entry. It
+    flags no plays since the last reading, far more plays than usual (held until confirmed), and a
+    gap of 30 days or more. Plays come first and the token value second.
+11. **Rotation planner:** the window (30 to 365 days), whether swaps pair like with like (pinball
+    or video) and how long a new game settles (none to 90 days) are the operator's choice, because
+    other arcades will want other settings; the defaults are 90 days, same type, 30 days. Managers
+    get a Swap button that makes the move.
+12. **Preventive maintenance:** due after N plays or N days, whichever first; a due task raises a
+    playable work order once; a task applies to every machine, a type or one machine (floor
+    machines only); Fixed restarts the count and Deferred raises it again 7 days later;
+    managers set tasks up, everyone can see them.

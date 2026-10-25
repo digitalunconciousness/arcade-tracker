@@ -1,0 +1,73 @@
+{% extends "layout.html" %}
+{% import "ui.html" as ui %}
+{% block title %}{{ "Edit " ~ task.name if task else "New maintenance task" }}{% endblock %}
+
+{% block page_head %}
+{{ ui.page_head(task.name if task else "New maintenance task", sub="Due by plays, by days, or whichever comes first", back=url_for("upkeep.overview"), back_label="Maintenance tasks") }}
+{% endblock %}
+
+{% macro err(key) -%}
+{%- if errors.get(key) %}<span class="field__error" id="{{ key }}-error">{{ errors[key] }}</span>{% endif -%}
+{%- endmacro %}
+{% macro invalid(key) -%}{% if errors.get(key) %} aria-invalid="true" aria-describedby="{{ key }}-error"{% endif %}{%- endmacro %}
+
+{% block content %}
+<div class="stack phone-width">
+  <form class="form" method="post" novalidate>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {%- if errors %}
+    <div class="banners" role="alert"><div class="banner is-fault"><div class="banner__body"><span class="banner__title">Nothing was saved</span><p>Fix the fields marked below.</p></div></div></div>
+    {%- endif %}
+    <div class="field{% if errors.name %} is-invalid{% endif %}">
+      <label for="name">Task <span class="field__req" aria-hidden="true">*</span><span class="visually-hidden"> (required)</span></label>
+      <input id="name" name="name" maxlength="100" value="{{ values.get('name') or '' }}" placeholder="Clean the coin mech"{{ invalid('name') }}>
+      {{ err("name") }}
+    </div>
+    <div class="field">
+      <label for="instructions">Instructions</label>
+      <textarea id="instructions" name="instructions" rows="3">{{ values.get('instructions') or '' }}</textarea>
+      <span class="field__help">Copied into each work order it raises.</span>
+    </div>
+    <div class="field{% if errors.every_plays %} is-invalid{% endif %}">
+      <label for="every_plays">Every … plays</label>
+      <input id="every_plays" name="every_plays" type="number" inputmode="numeric" min="1" value="{{ values.get('every_plays') or '' }}"{{ invalid('every_plays') }}>
+      {{ err("every_plays") }}
+    </div>
+    <div class="field{% if errors.every_days %} is-invalid{% endif %}">
+      <label for="every_days">Every … days</label>
+      <input id="every_days" name="every_days" type="number" inputmode="numeric" min="1" value="{{ values.get('every_days') or '' }}"{{ invalid('every_days') }}>
+      <span class="field__help">Set one or both. With both, whichever comes first.</span>
+      {{ err("every_days") }}
+    </div>
+    <fieldset class="stack{% if errors.applies_to or errors.game_id %} is-invalid{% endif %}">
+      <legend>Applies to</legend>
+      {%- for key, label in applies.items() %}
+      <div class="field field--check">
+        <input id="applies-{{ key }}" type="radio" name="applies_to" value="{{ key }}"{% if values.get('applies_to') == key %} checked{% endif %}>
+        <label for="applies-{{ key }}">{{ label }}</label>
+      </div>
+      {%- endfor %}
+      <div class="field{% if errors.game_id %} is-invalid{% endif %}">
+        <label for="game_id">Machine (for one machine)</label>
+        <select id="game_id" name="game_id"{{ invalid('game_id') }}>
+          <option value="">Pick a machine</option>
+          {%- for g in games %}<option value="{{ g.id }}"{% if values.get('game_id') == g.id %} selected{% endif %}>{{ g.name }}</option>{% endfor %}
+        </select>
+        {{ err("game_id") }}
+      </div>
+      <span class="field__help">Only machines on the floor are checked. Pinball and video are told apart the way the roster import does it.</span>
+    </fieldset>
+    <div class="field field--check">
+      <input id="active" type="checkbox" name="active" value="1"{% if values.get('active') %} checked{% endif %}>
+      <label for="active">Active (untick to pause it)</label>
+    </div>
+    <div class="form__actions">
+      <button class="btn btn--primary" type="submit">Save</button>
+      <a class="btn btn--ghost" href="{{ url_for('upkeep.overview') }}">Cancel</a>
+    </div>
+  </form>
+  {%- if task %}
+  {{ ui.danger_form(url_for('upkeep.delete', task_id=task.id), "Delete task", "Delete " ~ task.name ~ "? Orders it raised stay, as ordinary work orders.") }}
+  {%- endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,70 @@
+{% extends "layout.html" %}
+{% import "ui.html" as ui %}
+{% set game = stop.game %}
+{% block title %}Round · {{ game.name }}{% endblock %}
+
+{% block page_head %}
+{{ ui.page_head(game.name, sub=(game.floor_position or "No position") ~ " · " ~ position ~ " of " ~ total, back=url_for("collection.overview"), back_label="Round") }}
+{% endblock %}
+
+{% block content %}
+<div class="stack phone-width">
+  {%- if stop.done %}
+  <div class="banners" role="status"><div class="banner is-ok"><div class="banner__body"><span class="banner__title">Read today</span>
+    <p>{% if stop.first_reading %}Starting point set at {{ "{:,}".format(stop.read_today.coin_count) }}.{% else %}{{ "{:,}".format(stop.read_today.plays_count) }} plays (${{ "%.2f"|format(stop.read_today.revenue) }}), meter at {{ "{:,}".format(stop.read_today.coin_count) }}.{% endif %}
+    To change it, delete the reading on the <a href="{{ url_for('games.game_detail', game_id=game.id) }}">machine page</a> and read it again.</p></div></div>
+    {%- for f in stop.flags %}<div class="banner is-warn"><div class="banner__body">{{ f.text }}</div></div>{% endfor %}
+  </div>
+  {%- elif not stop.meter_ok %}
+  <div class="banners" role="status"><div class="banner is-fault"><div class="banner__body"><span class="banner__title">Meter marked {{ game.counter_status|status_label|lower }}</span>
+    <p>Its plays can't be read. Skip it, or fix the meter's status on the <a href="{{ url_for('games.game_detail', game_id=game.id) }}">machine page</a>.</p></div></div></div>
+  {%- else %}
+  <dl class="readouts">
+    {%- if stop.last %}
+    {{ ui.readout("Last reading", "{:,}".format(stop.last_count), detail=stop.last.date_recorded.strftime("%d %b %Y")) }}
+    {%- else %}
+    {{ ui.readout("Last reading", "None", detail="this sets the starting point") }}
+    {%- endif %}
+    {{ ui.readout("Token price", "$%.2f"|format(game.coins_per_play or 0)) }}
+  </dl>
+
+  <form class="form" method="post" novalidate>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {%- if errors %}
+    <div class="banners" role="alert"><div class="banner is-fault"><div class="banner__body"><span class="banner__title">Nothing was recorded</span><p>{{ errors.values()|join(" ") }}</p></div></div></div>
+    {%- endif %}
+    {%- if pending %}
+    <div class="banners" role="alert">
+      {%- for f in pending %}<div class="banner is-warn"><div class="banner__body"><span class="banner__title">Not saved yet</span><p>{{ f.text }}</p></div></div>{% endfor %}
+    </div>
+    {%- endif %}
+    <div class="field{% if errors.coin_count %} is-invalid{% endif %}">
+      <label for="coin_count">Coin meter now <span class="field__req" aria-hidden="true">*</span><span class="visually-hidden"> (required)</span></label>
+      <input id="coin_count" name="coin_count" type="number" inputmode="numeric" min="{{ stop.last_count }}" value="{{ values.get('coin_count', '') }}" autofocus{% if errors.coin_count %} aria-invalid="true" aria-describedby="coin_count-error"{% endif %}>
+      <span class="field__help">{% if stop.first_reading %}No plays are counted from a first reading.{% else %}Plays are the difference from {{ "{:,}".format(stop.last_count) }}.{% endif %}</span>
+      {%- if errors.coin_count %}<span class="field__error" id="coin_count-error">{{ errors.coin_count }}</span>{% endif %}
+    </div>
+    {%- if pending %}
+    <div class="field field--check">
+      <input id="confirm_high" type="checkbox" name="confirm_high" value="1">
+      <label for="confirm_high">The number is right, save it</label>
+    </div>
+    {%- endif %}
+    <div class="field">
+      <label for="notes">Notes</label>
+      <input id="notes" name="notes" value="{{ values.get('notes', '') }}">
+    </div>
+    <div class="form__actions">
+      <button class="btn btn--primary" type="submit">Save and next</button>
+    </div>
+  </form>
+  {%- endif %}
+
+  <div class="cluster">
+    {%- if after %}
+    <a class="btn" href="{{ url_for('collection.stop', game_id=after.game.id) }}">{{ "Next" if stop.done else "Skip" }}: {{ after.game.name }}</a>
+    {%- endif %}
+    <a class="btn btn--ghost" href="{{ url_for('games.game_detail', game_id=game.id) }}">Machine page</a>
+  </div>
+</div>
+{% endblock %}

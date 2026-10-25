@@ -4,6 +4,7 @@
    "admin.manage_users()",
    "auth.logout()",
    "auth.profile()",
+   "collection.overview()",
    "dashboard.home()",
    "games.game_detail(game_id=courier)",
    "games.game_detail(game_id=raider)",
@@ -25,6 +26,7 @@
   "manager": [
    "auth.logout()",
    "auth.profile()",
+   "collection.overview()",
    "dashboard.home()",
    "games.game_detail(game_id=courier)",
    "games.game_detail(game_id=raider)",
@@ -46,6 +48,7 @@
   "operator": [
    "auth.logout()",
    "auth.profile()",
+   "collection.overview()",
    "dashboard.home()",
    "games.game_detail(game_id=courier)",
    "games.game_detail(game_id=raider)",
@@ -376,6 +379,7 @@
    "admin.manage_users()",
    "auth.logout()",
    "auth.profile()",
+   "collection.overview()",
    "dashboard.home()",
    "games.add_game()",
    "games.bulk_update_games()",
@@ -389,11 +393,13 @@
    "inventory.inventory_list()",
    "maintenance.maintenance_orders()",
    "rails.floor()",
-   "reports.reports()"
+   "reports.reports()",
+   "rotation.overview()"
   ],
   "manager": [
    "auth.logout()",
    "auth.profile()",
+   "collection.overview()",
    "dashboard.home()",
    "games.add_game()",
    "games.bulk_update_games()",
@@ -407,11 +413,13 @@
    "inventory.inventory_list()",
    "maintenance.maintenance_orders()",
    "rails.floor()",
-   "reports.reports()"
+   "reports.reports()",
+   "rotation.overview()"
   ],
   "operator": [
    "auth.logout()",
    "auth.profile()",
+   "collection.overview()",
    "dashboard.home()",
    "games.add_game()",
    "games.game_detail(game_id=courier)",
@@ -1057,6 +1065,114 @@
    "rails.floor()"
   ]
  },
+ "/maintenance/tasks/": {
+  "admin": [
+   "admin.manage_users()",
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.game_detail(game_id=raider)",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "rails.floor()",
+   "reports.reports()",
+   "upkeep.edit(task_id=task)",
+   "upkeep.new()"
+  ],
+  "manager": [
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.game_detail(game_id=raider)",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "rails.floor()",
+   "reports.reports()",
+   "upkeep.edit(task_id=task)",
+   "upkeep.new()"
+  ],
+  "operator": [
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.game_detail(game_id=raider)",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "rails.floor()"
+  ],
+  "readonly": [
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.game_detail(game_id=raider)",
+   "games.games_list()",
+   "games.scan()",
+   "maintenance.maintenance_orders()",
+   "rails.floor()"
+  ]
+ },
+ "/maintenance/tasks/<int:task_id>/edit": {
+  "admin": [
+   "admin.manage_users()",
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "rails.floor()",
+   "reports.reports()",
+   "upkeep.delete(task_id=task)",
+   "upkeep.overview()"
+  ],
+  "manager": [
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "rails.floor()",
+   "reports.reports()",
+   "upkeep.delete(task_id=task)",
+   "upkeep.overview()"
+  ]
+ },
+ "/maintenance/tasks/new": {
+  "admin": [
+   "admin.manage_users()",
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "rails.floor()",
+   "reports.reports()",
+   "upkeep.overview()"
+  ],
+  "manager": [
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "rails.floor()",
+   "reports.reports()",
+   "upkeep.overview()"
+  ]
+ },
  "/maintenance_detail/<int:record_id>": {
   "admin": [
    "admin.manage_users()",
@@ -1138,7 +1254,8 @@
    "maintenance.maintenance_orders()",
    "maintenance.maintenance_reports()",
    "rails.floor()",
-   "reports.reports()"
+   "reports.reports()",
+   "upkeep.overview()"
   ],
   "manager": [
    "auth.logout()",
@@ -1153,7 +1270,8 @@
    "maintenance.maintenance_orders()",
    "maintenance.maintenance_reports()",
    "rails.floor()",
-   "reports.reports()"
+   "reports.reports()",
+   "upkeep.overview()"
   ],
   "operator": [
    "auth.logout()",
@@ -1166,7 +1284,8 @@
    "maintenance.maintenance_detail(record_id=general)",
    "maintenance.maintenance_detail(record_id=open_order)",
    "maintenance.maintenance_orders()",
-   "rails.floor()"
+   "rails.floor()",
+   "upkeep.overview()"
   ],
   "readonly": [
    "auth.logout()",
@@ -1177,7 +1296,8 @@
    "maintenance.maintenance_detail(record_id=general)",
    "maintenance.maintenance_detail(record_id=open_order)",
    "maintenance.maintenance_orders()",
-   "rails.floor()"
+   "rails.floor()",
+   "upkeep.overview()"
   ]
  },
  "/maintenance_photos/<int:maintenance_id>": {
@@ -1514,7 +1634,8 @@
    "reports.export_report()",
    "reports.graphs()",
    "reports.reports()",
-   "reports.revenue_reports()"
+   "reports.revenue_reports()",
+   "rotation.overview()"
   ],
   "manager": [
    "auth.logout()",
@@ -1536,7 +1657,8 @@
    "reports.export_report()",
    "reports.graphs()",
    "reports.reports()",
-   "reports.revenue_reports()"
+   "reports.revenue_reports()",
+   "rotation.overview()"
   ]
  },
  "/revenue_reports": {
@@ -1568,6 +1690,126 @@
    "reports.export_revenue_report()",
    "reports.reports()",
    "reports.revenue_reports()"
+  ]
+ },
+ "/rotation/": {
+  "admin": [
+   "admin.manage_users()",
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.game_detail(game_id=courier)",
+   "games.game_detail(game_id=pinball)",
+   "games.game_detail(game_id=raider)",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "rails.floor()",
+   "reports.reports()",
+   "rotation.overview()",
+   "rotation.swap()"
+  ],
+  "manager": [
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.game_detail(game_id=courier)",
+   "games.game_detail(game_id=pinball)",
+   "games.game_detail(game_id=raider)",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "rails.floor()",
+   "reports.reports()",
+   "rotation.overview()",
+   "rotation.swap()"
+  ]
+ },
+ "/round/": {
+  "admin": [
+   "admin.manage_users()",
+   "auth.logout()",
+   "auth.profile()",
+   "collection.end()",
+   "collection.stop(game_id=courier)",
+   "collection.stop(game_id=raider)",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "rails.floor()",
+   "reports.reports()"
+  ],
+  "manager": [
+   "auth.logout()",
+   "auth.profile()",
+   "collection.end()",
+   "collection.stop(game_id=courier)",
+   "collection.stop(game_id=raider)",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "rails.floor()",
+   "reports.reports()"
+  ],
+  "operator": [
+   "auth.logout()",
+   "auth.profile()",
+   "collection.end()",
+   "collection.stop(game_id=courier)",
+   "collection.stop(game_id=raider)",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "rails.floor()"
+  ]
+ },
+ "/round/<int:game_id>": {
+  "admin": [
+   "admin.manage_users()",
+   "auth.logout()",
+   "auth.profile()",
+   "collection.overview()",
+   "dashboard.home()",
+   "games.game_detail(game_id=raider)",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "rails.floor()",
+   "reports.reports()"
+  ],
+  "manager": [
+   "auth.logout()",
+   "auth.profile()",
+   "collection.overview()",
+   "dashboard.home()",
+   "games.game_detail(game_id=raider)",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "rails.floor()",
+   "reports.reports()"
+  ],
+  "operator": [
+   "auth.logout()",
+   "auth.profile()",
+   "collection.overview()",
+   "dashboard.home()",
+   "games.game_detail(game_id=raider)",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "rails.floor()"
   ]
  },
  "/scan": {

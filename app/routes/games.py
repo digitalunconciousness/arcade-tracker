@@ -203,7 +203,16 @@ def record_plays(game_id):
     db.session.commit()
     flash(f'Recorded {record.plays_count:,} plays (${record.revenue:.2f}) for "{game.name}". '
           f"Meter: {record.coin_count:,}.", "success")
+    _raise_maintenance(game)
     return redirect(url_for("games.game_detail", game_id=game.id))
+
+
+def _raise_maintenance(game):
+    """New plays may bring preventive maintenance due (feature step 5)."""
+    from app.services.upkeep import raise_due
+
+    for order in raise_due([game]):
+        flash(f"{game.name} is due for maintenance: work order #{order.id} raised.", "info")
 
 
 @games_bp.route("/delete_play_record/<int:record_id>", methods=["POST"])
@@ -484,6 +493,12 @@ def resolve_barcode(code):
     if game is None:
         flash(f"No machine found for scanned code '{code}'.", "error")
         return redirect(url_for("games.scan"))
+    # During a collection round the label opens the meter entry instead (feature step 3).
+    from app.routes.collection import round_open
+    from app.services.collection import on_round
+
+    if round_open() and current_user.has_role("operator") and on_round(game):
+        return redirect(url_for("collection.stop", game_id=game.id))
     return redirect(url_for("games.game_detail", game_id=game.id))
 
 

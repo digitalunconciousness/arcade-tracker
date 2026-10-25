@@ -6,6 +6,7 @@
 {% block page_head %}
 {% call ui.page_head("Reports", sub="The last 30 days at a glance, and every report and export") %}
   <a class="btn btn--sm" href="{{ url_for('reports.graphs') }}">Graphs</a>
+  <a class="btn btn--sm" href="{{ url_for('rotation.overview') }}">Rotation</a>
 {% endcall %}
 {% endblock %}
 

@@ -1,0 +1,135 @@
+{% extends "layout.html" %}
+{% import "ui.html" as ui %}
+{% block title %}Rotation{% endblock %}
+
+{#- Plays first, token value second (owner's wording rule). -#}
+{% macro per_day(m) -%}
+{%- if m.rate and m.rate.per_day is not none -%}
+<span class="num">{{ "%.1f"|format(m.rate.per_day) }}</span> <span class="dim">plays/day · ${{ "%.2f"|format(m.rate.value_per_day) }}</span>
+{%- else -%}<span class="dim">Not enough readings</span>{%- endif -%}
+{%- endmacro %}
+
+{% macro swap_form(out_id, into_id, label) -%}
+<form class="inline-form" method="post" action="{{ url_for('rotation.swap') }}" data-confirm="Move these two games now?" data-confirm-action="Swap">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input type="hidden" name="out" value="{{ out_id }}"><input type="hidden" name="into" value="{{ into_id }}">
+  {%- for k, v in options.args().items() %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endfor %}
+  <button class="btn btn--sm btn--primary" type="submit">{{ label }}</button>
+</form>
+{%- endmacro %}
+
+{% block page_head %}
+{{ ui.page_head("Rotation planner", sub="Plays per working day on the floor, last " ~ options.window ~ " days", back=url_for("games.games_list"), back_label="Machines") }}
+{% endblock %}
+
+{% block content %}
+<div class="stack">
+  <form class="filters" method="get" action="{{ url_for('rotation.overview') }}">
+    <div class="field">
+      <label for="window">Judge on the last</label>
+      <select id="window" name="window">
+        {%- for w in windows %}<option value="{{ w }}"{% if w == options.window %} selected{% endif %}>{{ w }} days</option>{% endfor %}
+      </select>
+    </div>
+    <div class="field">
+      <label for="pairing">Swap with</label>
+      <select id="pairing" name="pairing">
+        {%- for key, label in pairings.items() %}<option value="{{ key }}"{% if key == options.pairing %} selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="field">
+      <label for="settle">New games settle for</label>
+      <select id="settle" name="settle">
+        {%- for d in settles %}<option value="{{ d }}"{% if d == options.settle %} selected{% endif %}>{{ "No time" if d == 0 else d ~ " days" }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="filters__actions"><button class="btn" type="submit">Apply</button></div>
+  </form>
+
+  <section class="card" aria-labelledby="swaps-h">
+    <h2 id="swaps-h">Suggested swaps</h2>
+    {%- if plan.swaps %}
+    <p class="dim">The quietest floor games, each paired with a warehouse game that did at least {{ ((better_by - 1) * 100)|round|int }}% better the last time it was out.</p>
+    <ul class="rows">
+      {%- for s in plan.swaps %}
+      <li class="row">
+        <span class="row__main">
+          <span class="row__title">{{ s.out.game.name }} → {{ s.into.game.name }}</span>
+          <span class="row__meta">Off: {{ per_day(s.out) }}</span>
+          <span class="row__meta">On: {{ per_day(s.into) }}{% if s.into.from_readings %} (from its old readings){% endif %}</span>
+        </span>
+        <span class="row__end">{{ swap_form(s.out.game.id, s.into.game.id, "Swap") }}</span>
+      </li>
+      {%- endfor %}
+    </ul>
+    {%- else %}
+    {{ ui.empty("No swap to suggest", "No working warehouse game did " ~ ((better_by - 1) * 100)|round|int ~ "% better than a settled floor game" ~ (" of the same type" if options.pairing == "kind" else "") ~ ".") }}
+    {%- endif %}
+  </section>
+
+  <section class="card" aria-labelledby="floor-h">
+    <h2 id="floor-h">On the floor, quietest first</h2>
+    {%- if plan.floor %}
+    <ul class="rows">
+      {%- for m in plan.floor %}
+      <li><a class="row" href="{{ url_for('games.game_detail', game_id=m.game.id) }}">
+        <span class="row__main">
+          <span class="row__title">{{ m.game.name }}</span>
+          <span class="row__meta">{{ per_day(m) }}</span>
+          <span class="row__meta">{{ m.kind }} · {{ m.rate.days if m.rate else 0 }} days counted · on the floor {{ "since " ~ m.floor_since.strftime("%d %b %Y") if m.floor_since else "since before history" }}</span>
+        </span>
+        <span class="row__end">
+          {%- if m.fade is not none %}{{ ui.chip("warn" if m.fade < -0.25 else ("ok" if m.fade > 0 else "muted"), ("%+d"|format((m.fade * 100)|round|int)) ~ "% vs first month") }}{% endif %}
+          {%- if m.settling_left %}{{ ui.chip("info", "Settling, " ~ m.settling_left ~ " days left") }}{% endif %}
+          {%- if m.down_days %}{{ ui.chip("fault", "Down " ~ m.down_days ~ " days") }}{% endif %}
+        </span>
+      </a></li>
+      {%- endfor %}
+    </ul>
+    {%- else %}
+    {{ ui.empty("Nothing on the floor") }}
+    {%- endif %}
+    <p class="dim">A game needs {{ min_days }} counted days to be ranked. Days down, in the warehouse, or not yet read don't count, so a game broken for half the window isn't marked down for it.</p>
+  </section>
+
+  <section class="card" aria-labelledby="wh-h">
+    <h2 id="wh-h">In the warehouse, best first</h2>
+    {%- if plan.warehouse %}
+    <ul class="rows">
+      {%- for m in plan.warehouse %}
+      <li><a class="row" href="{{ url_for('games.game_detail', game_id=m.game.id) }}">
+        <span class="row__main">
+          <span class="row__title">{{ m.game.name }}</span>
+          <span class="row__meta">{% if m.rate and m.rate.per_day is not none %}{{ per_day(m) }} then{% else %}<span class="dim">No numbers yet</span>{% endif %}</span>
+          <span class="row__meta">{{ m.kind }} · {% if m.stint %}out {{ m.stint[0].strftime("%d %b %Y") }} to {{ m.stint[1].strftime("%d %b %Y") }}{% elif m.from_readings and m.rate %}out before history (from its readings){% else %}never out, as far as the tracker knows{% endif %}</span>
+        </span>
+        <span class="row__end">{{ ui.status(m.game.status) }}</span>
+      </a></li>
+      {%- endfor %}
+    </ul>
+    {%- else %}
+    {{ ui.empty("Nothing in the warehouse") }}
+    {%- endif %}
+  </section>
+
+  {%- if plan.floor and plan.warehouse %}
+  <section class="card" aria-labelledby="manual-h">
+    <h2 id="manual-h">Swap any two</h2>
+    <form class="filters" method="post" action="{{ url_for('rotation.swap') }}" data-confirm="Move these two games now?" data-confirm-action="Swap">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      {%- for k, v in options.args().items() %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endfor %}
+      <div class="field">
+        <label for="out">Take off the floor</label>
+        <select id="out" name="out">{% for m in plan.floor %}<option value="{{ m.game.id }}">{{ m.game.name }}</option>{% endfor %}</select>
+      </div>
+      <div class="field">
+        <label for="into">Put out instead</label>
+        <select id="into" name="into">{% for m in plan.warehouse %}<option value="{{ m.game.id }}">{{ m.game.name }}</option>{% endfor %}</select>
+      </div>
+      <div class="filters__actions"><button class="btn" type="submit">Swap</button></div>
+    </form>
+    <p class="dim">The game coming out takes the other's floor position. Both moves go in each game's history.</p>
+  </section>
+  {%- endif %}
+</div>
+{% endblock %}
