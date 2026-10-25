@@ -58,6 +58,18 @@
   </section>
   {%- endif %}
 
+  {%- if page.last_fixed %}
+  {%- set lf = page.last_fixed %}
+  <section class="card" aria-labelledby="lastfix-title">
+    <div class="card__head">
+      <h2 id="lastfix-title">Last fixed</h2>
+      <a class="btn btn--sm btn--ghost" href="{{ url_for('maintenance.maintenance_detail', record_id=lf.id) }}">Order #{{ lf.id }}</a>
+    </div>
+    <p class="dim">{{ (lf.date_fixed or lf.date_reported).strftime("%d %b %Y") }}{% if lf.fixer %} by {{ lf.fixer }}{% endif %}: {{ lf.issue_description }}</p>
+    <p>{{ lf.fix_description or "No note of what was done." }}</p>
+  </section>
+  {%- endif %}
+
   <section aria-labelledby="open-title">
     <h2 id="open-title">Open work orders</h2>
     {%- if page.open_orders %}

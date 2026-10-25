@@ -21,6 +21,7 @@ import pytest
 # Every href the page emits, so the containment claim can be checked rather than asserted.
 HREF = re.compile(r'href="([^"]*)"')
 ACTION = re.compile(r'action="([^"]*)"')
+NAME = "Sam Tester"       # whoever opened the coin door; synthetic
 
 
 @pytest.fixture()
@@ -162,7 +163,7 @@ def _records(app):
 
 def test_filing_creates_one_record_for_that_machine(client, machine):
     response = client.post(f"/report/{machine['token']}",
-                           data={"issue_description": "Right flipper is dead"},
+                           data={"reported_by": NAME, "issue_description": "Right flipper is dead"},
                            follow_redirects=True)
     assert response.status_code == 200
     rows = _records(client.application)
@@ -175,13 +176,13 @@ def test_the_record_says_where_it_came_from(client, machine):
     """source is what tells a tech this was filed by whoever was standing at the machine,
     with no account behind it. Phase 2 added the column; this is its second writer."""
     client.post(f"/report/{machine['token']}",
-                data={"issue_description": "Right flipper is dead"})
+                data={"reported_by": NAME, "issue_description": "Right flipper is dead"})
     assert _records(client.application)[0].source == "coindoor"
 
 
 def test_a_filed_report_is_open(client, machine):
     client.post(f"/report/{machine['token']}",
-                data={"issue_description": "Right flipper is dead"})
+                data={"reported_by": NAME, "issue_description": "Right flipper is dead"})
     assert _records(client.application)[0].status == "Open"
 
 
@@ -204,14 +205,14 @@ def test_the_timestamp_helper_returns_naive_utc(app):
 
 def test_the_stored_timestamp_is_naive(client, machine):
     client.post(f"/report/{machine['token']}",
-                data={"issue_description": "Right flipper is dead"})
+                data={"reported_by": NAME, "issue_description": "Right flipper is dead"})
     assert _records(client.application)[0].date_reported.tzinfo is None
 
 
 def test_an_empty_description_files_nothing(client, machine):
     response = client.post(f"/report/{machine['token']}",
-                           data={"issue_description": "   "}, follow_redirects=True)
-    assert response.status_code == 200
+                           data={"reported_by": NAME, "issue_description": "   "})
+    assert response.status_code == 400, "shown again, with what they typed"
     assert _records(client.application) == []
     assert "describe the problem" in response.get_data(as_text=True).lower()
 
@@ -225,28 +226,27 @@ def test_an_over_long_description_is_refused(client, machine):
     """maxlength on the textarea is a hint to a browser, not a control. This endpoint is
     reachable from the internet with curl."""
     response = client.post(f"/report/{machine['token']}",
-                           data={"issue_description": "x" * 10_000},
-                           follow_redirects=True)
-    assert response.status_code == 200
+                           data={"reported_by": NAME, "issue_description": "x" * 10_000})
+    assert response.status_code == 400
     assert _records(client.application) == []
     assert "too long" in response.get_data(as_text=True).lower()
 
 
 def test_a_description_at_the_limit_is_accepted(client, machine):
-    client.post(f"/report/{machine['token']}", data={"issue_description": "x" * 2000})
+    client.post(f"/report/{machine['token']}", data={"reported_by": NAME, "issue_description": "x" * 2000})
     assert len(_records(client.application)) == 1
 
 
 def test_an_unknown_token_files_nothing(client, machine):
     assert client.post("/report/" + "f" * 32,
-                       data={"issue_description": "Right flipper is dead"}).status_code == 404
+                       data={"reported_by": NAME, "issue_description": "Right flipper is dead"}).status_code == 404
     assert _records(client.application) == []
 
 
 def test_the_confirmation_reveals_no_record_id(client, machine):
     """Nothing to look up afterwards, so there is nothing to enumerate."""
     body = client.post(f"/report/{machine['token']}",
-                       data={"issue_description": "Right flipper is dead"},
+                       data={"reported_by": NAME, "issue_description": "Right flipper is dead"},
                        follow_redirects=True).get_data(as_text=True)
     record_id = _records(client.application)[0].id
     assert f"#{record_id}" not in body
@@ -276,7 +276,7 @@ def test_a_client_with_no_session_at_all_can_file(client, machine):
 
     fresh = client.application.test_client()          # never issued a GET, so holds no cookie
     response = fresh.post(f"/report/{machine['token']}",
-                          data={"issue_description": "Right flipper is dead"})
+                          data={"reported_by": NAME, "issue_description": "Right flipper is dead"})
     assert response.status_code in (200, 302), response.status_code
     with client.application.app_context():
         assert MaintenanceRecord.query.count() == 1
@@ -323,7 +323,7 @@ def test_the_form_works_with_csrf_enforced(strict_csrf_app):
     csrf = re.search(r'name="csrf_token"[^>]*value="([^"]+)"', body)
     assert csrf, "the form serves no csrf token to send back"
     response = client.post(f"/report/{token}",
-                           data={"issue_description": "Right flipper is dead",
+                           data={"reported_by": NAME, "issue_description": "Right flipper is dead",
                                  "csrf_token": csrf.group(1)})
     assert response.status_code in (200, 302), response.status_code
     with strict_csrf_app.app_context():
@@ -336,7 +336,7 @@ def test_under_enforcement_a_post_without_a_session_still_files(strict_csrf_app)
 
     token = _machine_in(strict_csrf_app)
     fresh = strict_csrf_app.test_client()
-    response = fresh.post(f"/report/{token}", data={"issue_description": "Coin door jammed"})
+    response = fresh.post(f"/report/{token}", data={"reported_by": NAME, "issue_description": "Coin door jammed"})
     assert response.status_code in (200, 302), response.status_code
     with strict_csrf_app.app_context():
         assert MaintenanceRecord.query.count() == 1
@@ -351,10 +351,10 @@ def test_the_sixth_report_for_one_machine_is_refused(client, machine):
 
     for n in range(5):
         response = client.post(f"/report/{machine['token']}",
-                               data={"issue_description": f"Fault {n}"})
+                               data={"reported_by": NAME, "issue_description": f"Fault {n}"})
         assert response.status_code in (200, 302), f"report {n}: {response.status_code}"
     assert client.post(f"/report/{machine['token']}",
-                       data={"issue_description": "Fault 6"}).status_code == 429
+                       data={"reported_by": NAME, "issue_description": "Fault 6"}).status_code == 429
     with client.application.app_context():
         assert MaintenanceRecord.query.count() == 5
 
@@ -377,9 +377,9 @@ def test_one_machine_running_out_does_not_block_another(client, machine):
         db.session.commit()
 
     for n in range(6):
-        client.post(f"/report/{machine['token']}", data={"issue_description": f"Fault {n}"})
+        client.post(f"/report/{machine['token']}", data={"reported_by": NAME, "issue_description": f"Fault {n}"})
     response = client.post(f"/report/{other_token}",
-                           data={"issue_description": "Different machine"})
+                           data={"reported_by": NAME, "issue_description": "Different machine"})
     assert response.status_code in (200, 302), response.status_code
 
 
@@ -389,10 +389,10 @@ def test_hitting_the_limit_is_logged_without_the_token(client, machine, caplog):
     import logging
 
     for n in range(5):
-        client.post(f"/report/{machine['token']}", data={"issue_description": f"Fault {n}"})
+        client.post(f"/report/{machine['token']}", data={"reported_by": NAME, "issue_description": f"Fault {n}"})
     with caplog.at_level(logging.INFO):
         assert client.post(f"/report/{machine['token']}",
-                           data={"issue_description": "Fault 6"}).status_code == 429
+                           data={"reported_by": NAME, "issue_description": "Fault 6"}).status_code == 429
     logged = caplog.text
     assert "COINDOOR_RATE_LIMITED" in logged, logged
     assert machine["name"] in logged, "the machine has to be identifiable from the log"
@@ -410,3 +410,40 @@ def test_every_page_says_no_referrer(client):
     """Set once, for the whole application, rather than on the one blueprint that needs it:
     a header that only some responses carry is a header someone will forget."""
     assert client.get("/login").headers.get("Referrer-Policy") == "no-referrer"
+
+
+# --- who reported it (usability round, owner's decisions of 2026-10-25) -------------------------
+
+def test_the_name_is_required(client, machine):
+    response = client.post(f"/report/{machine['token']}",
+                           data={"reported_by": "  ", "issue_description": "Right flipper dead"})
+    html = response.get_data(as_text=True)
+    assert response.status_code == 400 and _records(client.application) == []
+    assert "put your name" in html and "Right flipper dead" in html, "what they typed is kept"
+
+
+def test_an_over_long_name_is_refused(client, machine):
+    client.post(f"/report/{machine['token']}",
+                data={"reported_by": "x" * 61, "issue_description": "Right flipper dead"})
+    assert _records(client.application) == []
+
+
+def test_the_name_is_stored_tidied(client, machine):
+    client.post(f"/report/{machine['token']}",
+                data={"reported_by": "  Sam   Tester ", "issue_description": "Right flipper dead"})
+    (record,) = _records(client.application)
+    assert (record.reported_by, record.source) == ("Sam Tester", "coindoor")
+
+
+def test_the_form_has_no_photo_upload_and_ignores_one_sent(client, machine):
+    """Only staff who are signed in upload photos (owner's decision, 2026-10-25)."""
+    import io
+
+    html = client.get(f"/report/{machine['token']}").get_data(as_text=True)
+    assert 'type="file"' not in html and "multipart" not in html
+    client.post(f"/report/{machine['token']}", content_type="multipart/form-data",
+                data={"reported_by": NAME, "issue_description": "Glass cracked",
+                      "photos": (io.BytesIO(b"\xff\xd8not really"), "x.jpg")})
+    (record,) = _records(client.application)
+    assert record.photos in (None, "", "[]")
+

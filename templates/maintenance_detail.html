@@ -38,7 +38,9 @@
     {%- endif %}
     <dl class="kv mt-4">
       <dt>Reported</dt><dd>{{ r.date_reported.strftime("%Y-%m-%d %H:%M") if r.date_reported else "—" }}</dd>
+      {%- if r.reporter %}<dt>Reported by</dt><dd>{{ r.reporter }}</dd>{% endif %}
       {%- if r.date_fixed %}<dt>Closed</dt><dd>{{ r.date_fixed.strftime("%Y-%m-%d %H:%M") }}</dd>{% endif %}
+      {%- if r.status == "Fixed" and r.fixed_by_user %}<dt>Fixed by</dt><dd>{{ r.fixed_by_user.username }}</dd>{% endif %}
       <dt>Technician</dt><dd>{{ r.technician or "Unassigned" }}</dd>
       {%- if r.cost %}<dt>Cost</dt><dd class="num">${{ "%.2f"|format(r.cost) }}</dd>{% endif %}
     </dl>

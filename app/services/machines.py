@@ -27,6 +27,8 @@ class MachinePage:
     daily_revenue: float | None
     manual_url: str
     moves: list = field(default_factory=list)      # GameEvent, newest first
+    # The last order closed as Fixed: how it was fixed last time, and by whom (usability round).
+    last_fixed: MaintenanceRecord | None = None
     extra: dict = field(default_factory=dict)
 
     @property
@@ -87,6 +89,8 @@ def machine_page(game: Game, today: date | None = None) -> MachinePage:
         daily_revenue=daily,
         manual_url=klov_url(game.name),
         moves=timeline(game.id, limit=RECENT_MOVES),
+        last_fixed=max((o for o in closed if o.status == "Fixed"),
+                       key=lambda o: (o.date_fixed or o.date_reported, o.id), default=None),
     )
 
 

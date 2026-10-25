@@ -54,8 +54,9 @@ def _gather(session: Session, _ctx) -> None:
         if isinstance(obj, MaintenanceRecord) and obj.source in ("coindoor", "pm"):
             game = _name(session, Game, obj.game_id) or "A machine"
             if obj.source == "coindoor":
+                by = f"From {obj.reported_by}: " if obj.reported_by else ""
                 out.append(("coin_door", f"Coin-door report: {game}",
-                            (obj.issue_description or "")[:500],
+                            f"{by}{obj.issue_description or ''}"[:500],
                             f"/maintenance_detail/{obj.id}"))
             else:
                 first = (obj.issue_description or "").split("\n", 1)[0]

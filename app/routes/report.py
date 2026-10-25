@@ -42,6 +42,7 @@ OPEN_STATUSES = ("Open", "In_Progress")
 # The textarea's maxlength is a hint to a browser. This endpoint is reachable from the
 # internet with curl, so the limit is enforced here as well.
 MAX_ISSUE = 2000
+MAX_NAME = 60
 
 # Per machine, per hour. A coin door is not opened often, and a second report for the same
 # fault is noise in the queue rather than information.
@@ -128,16 +129,30 @@ def report_form(token: str):
 
     if request.method == "POST":
         issue = (request.form.get("issue_description") or "").strip()
+        name = " ".join((request.form.get("reported_by") or "").split())
+        errors = []
+        if not name:
+            errors.append("Please put your name, so a tech knows who to ask.")
+        elif len(name) > MAX_NAME:
+            errors.append(f"Keep your name to {MAX_NAME} characters.")
         if not issue:
-            flash("Please describe the problem before sending it.", "error")
-            return redirect(url_for("report.report_form", token=token))
-        if len(issue) > MAX_ISSUE:
-            flash(f"That is too long -- {MAX_ISSUE} characters at most.", "error")
-            return redirect(url_for("report.report_form", token=token))
+            errors.append("Please describe the problem before sending it.")
+        elif len(issue) > MAX_ISSUE:
+            errors.append(f"That is too long -- {MAX_ISSUE} characters at most.")
+        if errors:
+            # Shown on the page, with what they typed, rather than a redirect that loses it.
+            for message in errors:
+                flash(message, "error")
+            return render_template("coin_door_report.html", game=game, token=token,
+                                   open_count=_open_count(game),
+                                   values={"issue_description": issue, "reported_by": name}), 400
+        # Photos aren't taken here: only staff who are signed in can upload (owner's decision,
+        # 2026-10-25). A file sent with the form anyway is ignored.
         db.session.add(MaintenanceRecord(
             game_id=game.id,
             work_order_type="game",
             issue_description=issue,
+            reported_by=name,
             status="Open",
             # Phase 2's column. A tech reading the queue can tell this came from whoever was
             # standing at the machine, with no account behind it.
@@ -155,4 +170,5 @@ def report_form(token: str):
         game=game,
         token=token,
         open_count=_open_count(game),
+        values={},
     )

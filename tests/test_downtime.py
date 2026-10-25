@@ -188,7 +188,7 @@ def test_a_coin_door_report_changes_nothing(client, app, floor):
     game = db.session.get(Game, floor["courier"])
     token = game.mint_report_token()
     db.session.commit()
-    client.post(f"/report/{token}", data={"issue_description": "Screen went black"})
+    client.post(f"/report/{token}", data={"reported_by": "Sam Tester", "issue_description": "Screen went black"})
     assert newest_order(floor["courier"]).machine_down is None
     assert status(floor["courier"]) == "Working"
 

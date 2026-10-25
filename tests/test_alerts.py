@@ -98,9 +98,10 @@ def test_a_coin_door_report(client, floor):
     game = db.session.get(Game, floor["raider"])
     token = game.mint_report_token()
     db.session.commit()
-    client.post(f"/report/{token}", data={"issue_description": "Screen went black"})
+    client.post(f"/report/{token}", data={"reported_by": "Sam Tester", "issue_description": "Screen went black"})
     (a,) = queued("coin_door")
-    assert (a.title, a.body) == ("Coin-door report: Neon Raider", "Screen went black")
+    assert (a.title, a.body) == ("Coin-door report: Neon Raider",
+                                 "From Sam Tester: Screen went black")
     assert a.path.startswith("/maintenance_detail/") and a.status == "pending"
 
 

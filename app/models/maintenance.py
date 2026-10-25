@@ -37,6 +37,17 @@ class MaintenanceRecord(db.Model):
     machine_down: bool | None = db.Column(db.Boolean, nullable=True)
     technician: str | None = db.Column(db.String(50), nullable=True)
     photos: str | None = db.Column(db.Text, nullable=True)
+    # Who reported it and who fixed it (usability round). Someone signed in is a user; someone
+    # at a coin door has no account and types a name, which is free text and unverified.
+    reported_by: str | None = db.Column(db.String(60), nullable=True)
+    reported_by_id: int | None = db.Column(
+        db.Integer, db.ForeignKey("user.id", ondelete="SET NULL",
+                                  name="fk_maintenance_record_reported_by_id"),
+        nullable=True, index=True)
+    fixed_by_id: int | None = db.Column(
+        db.Integer, db.ForeignKey("user.id", ondelete="SET NULL",
+                                  name="fk_maintenance_record_fixed_by_id"),
+        nullable=True, index=True)
     # The preventive maintenance task that raised it (feature step 5, app/services/upkeep.py).
     pm_task_id: int | None = db.Column(
         db.Integer, db.ForeignKey("maintenance_task.id", ondelete="SET NULL",
@@ -67,6 +78,8 @@ class MaintenanceRecord(db.Model):
         order_by="RailSessionTag.created",
     )
     pm_task = db.relationship("MaintenanceTask")
+    reported_by_user = db.relationship("User", foreign_keys=[reported_by_id])
+    fixed_by_user = db.relationship("User", foreign_keys=[fixed_by_id])
     work_logs = db.relationship(
         "WorkLog",
         backref="maintenance_record",
@@ -74,6 +87,22 @@ class MaintenanceRecord(db.Model):
         cascade="all, delete-orphan",
         order_by="WorkLog.timestamp",
     )
+
+    @property
+    def reporter(self) -> str | None:
+        """Who reported it, in words, or None for an older order that never said."""
+        if self.reported_by_user is not None:
+            return self.reported_by_user.username
+        if self.source == "coindoor":
+            return f"{self.reported_by}, at the coin door" if self.reported_by else "The coin door"
+        return {"gatbox": "GATBOX", "pm": "Preventive maintenance"}.get(self.source)
+
+    @property
+    def fixer(self) -> str | None:
+        """Who fixed it: the person who closed it, else the technician named on it."""
+        if self.fixed_by_user is not None:
+            return self.fixed_by_user.username
+        return self.technician or None
 
     # ------------------------------------------------------------------
     # Photo helpers (stored as JSON list in the ``photos`` column)

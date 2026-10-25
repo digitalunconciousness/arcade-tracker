@@ -106,12 +106,14 @@ def _create_order(form, game=None, machine_down=None):
         status=form.status.data,
         priority=priority if priority in PRIORITIES else "Medium",
         machine_down=machine_down if game else None,
+        reported_by_id=current_user.id,
     )
     if not game:
         record.work_order_type = request.form.get("work_order_type", "general")
         record.location_description = request.form.get("location_description", "")
     if form.status.data == "Fixed":
         record.date_fixed = datetime.now(dt.UTC)
+        record.fixed_by_id = current_user.id
     db.session.add(record)
     db.session.flush()
     sync_machine_status(record)
@@ -293,6 +295,7 @@ def update_maintenance(record_id):
             record.cost = cost
         if record.status == "Fixed":
             record.date_fixed = datetime.now(dt.UTC)
+            record.fixed_by_id = current_user.id
 
         work_notes = request.form.get("work_notes", "").strip()
         if work_notes:
@@ -348,6 +351,8 @@ def close_maintenance(record_id):
         record.cost = cost
     record.technician = request.form.get("technician", "")
     record.date_fixed = datetime.now(dt.UTC)
+    if status == "Fixed":
+        record.fixed_by_id = current_user.id
     sync_machine_status(record)
     db.session.commit()
 
