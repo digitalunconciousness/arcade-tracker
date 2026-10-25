@@ -87,6 +87,11 @@ def _configure_app(app: Flask) -> None:
     # Falls back to the request host when unset, so scanning still works locally.
     app.config["BASE_URL"] = os.environ.get("BASE_URL", "")
 
+    # AGPL-3.0 section 13: the footer links here. A modified deployment points it at its own
+    # copy of the source.
+    app.config["SOURCE_URL"] = os.environ.get(
+        "SOURCE_URL", "https://github.com/digitalunconciousness/arcade-tracker")
+
     # CSRF ---------------------------------------------------------
     # Enforced on every POST (Flask-WTF's default; it was switched off until 2026-10-08).
     # The device API is exempt in app/routes/api_v1.py. Tokens live as long as the session

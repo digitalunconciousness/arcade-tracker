@@ -482,3 +482,15 @@ This will add the new WorkLog table for timestamped work entries.
 ---
 
 **🎮 Keep your arcade running smoothly with comprehensive tracking and professional work documentation! 🔧**
+
+## License
+
+Copyright (C) 2025-2026 digitalunconciousness.
+
+Arcade Tracker is free software: you can redistribute it and/or modify it under the terms of the
+GNU Affero General Public License as published by the Free Software Foundation, version 3
+(see [`LICENSE`](LICENSE)). It comes with no warranty.
+
+The AGPL means that if you run a modified version where other people use it over a network, you
+must offer them the source of your version. Every page links to the source in its footer; set
+`SOURCE_URL` in `.env` to point it at your copy.

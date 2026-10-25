@@ -1323,3 +1323,15 @@ legend {
   font-size: var(--fs-lg);
   letter-spacing: 0.04em;
 }
+
+/* =========================================================================================
+   Footer: the AGPL source link, quiet on every page.
+   ========================================================================================= */
+.app-footer {
+  max-width: var(--content-max);
+  margin: var(--sp-7) auto 0;
+  padding: var(--sp-4);
+  color: var(--text-dim);
+  font-size: var(--fs-xs);
+  text-align: center;
+}
