@@ -325,6 +325,7 @@
    "maintenance.maintenance_detail(record_id=closed_order)",
    "maintenance.maintenance_detail(record_id=open_order)",
    "maintenance.maintenance_orders()",
+   "maintenance.update_maintenance(record_id=open_order)",
    "rails.floor()",
    "rails.machine(slug=neon-raider)",
    "rails.session(uid=dddddddddddddddddddddddddddddddd)",
@@ -346,6 +347,7 @@
    "maintenance.maintenance_detail(record_id=closed_order)",
    "maintenance.maintenance_detail(record_id=open_order)",
    "maintenance.maintenance_orders()",
+   "maintenance.update_maintenance(record_id=open_order)",
    "rails.floor()",
    "rails.machine(slug=neon-raider)",
    "rails.session(uid=dddddddddddddddddddddddddddddddd)",
@@ -365,6 +367,7 @@
    "maintenance.maintenance_detail(record_id=closed_order)",
    "maintenance.maintenance_detail(record_id=open_order)",
    "maintenance.maintenance_orders()",
+   "maintenance.update_maintenance(record_id=open_order)",
    "rails.floor()",
    "rails.machine(slug=neon-raider)",
    "rails.session(uid=dddddddddddddddddddddddddddddddd)"

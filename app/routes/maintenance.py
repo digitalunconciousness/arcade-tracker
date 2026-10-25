@@ -129,6 +129,23 @@ def _create_order(form, game=None, machine_down=None):
     return record, parts
 
 
+def _attach_photos(record) -> None:
+    """Photos sent with a new order (the machine page asks for one first). Only signed-in
+    staff reach this; the coin-door form takes none (owner's decision, 2026-10-25)."""
+    from app.services.work_orders import save_photos
+
+    files = [f for f in request.files.getlist("photos") if f and f.filename]
+    if not files:
+        return
+    saved, problems = save_photos(record, files, current_app.static_folder,
+                                  on_saved=_copy_to_cloud if _cloud_photos() else None)
+    if saved:
+        db.session.commit()
+        flash(f"Added {saved} photo{'s' if saved != 1 else ''}.", "success")
+    for problem in problems:
+        flash(problem, "warning")
+
+
 @maintenance_bp.route("/maintenance/game/<int:game_id>", methods=["GET", "POST"])
 @login_required
 @requires_role("operator")
@@ -149,8 +166,9 @@ def game_maintenance(game_id):
     if request.method == "POST" and machine_down is None:
         down_error = "Say whether the machine can still be played."
     if form.validate_on_submit() and down_error is None:
-        _record, parts = _create_order(form, game, machine_down)
+        record, parts = _create_order(form, game, machine_down)
         flash(f'Maintenance record added for "{game.name}"', "success")
+        _attach_photos(record)
         if parts.cost > 0:
             flash(f"Inventory items used: ${parts.cost:.2f}", "info")
         return redirect(url_for("games.game_detail", game_id=game_id))

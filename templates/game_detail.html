@@ -27,11 +27,34 @@
   </div>
 
   {%- if current_user.has_role("operator") %}
-  <section class="card machine__report" aria-labelledby="report-title">
+  {#- The three things someone standing at a machine came to do (usability round). -#}
+  {%- set opens = page.open_orders %}
+  <nav class="machine__actions" aria-label="What to do">
+    {%- if page.can_record_plays %}
+    <a class="btn btn--primary" href="{{ url_for('games.record_plays', game_id=g.id) }}">Record plays</a>
+    {%- else %}
+    <span class="btn" aria-disabled="true">Record plays<span class="btn__sub">Counter not working</span></span>
+    {%- endif %}
+    <a class="btn" href="#report">Report problem</a>
+    {%- if opens|length == 1 %}
+    <a class="btn" href="{{ url_for('maintenance.update_maintenance', record_id=opens[0].id) }}">Log work<span class="btn__sub">Order #{{ opens[0].id }}</span></a>
+    {%- elif opens %}
+    <a class="btn" href="#open-title">Log work<span class="btn__sub">{{ opens|length }} open, pick one</span></a>
+    {%- else %}
+    <a class="btn" href="#report">Log work<span class="btn__sub">Nothing open: report it</span></a>
+    {%- endif %}
+  </nav>
+
+  <section class="card machine__report" id="report" aria-labelledby="report-title">
     <h2 id="report-title">Report a problem</h2>
-    <form class="form form--wide" method="post" action="{{ url_for('maintenance.game_maintenance', game_id=g.id) }}">
+    <form class="form form--wide" method="post" enctype="multipart/form-data" action="{{ url_for('maintenance.game_maintenance', game_id=g.id) }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <input type="hidden" name="status" value="Open">
+      <div class="field">
+        <label for="photos">Photo first</label>
+        <input id="photos" name="photos" type="file" accept="image/*" multiple>
+        <span class="field__help">Take one of the screen or the fault, or choose one. Optional.</span>
+      </div>
       <div class="field">
         <label for="issue_description">What's wrong? <span class="field__req" aria-hidden="true">*</span></label>
         <textarea id="issue_description" name="issue_description" rows="3" required

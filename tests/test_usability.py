@@ -92,6 +92,69 @@ def test_how_a_reporter_reads(app, source, name, expected):
     assert MaintenanceRecord(source=source, reported_by=name).reporter == expected
 
 
+# --- the machine page: three big buttons and a photo first --------------------------------------
+
+def actions(html):
+    start = html.index('class="machine__actions"')
+    return html[start:html.index("</nav>", start)]
+
+
+def test_staff_get_the_three_buttons_and_readonly_doesnt(client, floor):
+    login(client, "readonly")
+    assert 'class="machine__actions"' not in client.get(f"/game/{floor['raider']}").get_data(
+        as_text=True)
+    client.post("/logout")
+    login(client, "operator")
+    nav = actions(client.get(f"/game/{floor['raider']}").get_data(as_text=True))
+    assert f'href="/record_plays/{floor["raider"]}">Record plays' in nav
+    assert 'href="#report">Report problem' in nav
+
+
+def test_log_work_goes_straight_to_a_single_open_order(client, floor):
+    login(client, "operator")
+    nav = actions(client.get(f"/game/{floor['raider']}").get_data(as_text=True))
+    assert f'href="/update_maintenance/{floor["open_order"]}">Log work' in nav
+
+
+def test_log_work_with_several_open_lists_them_and_with_none_offers_a_report(client, floor):
+    login(client, "operator")
+    report(client, floor["raider"])
+    nav = actions(client.get(f"/game/{floor['raider']}").get_data(as_text=True))
+    assert 'href="#open-title">Log work<span class="btn__sub">2 open, pick one' in nav
+    nav = actions(client.get(f"/game/{floor['courier']}").get_data(as_text=True))
+    assert 'href="#report">Log work<span class="btn__sub">Nothing open' in nav
+
+
+def test_record_plays_says_why_not_when_the_counter_is_broken(client, floor):
+    login(client, "operator")
+    nav = actions(client.get(f"/game/{floor['courier']}").get_data(as_text=True))
+    assert 'aria-disabled="true">Record plays<span class="btn__sub">Counter not working' in nav
+
+
+def test_the_report_asks_for_a_photo_first_and_keeps_it(client, app, floor):
+    import io
+
+    from PIL import Image
+
+    login(client, "operator")
+    html = client.get(f"/game/{floor['courier']}").get_data(as_text=True)
+    form = html[html.index('id="report"'):]
+    assert 'enctype="multipart/form-data"' in form
+    assert form.index('name="photos"') < form.index('name="issue_description"')
+    buf = io.BytesIO()
+    Image.new("RGB", (40, 30), (200, 30, 90)).save(buf, "PNG")
+    buf.seek(0)
+    resp = client.post(f"/maintenance/game/{floor['courier']}",
+                       content_type="multipart/form-data",
+                       data={"issue_description": "Cracked glass", "status": "Open",
+                             "machine_down": "no", "photos": (buf, "glass.png")})
+    assert resp.status_code == 302
+    order = newest(floor["courier"])
+    (name,) = order.get_photos()
+    assert name.endswith(".jpg")
+    assert os.path.exists(os.path.join(app.static_folder, "maintenance_photos", name))
+
+
 def test_the_migration_round_trips(app, floor):
     import sqlalchemy as sa
     from flask_migrate import downgrade, stamp, upgrade

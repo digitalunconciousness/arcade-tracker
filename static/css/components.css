@@ -1055,6 +1055,24 @@ legend {
 .machine__report {
   border-color: var(--accent);
 }
+/* Record plays, Report problem, Log work: big enough to hit with a thumb at the cabinet. */
+.machine__actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--sp-2);
+}
+.machine__actions .btn {
+  flex-direction: column;
+  gap: 2px;
+  min-height: 72px;
+  padding: var(--sp-2);
+  text-align: center;
+}
+.btn__sub {
+  font: 400 var(--fs-xs) / 1.2 var(--font-body);
+  letter-spacing: 0;
+  opacity: 0.8;
+}
 .machine__photo {
   display: block;
   max-height: 320px;
