@@ -207,17 +207,13 @@ def _register_context_processors(app: Flask) -> None:
 # Content-Security-Policy in this codebase and it is the one below, sent from the
 # after_request that actually runs.
 #
-# 'unsafe-inline' is in script-src and style-src because the templates are full of
-# inline <script> blocks and onclick= handlers -- 32 and 30 files respectively. That
-# weakens the policy against injected script considerably, and pretending otherwise
-# would be worse than saying it: what this policy does buy is that no page can load
-# code, styles, fonts or images from anywhere but here, which is the rule that keeps
-# being broken by accident. Removing 'unsafe-inline' means moving every inline handler
-# into a served .js file, which is a real piece of work and a separate one.
+# No 'unsafe-inline' (Step 5.3): no page has an inline script, handler or style any more.
+# Page data reaches scripts as <script type="application/json"> islands, which are data, not
+# script, so the policy doesn't apply to them. tests/test_csp.py keeps it that way.
 CSP = (
     "default-src 'self'; "
-    "script-src 'self' 'unsafe-inline'; "
-    "style-src 'self' 'unsafe-inline'; "
+    "script-src 'self'; "
+    "style-src 'self'; "
     "img-src 'self' data:; "          # data: for the QR labels, which are inline SVG
     "font-src 'self'; "
     "connect-src 'self'; "

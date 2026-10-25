@@ -34,7 +34,7 @@
     <h3>{{ "Fix" if not is_open else "Assessment" }}</h3>
     <p class="prose">{{ r.fix_description }}</p>
     {%- endif %}
-    <dl class="kv" style="margin-top: var(--sp-4)">
+    <dl class="kv mt-4">
       <dt>Reported</dt><dd>{{ r.date_reported.strftime("%Y-%m-%d %H:%M") if r.date_reported else "—" }}</dd>
       {%- if r.date_fixed %}<dt>Closed</dt><dd>{{ r.date_fixed.strftime("%Y-%m-%d %H:%M") }}</dd>{% endif %}
       <dt>Technician</dt><dd>{{ r.technician or "Unassigned" }}</dd>
@@ -113,7 +113,7 @@
     {%- endif %}
     {%- endif %}
     {%- if r.work_notes or r.parts_used %}
-    <div class="card" style="margin-top: var(--sp-3)">
+    <div class="card mt-3">
       <h3>Older notes</h3>
       {%- if r.work_notes %}<p class="prose">{{ r.work_notes }}</p>{% endif %}
       {%- if r.parts_used %}<p class="dim">Parts: {{ r.parts_used }}</p>{% endif %}

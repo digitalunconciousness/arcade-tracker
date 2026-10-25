@@ -171,7 +171,7 @@
       {%- if g.counter_notes %}<dt>Counter notes</dt><dd>{{ g.counter_notes }}</dd>{% endif %}
       {%- if g.notes %}<dt>Notes</dt><dd>{{ g.notes }}</dd>{% endif %}
     </dl>
-    <p style="margin-top: var(--sp-3)"><a href="{{ page.manual_url }}" target="_blank" rel="noopener noreferrer">Manuals on the Killer List of Videogames ↗</a></p>
+    <p class="mt-3"><a href="{{ page.manual_url }}" target="_blank" rel="noopener noreferrer">Manuals on the Killer List of Videogames ↗</a></p>
   </section>
 
   {%- if current_user.has_role("manager") %}
@@ -215,7 +215,7 @@
       {%- endfor %}
     </ul>
     {%- if page.closed_total > page.closed_orders|length %}
-    <p class="dim" style="margin-top: var(--sp-2)">Showing the latest {{ page.closed_orders|length }} of {{ page.closed_total }}. <a href="{{ url_for('maintenance.maintenance_orders', search=g.name) }}">All work orders</a></p>
+    <p class="dim mt-2">Showing the latest {{ page.closed_orders|length }} of {{ page.closed_total }}. <a href="{{ url_for('maintenance.maintenance_orders', search=g.name) }}">All work orders</a></p>
     {%- endif %}
     {%- else %}
     {{ ui.empty("No closed work orders yet") }}

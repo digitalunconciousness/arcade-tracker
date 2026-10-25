@@ -2,7 +2,7 @@
 {% import "ui.html" as ui %}
 {% block title %}{{ title }}{% endblock %}
 {% block content %}
-<div class="stack" style="max-width: 560px">
+<div class="stack measure">
   <p class="badge is-{{ tone }}">Error {{ code }}</p>
   {{ ui.page_head(title) }}
   <p>{{ text }}</p>

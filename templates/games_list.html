@@ -85,7 +85,7 @@
     </tbody>
   </table>
 </div>
-<p class="dim" style="margin-top: var(--sp-2)">{{ m.games|length }} machine{{ "" if m.games|length == 1 else "s" }}{% if search or location_filter or status_filter %} match{% endif %}</p>
+<p class="dim mt-2">{{ m.games|length }} machine{{ "" if m.games|length == 1 else "s" }}{% if search or location_filter or status_filter %} match{% endif %}</p>
 {%- else %}
   {%- if search or location_filter or status_filter %}
   {{ ui.empty("No machines match", "Try a shorter search, or clear the filters.", url_for("games.games_list"), "Clear filters") }}

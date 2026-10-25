@@ -110,13 +110,13 @@
 
   <fieldset>
     <legend>Parts</legend>
-    <p class="dim" style="margin-top: 0">"Use now" takes it out of stock and adds its cost. "Order it" raises a request for a manager.</p>
+    <p class="dim mt-0">"Use now" takes it out of stock and adds its cost. "Order it" raises a request for a manager.</p>
     <div class="parts">
       {%- for i in range(3) %}{{ part_row(i) }}{% endfor %}
     </div>
-    <details style="margin-top: var(--sp-3)">
+    <details class="mt-3">
       <summary class="btn btn--sm btn--ghost">More parts</summary>
-      <div class="parts" style="margin-top: var(--sp-3)">
+      <div class="parts mt-3">
         {%- for i in range(3, rows) %}{{ part_row(i) }}{% endfor %}
       </div>
     </details>
