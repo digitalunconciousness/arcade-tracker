@@ -1,0 +1,68 @@
+{% extends "layout.html" %}
+{% import "ui.html" as ui %}
+{% block title %}Alerts{% endblock %}
+
+{% block page_head %}
+{% call ui.page_head("Alerts", sub=channels|length ~ " channel" ~ ("" if channels|length == 1 else "s") ~ " · " ~ waiting ~ " waiting to go out", back=url_for("admin.manage_users"), back_label="Admin") %}
+  <a class="btn btn--sm btn--primary" href="{{ url_for('alerts.new') }}">New channel</a>
+{% endcall %}
+{% endblock %}
+
+{% block content %}
+<div class="stack">
+  <p class="measure mt-0">Each channel sends the events you pick to an ntfy topic (the free phone app), a Discord
+  channel, or both. Alerts go out within a minute; if the internet is down they wait and are tried again.</p>
+
+  {%- if not channels %}
+  {{ ui.empty("No channels yet", "Add one for the techs and one for the manager, then send each a test.", url_for('alerts.new'), "New channel") }}
+  {%- endif %}
+  {%- for c in channels %}
+  <section class="card" aria-labelledby="ch-{{ c.id }}">
+    <div class="card__head">
+      <h2 id="ch-{{ c.id }}">{{ c.name }}</h2>
+      <div class="cluster">
+        {%- if not c.active %}{{ ui.chip("muted", "Paused") }}{% endif %}
+        <form class="inline-form" method="post" action="{{ url_for('alerts.test', channel_id=c.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn btn--sm" type="submit">Send a test</button>
+        </form>
+        <a class="btn btn--sm" href="{{ url_for('alerts.edit', channel_id=c.id) }}">Edit</a>
+      </div>
+    </div>
+    <p class="dim">Sends to {{ c.targets|map("replace", "discord", "Discord")|join(" and ") }}
+      · {{ "held until opening when closed" if c.quiet else "always sends straight away" }}</p>
+    <div class="cluster">{% for e in c.event_list %}{{ ui.chip("info", events[e]) }}{% endfor %}</div>
+  </section>
+  {%- endfor %}
+
+  <section class="card" aria-labelledby="hours-h">
+    <h2 id="hours-h">Opening hours</h2>
+    <p class="dim">{% if hours %}Open {{ open_time }} to {{ close_time }}. Outside these hours, channels set to hold keep alerts until opening and send them as one message; the daily summary goes out at opening.{% else %}Not set: every alert goes straight out, and there is no daily summary.{% endif %}</p>
+    <form class="filters" method="post" action="{{ url_for('alerts.hours') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="field"><label for="open_time">Opens</label><input id="open_time" name="open_time" type="time" value="{{ open_time }}"></div>
+      <div class="field"><label for="close_time">Closes</label><input id="close_time" name="close_time" type="time" value="{{ close_time }}"></div>
+      <div class="filters__actions"><button class="btn" type="submit">Save hours</button></div>
+    </form>
+  </section>
+
+  <section class="card" aria-labelledby="log-h">
+    <h2 id="log-h">Recent alerts</h2>
+    {%- if recent %}
+    <ul class="rows">
+      {%- for a in recent %}
+      <li class="row">
+        <span class="row__main">
+          <span class="row__title">{{ a.title }}</span>
+          <span class="row__meta">{{ a.channel.name }} · {{ "Discord" if a.target == "discord" else "ntfy" }} · {{ a.created_at.strftime("%d %b %H:%M") }} UTC{% if a.error %} · {{ a.error }}{% endif %}</span>
+        </span>
+        <span class="row__end">{{ ui.chip({"sent": "ok", "pending": "info", "held": "muted", "failed": "fault"}[a.status], {"sent": "Sent", "pending": "Waiting" if not a.attempts else "Retrying", "held": "Held till opening", "failed": "Not sent"}[a.status]) }}</span>
+      </li>
+      {%- endfor %}
+    </ul>
+    {%- else %}
+    <p class="dim">Nothing has been sent yet.</p>
+    {%- endif %}
+  </section>
+</div>
+{% endblock %}

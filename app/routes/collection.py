@@ -10,6 +10,7 @@ from flask_login import login_required
 from app.extensions import db
 from app.models import Game
 from app.services import collection as rounds
+from app.services.alerts import notify
 from app.services.upkeep import raise_due
 from app.utils.decorators import requires_role
 
@@ -18,6 +19,8 @@ collection_bp = Blueprint("collection", __name__, url_prefix="/round")
 # While this holds today's date, scanning a floor machine's label opens its meter entry
 # (games.resolve_barcode). Yesterday's date means no round is open.
 SESSION_KEY = "collection_round"
+FLAG_TITLES = {"none": "no plays since the last reading", "high": "far more plays than usual",
+               "gap": "a long gap since the last reading"}
 
 
 def round_open() -> bool:
@@ -110,6 +113,11 @@ def stop(game_id):
         if f.kind == "high":
             continue        # already shown and confirmed; the round's list still marks it
         flash(f"{game.name}: {f.text}", "warning")
+    for f in flags:                           # and to whoever wants them later (step 6)
+        notify("round_flag", f"{game.name}: {FLAG_TITLES[f.kind]}", f.text,
+               url_for("collection.overview"))
+    if flags:
+        db.session.commit()
     for order in raise_due([game]):         # new plays may bring maintenance due (step 5)
         flash(f"{game.name} is due for maintenance: work order #{order.id} raised.", "info")
     return _onward(after)

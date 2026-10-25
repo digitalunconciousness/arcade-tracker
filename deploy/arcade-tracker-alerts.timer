@@ -1,0 +1,12 @@
+[Unit]
+# Installed at /etc/systemd/system/arcade-tracker-alerts.timer.
+#   systemctl enable --now arcade-tracker-alerts.timer
+Description=Arcade Tracker: send alerts every minute
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=1min
+AccuracySec=5s
+
+[Install]
+WantedBy=timers.target

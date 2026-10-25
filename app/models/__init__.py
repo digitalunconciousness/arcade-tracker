@@ -5,6 +5,7 @@ Usage::
     from app.models import User, Game, PlayRecord
 """
 
+from app.models.alerts import Alert, AlertChannel, Setting
 from app.models.device import Device
 from app.models.game import Game, PlayRecord
 from app.models.history import GameEvent
@@ -44,4 +45,7 @@ __all__ = [
     "Reading",
     "GameEvent",
     "MaintenanceTask",
+    "Alert",
+    "AlertChannel",
+    "Setting",
 ]

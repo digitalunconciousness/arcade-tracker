@@ -111,6 +111,55 @@
    "rails.floor()"
   ]
  },
+ "/admin/alerts/": {
+  "admin": [
+   "admin.manage_users()",
+   "alerts.edit(channel_id=channel)",
+   "alerts.hours()",
+   "alerts.new()",
+   "alerts.test(channel_id=channel)",
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "rails.floor()",
+   "reports.reports()"
+  ]
+ },
+ "/admin/alerts/<int:channel_id>/edit": {
+  "admin": [
+   "admin.manage_users()",
+   "alerts.delete(channel_id=channel)",
+   "alerts.overview()",
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "rails.floor()",
+   "reports.reports()"
+  ]
+ },
+ "/admin/alerts/new": {
+  "admin": [
+   "admin.manage_users()",
+   "alerts.overview()",
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "rails.floor()",
+   "reports.reports()"
+  ]
+ },
  "/admin/create_user": {
   "admin": [
    "admin.manage_users()",
@@ -146,6 +195,7 @@
    "admin.create_user()",
    "admin.manage_users()",
    "admin.storage_admin()",
+   "alerts.overview()",
    "auth.change_password()",
    "auth.logout()",
    "auth.profile()",

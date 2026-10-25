@@ -96,6 +96,22 @@ A due task raises one playable order (`source="pm"`, `pm_task_id`). Due by plays
 reading (G5, C2); due by days when P1 or `/maintenance_orders` (M3) is opened, which therefore
 **write on GET** too: nothing here runs on a timer.
 
+**Alerts** (`app/routes/alerts.py`, prefix `/admin/alerts`; feature step 6, added 2026-10-25):
+
+| ID | Route | Methods | Role | Template | Form | What it does |
+|----|-------|---------|------|----------|------|--------------|
+| A1 | `/admin/alerts/` | GET | admin | `alerts.html` | — | Channels, opening hours, and the last 50 alerts with whether each went out. |
+| A2 | `/admin/alerts/new`, `/<id>/edit` | GET, POST | admin | `alert_channel_form.html` | raw | A channel: name, events, ntfy topic (and token), Discord webhook, hold outside hours, active. Secrets are never shown back; blank keeps them. |
+| A3 | `/admin/alerts/<id>/delete` | POST | admin | — | raw | Deletes a channel and its alert log. |
+| A4 | `/admin/alerts/<id>/test` | POST | admin | — | raw | Sends a test to each of the channel's targets now and says what happened. |
+| A5 | `/admin/alerts/hours` | POST | admin | — | raw | Opening hours (or none). |
+
+Events are raised by a session hook (`app/services/alert_events.py`) and written to the `alert`
+outbox in the same commit; `scripts/send_alerts.py`, every minute from
+`deploy/arcade-tracker-alerts.timer`, delivers them, releases what was held overnight as one
+message per channel, and sends the daily summary at opening. **Outbound requests:** the sender
+posts to the configured ntfy server and Discord; nothing else in the app reaches out.
+
 ## 4. Coin-door reporting (`app/routes/report.py`): the only unauthenticated write
 
 | ID | Route | Methods | Role | Template | Form | What it does |
@@ -525,3 +541,9 @@ anything is changed.
     playable work order once; a task applies to every machine, a type or one machine (floor
     machines only); Fixed restarts the count and Deferred raises it again 7 days later;
     managers set tasks up, everyone can see them.
+13. **Alerts:** ntfy (self-hosted on the arcade's Proxmox) and Discord, because not everyone is on
+    Discord and free text-message gateways are no longer dependable; separate channels, each choosing its
+    events (coin-door reports, machines down, rails out of window, low stock, maintenance due,
+    round flags, part requests shipped or received, the daily summary); outside opening hours
+    alerts are held and sent together at opening, unless a channel always sends; a daily summary
+    at opening.
