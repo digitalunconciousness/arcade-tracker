@@ -14,5 +14,8 @@
     <a class="btn btn--primary" href="{{ url_for('auth.login') }}">Sign in</a>
     {%- endif %}
   </div>
+  {%- if g.request_id %}
+  <p class="dim">Reference <code>{{ g.request_id }}</code>. If you tell an admin about this, quote it: it finds this request in the log.</p>
+  {%- endif %}
 </div>
 {% endblock %}

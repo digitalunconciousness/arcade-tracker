@@ -242,7 +242,7 @@ anything is changed.
   - `RegisterForm` (no `/register` route). *Removed in 4.7b.*
   - `admin_required` and `manager_required` decorators (unused).
   - `app/security/middleware.py` and `app/security/config.py` (never imported), so `setup_security_logging`
-    never runs.
+    never runs. *Deleted in 5.5, with `setup_security_logging`; `app/logs.py` replaces all three.*
   - `helpers.encrypt_file` / `decrypt_file`; `security.utils.safe_path_join`, `validate_file_upload` and
     `sanitize_filename` (defined, never called; the code that needs them doesn't use them).
   - `reports._update_top_rankings` (a no-op).
@@ -340,7 +340,7 @@ anything is changed.
 - **F-23 Weak login protection.** Lockout is per username and in memory, so anyone can lock out a known
   user, and there is no IP rate limit on `/login`. Info-level security events (`LOGIN_SUCCESS`,
   `LOGIN_FAILED`) are dropped because the app logger stays at WARNING (see F-2 for why).
-  *Fixed in 5.2, except the logging (5.5): the visitor's address comes from Cloudflare's
+  *Fixed in 5.2, and the logging in 5.5 (info-level events are kept, as `key=value` lines): the visitor's address comes from Cloudflare's
   `CF-Connecting-IP`, believed only from the tunnel; X-Forwarded-For and X-Real-IP are no longer
   trusted, so the lockout can't be dodged and a stranger can't lock out staff. Failed logins are
   limited to 10 a minute per address. The site-wide limit was 200 pages an hour shared by every

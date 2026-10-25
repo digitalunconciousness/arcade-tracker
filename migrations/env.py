@@ -11,7 +11,10 @@ config = context.config
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
-fileConfig(config.config_file_name)
+# disable_existing_loggers=False: the default switches off every logger that already exists,
+# so running a migration inside the app's process (tests/test_indexes.py does) silenced the
+# app's own logs for the rest of that process (Step 5.5).
+fileConfig(config.config_file_name, disable_existing_loggers=False)
 logger = logging.getLogger('alembic.env')
 
 

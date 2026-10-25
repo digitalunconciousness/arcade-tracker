@@ -37,6 +37,9 @@ def create_app() -> Flask:
     )
 
     _configure_app(app)
+    from app.logs import configure as configure_logging
+
+    configure_logging(app)
     _create_directories(app)
     _init_extensions(app)
     _register_blueprints(app)
@@ -173,7 +176,8 @@ def _register_blueprints(app: Flask) -> None:
             if bp is not None:
                 app.register_blueprint(bp)
         except ImportError as exc:
-            print(f"⚠️  Blueprint {module_path} not available: {exc}")
+            app.logger.warning("blueprint not loaded", extra={"fields": {
+                "event": "BLUEPRINT_MISSING", "module": module_path, "error": str(exc)}})
 
 
 def _register_context_processors(app: Flask) -> None:

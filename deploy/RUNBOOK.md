@@ -422,6 +422,22 @@ systemctl restart arcade-tracker
 
 `deploy.sh` prints the two values to substitute when it fails.
 
+## Reading the logs
+
+Everything goes to the journal, one event per line as `key=value` pairs:
+
+```bash
+journalctl -u arcade-tracker -f                                   # follow
+journalctl -u arcade-tracker --since today | grep event=LOGIN_FAILED
+journalctl -u arcade-tracker | grep request_id=<reference>         # one request, every line
+journalctl -u arcade-tracker --since "1 hour ago" | grep -E 'status=5|level=ERROR'
+```
+
+An error page shows a **Reference**; that's the `request_id`. Through the tunnel it's
+Cloudflare's ray ID, so it also finds the request in the Cloudflare dashboard. Each page request
+writes one `event=request` line (method, path, status, `ms`, user, visitor `ip`); static files
+don't. `LOG_LEVEL` in `.env` changes the level (default `INFO`; `WARNING` for quieter logs).
+
 ## Notes
 
 - **Never `flask db stamp head` on a database you have not checked.** Stamping
