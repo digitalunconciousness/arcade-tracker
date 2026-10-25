@@ -242,7 +242,7 @@ anything is changed.
   - `RegisterForm` (no `/register` route). *Removed in 4.7b.*
   - `admin_required` and `manager_required` decorators (unused).
   - `app/security/middleware.py` and `app/security/config.py` (never imported), so `setup_security_logging`
-    never runs.
+    never runs. *Deleted in 5.5, with `setup_security_logging`; `app/logs.py` replaces all three.*
   - `helpers.encrypt_file` / `decrypt_file`; `security.utils.safe_path_join`, `validate_file_upload` and
     `sanitize_filename` (defined, never called; the code that needs them doesn't use them).
   - `reports._update_top_rankings` (a no-op).
@@ -335,9 +335,16 @@ anything is changed.
   - A2 logout is a GET.
 - **F-22 Cookies.** `SESSION_COOKIE_SECURE` and `REMEMBER_COOKIE_SECURE` are `False` while the site is public
   over HTTPS. With no `SECRET_KEY`, a random key is generated on every restart, which logs everyone out.
+  *Fixed in 5.1 (owner's choice: secure when HTTPS): cookies are Secure on requests through the tunnel and
+  stay usable over plain HTTP on the LAN (`app/security/https.py`); the app refuses to start without a key.*
 - **F-23 Weak login protection.** Lockout is per username and in memory, so anyone can lock out a known
   user, and there is no IP rate limit on `/login`. Info-level security events (`LOGIN_SUCCESS`,
   `LOGIN_FAILED`) are dropped because the app logger stays at WARNING (see F-2 for why).
+  *Fixed in 5.2, and the logging in 5.5 (info-level events are kept, as `key=value` lines): the visitor's address comes from Cloudflare's
+  `CF-Connecting-IP`, believed only from the tunnel; X-Forwarded-For and X-Real-IP are no longer
+  trusted, so the lockout can't be dodged and a stranger can't lock out staff. Failed logins are
+  limited to 10 a minute per address. The site-wide limit was 200 pages an hour shared by every
+  tunnel user; it is now 5,000 an hour per address.*
 - **F-24 Uploads are checked by extension only.** Pillow re-encoding is the real check, but its failure is
   ignored (F-8). There's no size check per file, only the 50 MB request cap. *Since 4.8a machine photos are
   re-encoded as JPEG and a file Pillow can't read is refused.*
@@ -406,6 +413,13 @@ anything is changed.
 - **F-41 A forced password change could be skipped.** *Fixed in 4.7b.* Login redirected a user with
   `must_change_password` to the change page once; any link then skipped it, so a reset password stayed in
   use. Now every page except change-password and log-out redirects there until it is changed.
+
+- **F-42 Portrait phone photos are stored sideways.** Found in 5.7. *Fixed in 5.7: the rotation is applied
+  before saving, and uploads are decoded as JPEG, PNG or GIF only.* A phone saves a portrait photo as
+  landscape pixels plus an EXIF "rotate 90°" flag. `compress_and_save_image` re-encodes without applying
+  that flag (`ImageOps.exif_transpose`) and the saved JPEG drops it, so machine and work-order photos taken
+  upright show on their side. Proposed fix in `docs/DEPENDENCIES.md` (5.7), alongside limiting uploads
+  to JPEG, PNG and GIF.
 
 - **F-37 The PWA manifest names the real venue.** `static/manifest.json` carried the business's name in
   a public repository. It is renamed to "Arcade Tracker" in the base-shell step; the old value remains in

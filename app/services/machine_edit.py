@@ -209,6 +209,9 @@ def delete_machine(game: Game, upload_folder: str, static_folder: str) -> dict[s
         MaintenanceRecord.query.filter(MaintenanceRecord.id.in_(order_ids)).delete(
             synchronize_session=False)
     plays = PlayRecord.query.filter_by(game_id=game.id).delete(synchronize_session=False)
+    from app.models.history import GameEvent
+
+    GameEvent.query.filter_by(game_id=game.id).delete(synchronize_session=False)
     RailSession.query.filter_by(game_id=game.id).update(
         {RailSession.game_id: None}, synchronize_session=False)
     db.session.execute(item_game_compatibility.delete().where(

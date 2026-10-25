@@ -72,3 +72,20 @@
   <button class="btn btn--danger{% if small %} btn--sm{% endif %}" type="submit">{{ label }}</button>
 </form>
 {%- endmacro %}
+
+{#- Whether a fault takes the machine out of play (feature step 2). Staff must choose when they
+    raise an order, so neither is preselected; ``value`` is True, False or None. -#}
+{% macro machine_down_choice(value=none, error=none, required=true) -%}
+<fieldset class="stack{% if error %} is-invalid{% endif %}">
+  <legend>Can it still be played?{% if required %} <span class="field__req" aria-hidden="true">*</span><span class="visually-hidden"> (required)</span>{% endif %}</legend>
+  <div class="field field--check">
+    <input id="machine_down-yes" type="radio" name="machine_down" value="yes"{% if value is sameas true %} checked{% endif %}{% if required %} required{% endif %}>
+    <label for="machine_down-yes">No, it's down (marks the machine Not working)</label>
+  </div>
+  <div class="field field--check">
+    <input id="machine_down-no" type="radio" name="machine_down" value="no"{% if value is sameas false %} checked{% endif %}>
+    <label for="machine_down-no">Yes, still playable (intermittent, cosmetic, one part)</label>
+  </div>
+  {%- if error %}<span class="field__error">{{ error }}</span>{% endif %}
+</fieldset>
+{%- endmacro %}

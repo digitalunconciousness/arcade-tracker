@@ -116,7 +116,8 @@ def test_the_full_form_keeps_priority(client, floor):
 
     login(client, "operator")
     client.post(f"/maintenance/game/{floor['raider']}", data={
-        "issue_description": "Marquee light out", "status": "Open", "priority": "Low"})
+        "issue_description": "Marquee light out", "status": "Open", "priority": "Low",
+        "machine_down": "no"})
     assert MaintenanceRecord.query.filter_by(issue_description="Marquee light out").one().priority == "Low"
 
 
@@ -160,12 +161,12 @@ def test_deleting_a_photo_the_order_does_not_hold_is_refused(client, floor, sand
     assert ("error", "That photo is not on this work order.") in flashes(client)
 
 
-def test_the_s3_copy_runs_for_each_saved_photo(client, floor, sandbox, monkeypatch):
+def test_the_s3_copy_runs_for_each_saved_photo(app, client, floor, sandbox, monkeypatch):
     """USE_CLOUD_STORAGE is kept: each saved photo is also handed to the S3 copy."""
     from app.routes import maintenance
 
     copied = []
-    monkeypatch.setattr(maintenance, "USE_CLOUD_STORAGE", True)
+    app.config["CLOUD_PHOTOS"] = True               # USE_CLOUD_STORAGE, read at startup
     monkeypatch.setattr(maintenance, "_copy_to_cloud", lambda path, name: copied.append(name))
     login(client, "operator")
     client.post(f"/maintenance_photos/{floor['open_order']}", data={

@@ -1,10 +1,8 @@
 """Security utilities for logging, request validation, and file/path safety."""
 
-import ipaddress
 import logging
 import os
 from datetime import datetime, timedelta
-from logging.handlers import RotatingFileHandler
 
 from flask import request
 
@@ -16,90 +14,35 @@ LOCKOUT_THRESHOLD = 5  # Number of failed attempts before lockout
 LOCKOUT_DURATION = 900  # 15 minutes in seconds
 
 
-def setup_security_logging(app, log_file="logs/security.log"):
-    """Set up rotating security log handler for the Flask app.
-
-    Args:
-        app: Flask application instance.
-        log_file: Path to security log file.
-    """
-    os.makedirs(os.path.dirname(log_file), exist_ok=True)
-
-    security_handler = RotatingFileHandler(
-        log_file,
-        maxBytes=10 * 1024 * 1024,  # 10 MB
-        backupCount=5,
-    )
-    security_handler.setLevel(logging.INFO)
-    security_handler.setFormatter(
-        logging.Formatter(
-            "[%(asctime)s] %(levelname)s - %(message)s",
-            datefmt="%Y-%m-%d %H:%M:%S",
-        )
-    )
-
-    app.logger.addHandler(security_handler)
-    app.logger.setLevel(logging.INFO)
-
-    return app.logger
-
-
 def log_security_event(event_type, user_id=None, details="", level="info"):
-    """Log a security event.
+    """Record a security event: one ``event=<TYPE>`` line on the ``arcade.security`` logger.
+
+    Until Step 5.5 these went to a logger with no level, which kept warnings only, so every
+    info-level event (LOGIN_SUCCESS, LOGIN_FAILED, BACKUP_CREATED ...) was dropped (F-23).
 
     Args:
-        event_type: Type of security event (e.g., ``'LOGIN_SUCCESS'``).
-        user_id: ID of user involved (if applicable).
-        details: Additional details about the event.
-        level: Log level (``'info'``, ``'warning'``, ``'error'``).
+        event_type: what happened, e.g. ``'LOGIN_SUCCESS'``.
+        user_id: the user involved, if any.
+        details: free text; never a password or token.
+        level: ``'info'``, ``'warning'`` or ``'error'``.
     """
-    from flask import current_app
-
-    ip = get_client_ip()
-    user_agent = request.headers.get("User-Agent", "Unknown")
-
-    message = (
-        f"[SECURITY] {event_type} | IP: {ip} | "
-        f"User: {user_id or 'Anonymous'} | {details} | Agent: {user_agent}"
+    logging.getLogger("arcade.security").log(
+        getattr(logging, level.upper(), logging.INFO),
+        "%s: %s" if details else "%s", event_type, *([details] if details else []),
+        extra={"fields": {
+            "event": event_type,
+            "user_id": user_id or "-",
+            "ip": get_client_ip(),
+            "agent": request.headers.get("User-Agent", "-")[:200],
+        }},
     )
-
-    if level == "warning":
-        current_app.logger.warning(message)
-    elif level == "error":
-        current_app.logger.error(message)
-    else:
-        current_app.logger.info(message)
 
 
 def get_client_ip() -> str:
-    """Get a validated client IP address, considering common proxy headers.
+    """The visitor's address. See :func:`app.security.https.client_ip` for what is trusted."""
+    from app.security.https import client_ip
 
-    Returns:
-        A validated IP string, or ``'Unknown'`` when no valid client IP
-        is available.
-    """
-    forwarded_for = request.headers.get("X-Forwarded-For")
-    real_ip = request.headers.get("X-Real-IP")
-    remote_addr = request.remote_addr
-
-    candidates = []
-    if forwarded_for:
-        candidates.append(forwarded_for.split(",")[0].strip())
-    if real_ip:
-        candidates.append(real_ip.strip())
-    if remote_addr:
-        candidates.append(remote_addr.strip())
-
-    for candidate in candidates:
-        if not candidate:
-            continue
-        try:
-            ipaddress.ip_address(candidate)
-            return candidate
-        except ValueError:
-            continue
-
-    return "Unknown"
+    return client_ip()
 
 
 def record_failed_login(username, ip=None):

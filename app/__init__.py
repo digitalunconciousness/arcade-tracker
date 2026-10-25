@@ -7,13 +7,15 @@ Flask application instance.
 from __future__ import annotations
 
 import os
-import uuid
+from typing import TYPE_CHECKING
 
 from dotenv import load_dotenv
 from flask import Flask, Response, request
 
 from app.extensions import csrf, db, limiter, login_manager, migrate
 
+if TYPE_CHECKING:
+    from app.config import Settings
 
 def create_app() -> Flask:
     """Create and configure the Flask application.
@@ -35,14 +37,25 @@ def create_app() -> Flask:
         static_folder=os.path.join(os.path.dirname(os.path.dirname(__file__)), "static"),
     )
 
-    _configure_app(app)
+    settings = _configure_app(app)
+    from app.logs import configure as configure_logging
+
+    configure_logging(app)
+    for warning in settings.warnings:
+        app.logger.warning("%s", warning, extra={"fields": {"event": "CONFIG_WARNING"}})
     _create_directories(app)
     _init_extensions(app)
+    from app.services.history import install as install_history
+
+    install_history()
     _register_blueprints(app)
     _register_context_processors(app)
     _register_error_handlers(app)
     _register_after_request(app)
 
+    from app.security.https import HttpsAware
+
+    app.wsgi_app = HttpsAware(app.wsgi_app)
     return app
 
 
@@ -50,33 +63,20 @@ def create_app() -> Flask:
 # Internal helpers
 # ------------------------------------------------------------------
 
-def _configure_app(app: Flask) -> None:
-    """Apply all configuration values to *app*."""
+def _configure_app(app: Flask) -> Settings:
+    """Apply all configuration values to *app*. Environment settings are read and checked in
+    app/config.py (Step 5.6), which raises ConfigError listing every problem at once."""
+    from app.config import load
+
     base_dir = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
-    instance_folder = os.path.join(base_dir, "instance")
-
-    # Secret key ---------------------------------------------------
-    secret_key = os.environ.get("SECRET_KEY")
-    if not secret_key or secret_key == "your-secret-key-change-this-for-production":
-        print("WARNING: Using temporary SECRET_KEY. Set SECRET_KEY environment variable!")
-        secret_key = "dev-secret-key-" + str(uuid.uuid4())
-    app.config["SECRET_KEY"] = secret_key
-
-    # Database -----------------------------------------------------
-    db_path = os.path.join(instance_folder, "arcade.db")
-    app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
-        "DATABASE_URL",
-        f"sqlite:///{db_path}",
-    )
+    db_path = os.path.join(base_dir, "instance", "arcade.db")
+    settings = load(default_db=f"sqlite:///{db_path}")
+    settings.apply(app.config)
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
     # Uploads ------------------------------------------------------
     app.config["UPLOAD_FOLDER"] = os.path.join(base_dir, "uploads")
     app.config["MAX_CONTENT_LENGTH"] = 50 * 1024 * 1024  # 50 MB
-
-    # Public base URL baked into printed QR labels (e.g. http://pi-host:5000).
-    # Falls back to the request host when unset, so scanning still works locally.
-    app.config["BASE_URL"] = os.environ.get("BASE_URL", "")
 
     # CSRF ---------------------------------------------------------
     # Enforced on every POST (Flask-WTF's default; it was switched off until 2026-10-08).
@@ -90,12 +90,16 @@ def _configure_app(app: Flask) -> None:
 
     app.config["REMEMBER_COOKIE_DURATION"] = dt.timedelta(days=30)
     app.config["PERMANENT_SESSION_LIFETIME"] = dt.timedelta(days=30)
+    # Secure is added per request by app.security.https.HttpsAware, so the cookies are
+    # Secure through the tunnel and still work over plain HTTP on the LAN (F-22).
     app.config["REMEMBER_COOKIE_SECURE"] = False
     app.config["REMEMBER_COOKIE_HTTPONLY"] = True
+    app.config["REMEMBER_COOKIE_SAMESITE"] = "Lax"
     app.config["REMEMBER_COOKIE_REFRESH_EACH_REQUEST"] = False
     app.config["SESSION_COOKIE_SECURE"] = False
     app.config["SESSION_COOKIE_HTTPONLY"] = True
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+    return settings
 
 
 def _create_directories(app: Flask) -> None:
@@ -156,12 +160,14 @@ def _register_blueprints(app: Flask) -> None:
             if bp is not None:
                 app.register_blueprint(bp)
         except ImportError as exc:
-            print(f"⚠️  Blueprint {module_path} not available: {exc}")
+            app.logger.warning("blueprint not loaded", extra={"fields": {
+                "event": "BLUEPRINT_MISSING", "module": module_path, "error": str(exc)}})
 
 
 def _register_context_processors(app: Flask) -> None:
     """Register Jinja2 context processors for global template helpers."""
     from datetime import date as _date
+
     from flask import url_for as _url_for
 
     from app.ui import register as register_ui_filters
@@ -171,15 +177,10 @@ def _register_context_processors(app: Flask) -> None:
     @app.context_processor
     def utility_processor() -> dict:
         def get_cloud_url(filename: str) -> str:
-            """Return a cloud or local URL for a maintenance photo."""
-            use_cloud = app.config.get("USE_CLOUD_STORAGE", False)
-            bucket = app.config.get("AWS_BUCKET_NAME", "")
-            region = app.config.get("AWS_REGION", "us-east-1")
-            if use_cloud and bucket:
-                return (
-                    f"https://{bucket}.s3.{region}.amazonaws.com/"
-                    f"maintenance_photos/{filename}"
-                )
+            """A maintenance photo's URL: always this server's copy. The S3 copy is a backup;
+            serving from it would also break the Content-Security-Policy (img-src 'self').
+            This always returned the local URL in practice, because it read a config key that
+            was never set (Step 5.6 made that explicit)."""
             return _url_for("static", filename=f"maintenance_photos/{filename}")
 
         return {"today": _date.today, "get_cloud_url": get_cloud_url}
@@ -189,17 +190,13 @@ def _register_context_processors(app: Flask) -> None:
 # Content-Security-Policy in this codebase and it is the one below, sent from the
 # after_request that actually runs.
 #
-# 'unsafe-inline' is in script-src and style-src because the templates are full of
-# inline <script> blocks and onclick= handlers -- 32 and 30 files respectively. That
-# weakens the policy against injected script considerably, and pretending otherwise
-# would be worse than saying it: what this policy does buy is that no page can load
-# code, styles, fonts or images from anywhere but here, which is the rule that keeps
-# being broken by accident. Removing 'unsafe-inline' means moving every inline handler
-# into a served .js file, which is a real piece of work and a separate one.
+# No 'unsafe-inline' (Step 5.3): no page has an inline script, handler or style any more.
+# Page data reaches scripts as <script type="application/json"> islands, which are data, not
+# script, so the policy doesn't apply to them. tests/test_csp.py keeps it that way.
 CSP = (
     "default-src 'self'; "
-    "script-src 'self' 'unsafe-inline'; "
-    "style-src 'self' 'unsafe-inline'; "
+    "script-src 'self'; "
+    "style-src 'self'; "
     "img-src 'self' data:; "          # data: for the QR labels, which are inline SVG
     "font-src 'self'; "
     "connect-src 'self'; "
@@ -213,6 +210,9 @@ CSP = (
 ERROR_PAGES = {
     403: ("Not allowed", "Your account cannot open this page. If you need it, ask an admin "
           "to change your role.", "warn"),
+    429: ("Too many attempts", "Too many tries from this network in a short time. Wait a "
+          "minute and try again; if you've forgotten your password, ask an admin to reset it.",
+          "warn"),
     404: ("Nothing here", "That page or record does not exist. It may have been deleted, or the "
           "link is mistyped. Machine labels still work: scan the code again.", "info"),
     500: ("Something broke", "The tracker hit an error and nothing was saved. Try again; if it "

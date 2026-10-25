@@ -4,10 +4,17 @@ The work is in app/services/inventory.py; these views parse the request and repo
 """
 
 import datetime as dt
-import os
 from datetime import datetime
 
-from flask import Blueprint, flash, redirect, render_template, request, url_for
+from flask import (
+    Blueprint,
+    current_app,
+    flash,
+    redirect,
+    render_template,
+    request,
+    url_for,
+)
 from flask_login import current_user, login_required
 
 from app.extensions import db
@@ -267,8 +274,8 @@ def update_request_tracking(request_id):
     if not req.tracking_number:
         flash("No tracking number available for this request.", "error")
         return back
-    api_key = os.getenv("EASYPOST_API_KEY")
-    if not api_key or api_key == "your-easypost-api-key-here":
+    api_key = current_app.config.get("EASYPOST_API_KEY")
+    if not api_key:
         flash("Tracking API not configured. Add EASYPOST_API_KEY to the .env file.", "warning")
         return back
     try:

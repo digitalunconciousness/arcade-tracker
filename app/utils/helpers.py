@@ -21,6 +21,11 @@ def allowed_file(filename: str) -> bool:
     )
 
 
+# The formats an upload may be decoded as. Not "MPO": Pillow opens those through the JPEG
+# plugin, and naming it raises KeyError.
+UPLOAD_FORMATS = ("JPEG", "PNG", "GIF")
+
+
 def compress_and_save_image(
     file,
     file_path: str,
@@ -30,7 +35,14 @@ def compress_and_save_image(
     """Compress and save an uploaded image file.
 
     Uses Pillow to resize the image so that neither dimension exceeds
-    *max_size* and saves it at the given *quality* level.
+    *max_size* and saves it at the given *quality* level. Every upload in the app (machine
+    photos, work-order photos, profile pictures) comes through here.
+
+    Only JPEG, PNG and GIF are decoded (Step 5.7): Pillow would otherwise parse any of its ~40
+    formats whatever the file is called, and its security advisories live mostly in those
+    parsers. Phone cameras' MPO files still open, through the JPEG plugin. The EXIF rotation is
+    applied before saving (F-42): phones store portrait photos as landscape pixels plus a flag,
+    and the saved JPEG drops the flag, so they used to come out sideways.
 
     Args:
         file: A file-like object (e.g. ``request.files['photo']``).
@@ -42,9 +54,10 @@ def compress_and_save_image(
         ``True`` on success, ``False`` on error.
     """
     try:
-        from PIL import Image
+        from PIL import Image, ImageOps
 
-        img = Image.open(file)
+        img = Image.open(file, formats=UPLOAD_FORMATS)
+        img = ImageOps.exif_transpose(img)
 
         # Convert RGBA/P modes to RGB for JPEG compatibility
         if img.mode in ("RGBA", "P"):
@@ -255,32 +268,3 @@ def import_games_from_roster(data: dict) -> dict:
                 result["errors"].append(f"{entry.get('name', '?')}: {exc}")
 
     return result
-
-
-def encrypt_file(data: bytes) -> bytes:
-    """Encrypt *data* using Fernet with the application's ``BACKUP_KEY``.
-
-    Requires :data:`flask.current_app` to be available (i.e. call inside
-    a request or application context).
-
-    Returns:
-        The encrypted ciphertext bytes.
-    """
-    from cryptography.fernet import Fernet
-    from flask import current_app
-
-    key = current_app.config["BACKUP_KEY"]
-    return Fernet(key).encrypt(data)
-
-
-def decrypt_file(data: bytes) -> bytes:
-    """Decrypt *data* using Fernet with the application's ``BACKUP_KEY``.
-
-    Returns:
-        The original plaintext bytes.
-    """
-    from cryptography.fernet import Fernet
-    from flask import current_app
-
-    key = current_app.config["BACKUP_KEY"]
-    return Fernet(key).decrypt(data)

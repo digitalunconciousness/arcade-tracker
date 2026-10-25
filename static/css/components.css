@@ -37,6 +37,27 @@
   gap: var(--sp-2);
   align-items: center;
 }
+/* Spacing and width tweaks. Classes, not style="": the Content-Security-Policy allows no
+   inline styles (Step 5.3). !important because they replace style="" attributes, which beat
+   every stylesheet rule; without it a more specific rule (.kv + p) would win instead. */
+.mt-0 {
+  margin-top: 0 !important;
+}
+.mt-2 {
+  margin-top: var(--sp-2) !important;
+}
+.mt-3 {
+  margin-top: var(--sp-3) !important;
+}
+.mt-4 {
+  margin-top: var(--sp-4) !important;
+}
+.measure {
+  max-width: 560px !important;
+}
+.phone-width {
+  max-width: 390px !important;
+}
 
 .skip-link {
   position: absolute;
@@ -1322,4 +1343,16 @@ legend {
   min-height: 56px;
   font-size: var(--fs-lg);
   letter-spacing: 0.04em;
+}
+
+/* =========================================================================================
+   Footer: the AGPL source link, quiet on every page.
+   ========================================================================================= */
+.app-footer {
+  max-width: var(--content-max);
+  margin: var(--sp-7) auto 0;
+  padding: var(--sp-4);
+  color: var(--text-dim);
+  font-size: var(--fs-xs);
+  text-align: center;
 }

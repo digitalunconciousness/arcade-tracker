@@ -6,9 +6,11 @@ from dataclasses import dataclass, field
 from datetime import date
 
 from app.models import Game, MaintenanceRecord, PlayRecord, RailSession
+from app.services.history import timeline
 
 OPEN_STATUSES = ("Open", "In_Progress")
 RECENT_PLAYS = 10
+RECENT_MOVES = 12
 RECENT_CLOSED = 10
 
 
@@ -24,6 +26,7 @@ class MachinePage:
     rail_count: int
     daily_revenue: float | None
     manual_url: str
+    moves: list = field(default_factory=list)      # GameEvent, newest first
     extra: dict = field(default_factory=dict)
 
     @property
@@ -83,6 +86,7 @@ def machine_page(game: Game, today: date | None = None) -> MachinePage:
         rail_count=rail_count,
         daily_revenue=daily,
         manual_url=klov_url(game.name),
+        moves=timeline(game.id, limit=RECENT_MOVES),
     )
 
 

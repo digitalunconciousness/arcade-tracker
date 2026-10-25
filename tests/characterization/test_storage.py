@@ -108,11 +108,11 @@ def on_postgres(monkeypatch):
 
 
 def test_on_postgres_the_page_explains_and_offers_no_sqlite_buttons(
-        client, floor, sandbox, on_postgres, monkeypatch, tmp_path):
+        app, client, floor, sandbox, on_postgres, tmp_path):
     dumps = tmp_path / "deploy-dumps"
     dumps.mkdir()
     (dumps / "arcade_tracker-20261024T074228Z.sql.gz").write_bytes(b"x" * 2048)
-    monkeypatch.setenv("ARCADE_BACKUPS", str(dumps))
+    app.config["BACKUPS_DIR"] = str(dumps)          # ARCADE_BACKUPS, read at startup
     login(client, "admin")
     html = client.get("/backup_management").get_data(as_text=True)
     assert "Backups run outside the app" in html

@@ -7,10 +7,11 @@ import re
 import time
 from dataclasses import dataclass
 
+from flask import current_app
+
 from app.extensions import db
 from app.models import MaintenanceRecord
 
-MAX_TOTAL_STORAGE_MB = 500
 PHOTO_MAX_AGE_DAYS = 365
 
 # --- photos --------------------------------------------------------------------------------
@@ -38,7 +39,7 @@ class PhotoStats:
     orphans: int
     old_orphans: int
     orders_with_photos: int
-    max_mb: int = MAX_TOTAL_STORAGE_MB
+    max_mb: int          # MAX_TOTAL_STORAGE_MB (app/config.py)
 
     @property
     def percent(self) -> float:
@@ -67,6 +68,7 @@ def photo_stats(static_folder: str, now: float | None = None) -> PhotoStats:
                         if os.path.getmtime(os.path.join(folder, n)) < cutoff),
         orders_with_photos=MaintenanceRecord.query.filter(
             MaintenanceRecord.photos.isnot(None), MaintenanceRecord.photos != "[]").count(),
+        max_mb=current_app.config["MAX_STORAGE_MB"],
     )
 
 
@@ -182,4 +184,5 @@ DEPLOY_DUMP_NAME = re.compile(r"^arcade_tracker-\d{8}T\d{6}Z\.sql\.gz$")
 
 
 def deploy_dump_dir() -> str:
-    return os.environ.get("ARCADE_BACKUPS", "/var/backups/arcade-tracker")
+    """Where deploy.sh writes its dumps (ARCADE_BACKUPS, read in app/config.py)."""
+    return current_app.config["BACKUPS_DIR"]

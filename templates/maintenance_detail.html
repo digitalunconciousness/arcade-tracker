@@ -23,6 +23,8 @@
   <div class="cluster">
     {{ ui.status(r.status) }}
     {%- if r.priority %}{{ ui.status(r.priority) }}{% endif %}
+    {%- if r.machine_down is sameas true %}{{ ui.chip("fault", "Machine down") }}
+    {%- elif r.machine_down is sameas false %}{{ ui.chip("muted", "Still playable") }}{% endif %}
     {%- if r.source in ("gatbox", "coindoor") %}<span class="badge is-info">from {{ sources[r.source] }}</span>{% endif %}
     {%- if r.game %}<a class="btn btn--sm btn--ghost" href="{{ url_for('games.game_detail', game_id=r.game.id) }}">Machine page →</a>{% endif %}
   </div>
@@ -34,7 +36,7 @@
     <h3>{{ "Fix" if not is_open else "Assessment" }}</h3>
     <p class="prose">{{ r.fix_description }}</p>
     {%- endif %}
-    <dl class="kv" style="margin-top: var(--sp-4)">
+    <dl class="kv mt-4">
       <dt>Reported</dt><dd>{{ r.date_reported.strftime("%Y-%m-%d %H:%M") if r.date_reported else "—" }}</dd>
       {%- if r.date_fixed %}<dt>Closed</dt><dd>{{ r.date_fixed.strftime("%Y-%m-%d %H:%M") }}</dd>{% endif %}
       <dt>Technician</dt><dd>{{ r.technician or "Unassigned" }}</dd>
@@ -113,7 +115,7 @@
     {%- endif %}
     {%- endif %}
     {%- if r.work_notes or r.parts_used %}
-    <div class="card" style="margin-top: var(--sp-3)">
+    <div class="card mt-3">
       <h3>Older notes</h3>
       {%- if r.work_notes %}<p class="prose">{{ r.work_notes }}</p>{% endif %}
       {%- if r.parts_used %}<p class="dim">Parts: {{ r.parts_used }}</p>{% endif %}

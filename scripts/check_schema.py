@@ -55,6 +55,8 @@ INTRODUCED_BY = {
     ("maintenance_record", "rail_session_id"): "d4e5f6a7b8c9",
     ("game", "report_token"): "e6f7a8b9c0d1",
     ("game", "report_label_stale"): "e6f7a8b9c0d1",
+    ("maintenance_record", "machine_down"): "e3f4a5b6c7d8",
+    ("game_event", "maintenance_id"): "e3f4a5b6c7d8",
 }
 
 # Which migration created each table. Only tables a migration actually creates belong here:
@@ -69,6 +71,7 @@ TABLE_INTRODUCED_BY = {
     "rail_session": "d4e5f6a7b8c9",
     "reading": "d4e5f6a7b8c9",
     "rail_session_tag": "b1c2d3e4f5a6",
+    "game_event": "d1e2f3a4b5c6",
 }
 
 # The revision that precedes each, i.e. what to stamp so `upgrade` will apply it.
@@ -84,11 +87,18 @@ PREDECESSOR = {
     "d4e5f6a7b8c9": "f1c2d3e4a5b6",
     "e6f7a8b9c0d1": "d4e5f6a7b8c9",
     "b1c2d3e4f5a6": "e6f7a8b9c0d1",
+    "c7d8e9f0a1b2": "b1c2d3e4f5a6",
+    "d1e2f3a4b5c6": "c7d8e9f0a1b2",
+    "e3f4a5b6c7d8": "d1e2f3a4b5c6",
 }
+
+# Every index app/models/indexes.py declares came from this revision.
+INDEXES_INTRODUCED_BY = "c7d8e9f0a1b2"
 
 ORDER = ["5a026e6869ec", "ebead5244def", "3e5463d29981", "e7582856b8aa",
          "8dcea35845db", "b547f37c117c", "7a61de1d1679", "c1a2b3d4e5f6",
-         "f1c2d3e4a5b6", "d4e5f6a7b8c9", "e6f7a8b9c0d1", "b1c2d3e4f5a6"]
+         "f1c2d3e4a5b6", "d4e5f6a7b8c9", "e6f7a8b9c0d1", "b1c2d3e4f5a6",
+         "c7d8e9f0a1b2", "d1e2f3a4b5c6", "e3f4a5b6c7d8"]
 
 
 def check_encoding(db) -> dict | None:
@@ -175,6 +185,30 @@ def report_sequences(stale: list[tuple[str, str, str, int, int]]) -> None:
         print(f'  SELECT setval(\'{seq}\', (SELECT max({column}) FROM "{name}"));')
 
 
+def check_indexes(inspector, live_tables) -> list[str]:
+    """Indexes the models declare that the database lacks.
+
+    A warning, not a failure: without them every page still works, just slower as history
+    grows. It shows up when a database was stamped past c7d8e9f0a1b2 without running it.
+    """
+    from app.models.indexes import INDEXES
+
+    live = {}
+    for table in {t for t, *_ in INDEXES.values()} & live_tables:
+        live[table] = {i["name"] for i in inspector.get_indexes(table)}
+    return [name for name, (table, *_c) in INDEXES.items()
+            if table in live and name not in live[table]]
+
+
+def report_indexes(missing: list[str]) -> None:
+    print(f"\nWARNING: {len(missing)} index(es) missing (pages work, but slow as history grows):")
+    for name in missing:
+        print(f"  missing index : {name}")
+    print("The migration that adds them is idempotent; to run it again:")
+    print(f"  flask --app run:app db stamp {PREDECESSOR[INDEXES_INTRODUCED_BY]}")
+    print("  flask --app run:app db upgrade")
+
+
 def main() -> int:
     p = argparse.ArgumentParser()
     p.add_argument("--quiet", action="store_true", help="only report problems")
@@ -202,6 +236,7 @@ def main() -> int:
 
         encoding_problem = check_encoding(db)
         stale_sequences = check_sequences(db, live_tables)
+        missing_indexes = check_indexes(inspector, live_tables)
 
         stamped = None
         if "alembic_version" in live_tables:
@@ -212,6 +247,8 @@ def main() -> int:
 
         if encoding_problem:
             print(encoding_problem["message"])
+        if missing_indexes:
+            report_indexes(missing_indexes)
 
         if (not missing_tables and not missing_columns and not stale_sequences
                 and not (encoding_problem or {}).get("fatal")):

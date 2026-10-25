@@ -1,9 +1,8 @@
 """Maintenance blueprint — work orders, photos, reports, PDF export."""
 
-import io
-import os
 import datetime as dt
-from datetime import datetime, date
+import io
+from datetime import date, datetime
 
 from flask import (
     Blueprint,
@@ -19,13 +18,13 @@ from flask import (
 from flask_login import current_user, login_required
 
 from app.extensions import db
+from app.forms.maintenance import MaintenanceWithInventoryForm
 from app.models import (
     Game,
     InventoryItem,
     MaintenanceRecord,
     WorkLog,
 )
-from app.forms.maintenance import MaintenanceWithInventoryForm
 from app.utils.decorators import requires_role
 
 maintenance_bp = Blueprint("maintenance", __name__)
@@ -39,36 +38,35 @@ def _p(text) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Optional S3 copy of each photo (USE_CLOUD_STORAGE=true and the AWS_* settings)
+# Optional S3 copy of each photo (USE_CLOUD_STORAGE=true and the AWS_* settings, read and
+# checked in app/config.py). The local copy is always the one the app serves.
 # ---------------------------------------------------------------------------
-USE_CLOUD_STORAGE = os.getenv("USE_CLOUD_STORAGE", "false").lower() == "true"
-AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
-AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
-AWS_BUCKET_NAME = os.getenv("AWS_BUCKET_NAME", "arcade-tracker-photos")
-AWS_REGION = os.getenv("AWS_REGION", "us-east-1")
+def _cloud_photos() -> bool:
+    return bool(current_app.config.get("CLOUD_PHOTOS"))
 
 
 def _upload_to_cloud(file_data, filename):
     """Copy a saved photo to S3. The local copy stays the one the app serves."""
-    if not USE_CLOUD_STORAGE:
+    if not _cloud_photos():
         return None
+    cfg = current_app.config
     try:
         import boto3
 
         s3_client = boto3.client(
             "s3",
-            aws_access_key_id=AWS_ACCESS_KEY_ID,
-            aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
-            region_name=AWS_REGION,
+            aws_access_key_id=cfg["AWS_ACCESS_KEY_ID"],
+            aws_secret_access_key=cfg["AWS_SECRET_ACCESS_KEY"],
+            region_name=cfg["AWS_REGION"],
         )
         s3_client.put_object(
-            Bucket=AWS_BUCKET_NAME,
+            Bucket=cfg["AWS_BUCKET_NAME"],
             Key=f"maintenance_photos/{filename}",
             Body=file_data,
             ContentType="image/jpeg",
         )
         return (
-            f"https://{AWS_BUCKET_NAME}.s3.{AWS_REGION}.amazonaws.com/"
+            f"https://{cfg['AWS_BUCKET_NAME']}.s3.{cfg['AWS_REGION']}.amazonaws.com/"
             f"maintenance_photos/{filename}"
         )
     except Exception as e:  # noqa: BLE001 -- a failed copy must not lose the local photo
@@ -91,8 +89,11 @@ def _inventory_choices():
         (i.id, f"{i.name} ({i.stock_quantity} in stock)") for i in items]
 
 
-def _create_order(form, game=None):
-    """Create an order from a MaintenanceWithInventoryForm, with any parts used. Commits."""
+def _create_order(form, game=None, machine_down=None):
+    """Create an order from a MaintenanceWithInventoryForm, with any parts used. Commits.
+    For a machine, ``machine_down`` says whether the fault takes it out of play, and its
+    status follows (app/services/downtime.py)."""
+    from app.services.downtime import sync_machine_status
     from app.services.work_orders import PRIORITIES, use_parts
 
     priority = request.form.get("priority", "Medium")
@@ -104,6 +105,7 @@ def _create_order(form, game=None):
         technician=form.technician.data,
         status=form.status.data,
         priority=priority if priority in PRIORITIES else "Medium",
+        machine_down=machine_down if game else None,
     )
     if not game:
         record.work_order_type = request.form.get("work_order_type", "general")
@@ -112,6 +114,7 @@ def _create_order(form, game=None):
         record.date_fixed = datetime.now(dt.UTC)
     db.session.add(record)
     db.session.flush()
+    sync_machine_status(record)
 
     rows = [(f.item_id.data, f.quantity_used.data or 0) for f in form.inventory_items
             if f.item_id.data and f.item_id.data != -1]
@@ -137,8 +140,14 @@ def game_maintenance(game_id):
     for row in form.inventory_items:
         row.item_id.choices = choices
 
-    if form.validate_on_submit():
-        _record, parts = _create_order(form, game)
+    from app.services.downtime import parse_choice
+
+    machine_down = parse_choice(request.form.get("machine_down"))
+    down_error = None
+    if request.method == "POST" and machine_down is None:
+        down_error = "Say whether the machine can still be played."
+    if form.validate_on_submit() and down_error is None:
+        _record, parts = _create_order(form, game, machine_down)
         flash(f'Maintenance record added for "{game.name}"', "success")
         if parts.cost > 0:
             flash(f"Inventory items used: ${parts.cost:.2f}", "info")
@@ -146,7 +155,8 @@ def game_maintenance(game_id):
 
     status = 400 if request.method == "POST" else 200
     return render_template("maintenance_with_inventory.html", form=form, game=game,
-                           priorities=PRIORITIES), status
+                           priorities=PRIORITIES, machine_down=machine_down,
+                           down_error=down_error), status
 
 
 @maintenance_bp.route("/maintenance/general", methods=["GET", "POST"])
@@ -213,8 +223,15 @@ def _float(name, errors, label):
 @requires_role("operator")
 def update_maintenance(record_id):
     """Log work on an order: status, notes, time, cost, and parts used or requested."""
-    from app.services.work_orders import (MAX_PART_ROWS, PRIORITIES, STATUSES, URGENCIES,
-                                          request_parts, use_parts)
+    from app.services.downtime import parse_choice, sync_machine_status
+    from app.services.work_orders import (
+        MAX_PART_ROWS,
+        PRIORITIES,
+        STATUSES,
+        URGENCIES,
+        request_parts,
+        use_parts,
+    )
 
     record = db.get_or_404(MaintenanceRecord, record_id)
     items, _choices = _inventory_choices()
@@ -259,6 +276,12 @@ def update_maintenance(record_id):
                                    rows=MAX_PART_ROWS), 400
 
         record.status = status
+        if record.game_id is not None:
+            # Older orders never said; they aren't made to now, but can be.
+            choice = parse_choice(request.form.get("machine_down"))
+            if choice is not None:
+                record.machine_down = choice
+        sync_machine_status(record)
         if priority:
             record.priority = priority
         record.fix_description = request.form.get("fix_description", record.fix_description)
@@ -302,6 +325,7 @@ def update_maintenance(record_id):
 @requires_role("operator")
 def close_maintenance(record_id):
     """Close an order as Fixed or Deferred, with what was done and what it cost."""
+    from app.services.downtime import sync_machine_status
     from app.services.work_orders import CLOSED_STATUSES
 
     record = db.get_or_404(MaintenanceRecord, record_id)
@@ -321,6 +345,7 @@ def close_maintenance(record_id):
         record.cost = cost
     record.technician = request.form.get("technician", "")
     record.date_fixed = datetime.now(dt.UTC)
+    sync_machine_status(record)
     db.session.commit()
 
     name = record.game.name if record.game else "General Maintenance"
@@ -333,7 +358,10 @@ def close_maintenance(record_id):
 @requires_role("manager")
 def delete_maintenance(record_id):
     """Delete a work order (its work log goes with it)."""
+    from app.services.downtime import sync_machine_status
+
     record = db.get_or_404(MaintenanceRecord, record_id)
+    sync_machine_status(record, deleting=True)
     db.session.delete(record)
     db.session.commit()
     flash(f"Maintenance record #{record_id} deleted.", "warning")
@@ -352,7 +380,13 @@ def download_maintenance_record(record_id):
     from reportlab.lib.pagesizes import letter
     from reportlab.lib.styles import getSampleStyleSheet
     from reportlab.lib.units import inch
-    from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+    from reportlab.platypus import (
+        Paragraph,
+        SimpleDocTemplate,
+        Spacer,
+        Table,
+        TableStyle,
+    )
 
     record = MaintenanceRecord.query.get_or_404(record_id)
 
@@ -508,13 +542,13 @@ def download_maintenance_record(record_id):
 @requires_role("operator")
 def maintenance_photos(maintenance_id):
     """Add photos to a work order (and, for managers, remove them)."""
-    from app.services.work_orders import MAX_PHOTOS_PER_RECORD, save_photos
+    from app.services.work_orders import save_photos
 
     record = db.get_or_404(MaintenanceRecord, maintenance_id)
     if request.method == "POST":
         saved, problems = save_photos(record, request.files.getlist("photos"),
                                       current_app.static_folder,
-                                      on_saved=_copy_to_cloud if USE_CLOUD_STORAGE else None)
+                                      on_saved=_copy_to_cloud if _cloud_photos() else None)
         for problem in problems:
             flash(problem, "warning")
         if saved:
@@ -526,7 +560,7 @@ def maintenance_photos(maintenance_id):
         return redirect(url_for("maintenance.maintenance_photos", maintenance_id=record.id))
 
     return render_template("maintenance_photos.html", maintenance=record,
-                           max_photos=MAX_PHOTOS_PER_RECORD)
+                           max_photos=current_app.config["MAX_PHOTOS_PER_RECORD"])
 
 
 @maintenance_bp.route(
@@ -610,7 +644,13 @@ def export_maintenance_report():
     from reportlab.lib import colors
     from reportlab.lib.pagesizes import letter
     from reportlab.lib.styles import getSampleStyleSheet
-    from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+    from reportlab.platypus import (
+        Paragraph,
+        SimpleDocTemplate,
+        Spacer,
+        Table,
+        TableStyle,
+    )
 
     report_type = request.args.get("type", "all")
     try:

@@ -35,12 +35,21 @@ class SecurityUtilsTestCase(unittest.TestCase):
         ):
             self.assertEqual(get_client_ip(), "10.0.0.7")
 
-    def test_get_client_ip_accepts_valid_forwarded_ip(self):
-        """Use forwarded address when present and valid."""
+    def test_get_client_ip_ignores_forwarded_for(self):
+        """X-Forwarded-For is never believed: any client can send it (F-23, Step 5.2)."""
         with app.test_request_context(
             "/",
             headers={"X-Forwarded-For": "203.0.113.8, 10.0.0.1"},
             environ_base={"REMOTE_ADDR": "10.0.0.7"},
+        ):
+            self.assertEqual(get_client_ip(), "10.0.0.7")
+
+    def test_get_client_ip_takes_cloudflares_header_from_the_tunnel(self):
+        """The tunnel connects from loopback; Cloudflare's edge sets CF-Connecting-IP."""
+        with app.test_request_context(
+            "/",
+            headers={"CF-Connecting-IP": "203.0.113.8"},
+            environ_base={"REMOTE_ADDR": "127.0.0.1"},
         ):
             self.assertEqual(get_client_ip(), "203.0.113.8")
 

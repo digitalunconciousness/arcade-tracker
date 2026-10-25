@@ -21,11 +21,11 @@
     {{ ui.chip("ok", "OK") }} {{ ui.chip("warn", "Warning") }} {{ ui.chip("fault", "Fault") }}
     {{ ui.chip("info", "Info") }} {{ ui.chip("muted", "Muted") }}
   </div>
-  <h3 style="margin-top: var(--sp-4)">Every stored status</h3>
+  <h3 class="mt-4">Every stored status</h3>
   <div class="cluster">
     {% for value in tones %}{{ ui.status(value) }} {% endfor %}
   </div>
-  <h3 style="margin-top: var(--sp-4)">Badges</h3>
+  <h3 class="mt-4">Badges</h3>
   <div class="cluster">
     <span class="badge is-ok">synced</span> <span class="badge is-warn">stale</span>
     <span class="badge is-fault">over-voltage</span> <span class="badge is-info">gatbox</span>
@@ -55,20 +55,20 @@
     <button class="btn btn--danger" type="button">Delete</button>
     <a class="btn" href="#buttons">Link button</a>
   </div>
-  <div class="cluster" style="margin-top: var(--sp-3)">
+  <div class="cluster mt-3">
     <button class="btn btn--primary btn--sm" type="button">Small primary</button>
     <button class="btn btn--sm" type="button">Small</button>
     <button class="btn btn--danger btn--sm" type="button">Small delete</button>
   </div>
-  <div class="cluster" style="margin-top: var(--sp-3)">
+  <div class="cluster mt-3">
     <button class="btn btn--primary" type="button" disabled>Disabled</button>
     <button class="btn" type="button" disabled>Disabled</button>
     <button class="btn btn--primary" type="button" aria-busy="true">Saving</button>
   </div>
-  <div style="margin-top: var(--sp-3); max-width: 390px">
+  <div class="mt-3 phone-width">
     <button class="btn btn--primary btn--block" type="button">Full width (phone primary action)</button>
   </div>
-  <div class="cluster" style="margin-top: var(--sp-3)">
+  <div class="cluster mt-3">
     {{ ui.danger_form("#", "Delete with confirm", "Delete the synthetic record? This cannot be undone.", "Delete") }}
   </div>
 </section>
@@ -108,7 +108,7 @@
     <div class="card card--status is-fault"><h3>Status card</h3><p>A left edge in the status colour, for a machine that is down.</p></div>
     <div class="card card--status is-ok"><h3>Status card</h3><p>Back in service.</p></div>
   </div>
-  <h3 style="margin-top: var(--sp-4)">Tiles (pickers, quick actions)</h3>
+  <h3 class="mt-4">Tiles (pickers, quick actions)</h3>
   <div class="tiles">
     <a class="tile" href="#sg-cards"><b>Neon Raider</b><span class="dim">Floor · Working</span></a>
     <a class="tile" href="#sg-cards" aria-current="true"><b>Pixel Pinball</b><span class="dim">Selected</span></a>
