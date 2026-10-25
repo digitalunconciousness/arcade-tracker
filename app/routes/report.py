@@ -51,12 +51,9 @@ MAX_PER_HOUR = 5
 def _token_rate_key() -> str:
     """The rate-limit bucket for one machine.
 
-    Per machine, not per address: ``get_remote_address`` resolves to ``request.remote_addr``,
-    which through the Cloudflare tunnel is cloudflared's own address -- so every visitor from
-    the internet already shares one bucket and an address-keyed limit here would be close to
-    decorative. (``app/security/utils.get_client_ip`` does read X-Forwarded-For, so logging
-    can see the real client; the limiter cannot. Changing that means deciding to trust a
-    header, which is its own piece of work.)
+    Per machine, not per visitor: the point is that one machine's code can't flood the work
+    queue, however many people (or addresses) are behind it. The visitor's real address is
+    known since Step 5.2 (``app/security/https.client_ip``), and the site-wide ceiling uses it.
 
     Hashed rather than raw, because the key becomes a storage key: ``memory://`` today, but a
     backend that persists would otherwise hold the credential.

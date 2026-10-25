@@ -1,6 +1,5 @@
 """Security utilities for logging, request validation, and file/path safety."""
 
-import ipaddress
 import logging
 import os
 from datetime import datetime, timedelta
@@ -72,34 +71,10 @@ def log_security_event(event_type, user_id=None, details="", level="info"):
 
 
 def get_client_ip() -> str:
-    """Get a validated client IP address, considering common proxy headers.
+    """The visitor's address. See :func:`app.security.https.client_ip` for what is trusted."""
+    from app.security.https import client_ip
 
-    Returns:
-        A validated IP string, or ``'Unknown'`` when no valid client IP
-        is available.
-    """
-    forwarded_for = request.headers.get("X-Forwarded-For")
-    real_ip = request.headers.get("X-Real-IP")
-    remote_addr = request.remote_addr
-
-    candidates = []
-    if forwarded_for:
-        candidates.append(forwarded_for.split(",")[0].strip())
-    if real_ip:
-        candidates.append(real_ip.strip())
-    if remote_addr:
-        candidates.append(remote_addr.strip())
-
-    for candidate in candidates:
-        if not candidate:
-            continue
-        try:
-            ipaddress.ip_address(candidate)
-            return candidate
-        except ValueError:
-            continue
-
-    return "Unknown"
+    return client_ip()
 
 
 def record_failed_login(username, ip=None):

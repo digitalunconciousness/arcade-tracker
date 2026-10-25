@@ -231,6 +231,9 @@ CSP = (
 ERROR_PAGES = {
     403: ("Not allowed", "Your account cannot open this page. If you need it, ask an admin "
           "to change your role.", "warn"),
+    429: ("Too many attempts", "Too many tries from this network in a short time. Wait a "
+          "minute and try again; if you've forgotten your password, ask an admin to reset it.",
+          "warn"),
     404: ("Nothing here", "That page or record does not exist. It may have been deleted, or the "
           "link is mistyped. Machine labels still work: scan the code again.", "info"),
     500: ("Something broke", "The tracker hit an error and nothing was saved. Try again; if it "

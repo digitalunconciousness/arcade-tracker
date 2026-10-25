@@ -340,6 +340,11 @@ anything is changed.
 - **F-23 Weak login protection.** Lockout is per username and in memory, so anyone can lock out a known
   user, and there is no IP rate limit on `/login`. Info-level security events (`LOGIN_SUCCESS`,
   `LOGIN_FAILED`) are dropped because the app logger stays at WARNING (see F-2 for why).
+  *Fixed in 5.2, except the logging (5.5): the visitor's address comes from Cloudflare's
+  `CF-Connecting-IP`, believed only from the tunnel; X-Forwarded-For and X-Real-IP are no longer
+  trusted, so the lockout can't be dodged and a stranger can't lock out staff. Failed logins are
+  limited to 10 a minute per address. The site-wide limit was 200 pages an hour shared by every
+  tunnel user; it is now 5,000 an hour per address.*
 - **F-24 Uploads are checked by extension only.** Pillow re-encoding is the real check, but its failure is
   ignored (F-8). There's no size check per file, only the 50 MB request cap. *Since 4.8a machine photos are
   re-encoded as JPEG and a file Pillow can't read is refused.*

@@ -1,4 +1,5 @@
-"""HTTPS awareness behind the Cloudflare tunnel (F-22).
+"""What the app may believe about a request behind the Cloudflare tunnel: its scheme (F-22)
+and the visitor's address (F-23).
 
 The site is reached two ways (deploy/listen.conf.example):
 
@@ -20,6 +21,10 @@ This sits at the WSGI layer because Flask writes the session cookie after every
 rewriting ``Set-Cookie`` on the way out catches both, whatever order they run in.
 """
 from __future__ import annotations
+
+import ipaddress
+
+from flask import request
 
 LOOPBACK = frozenset({"127.0.0.1", "::1"})
 
@@ -49,3 +54,27 @@ def secure(cookie: str) -> str:
     """Add the Secure attribute to one Set-Cookie value, once."""
     attributes = [part.strip().lower() for part in cookie.split(";")[1:]]
     return cookie if "secure" in attributes else cookie + "; Secure"
+
+
+def client_ip() -> str:
+    """The visitor's address, for rate limits, lockouts and the security log (F-23).
+
+    Every request through the tunnel arrives from 127.0.0.1, so the connecting address alone
+    would put the whole internet in one bucket: one stranger's wrong guesses could lock out
+    real staff. Cloudflare's edge sets ``CF-Connecting-IP`` to the real visitor and replaces
+    any copy the visitor sends, so it is believed -- but only from loopback, where the tunnel
+    is. ``X-Forwarded-For`` and ``X-Real-IP`` are never believed: a visitor can send either,
+    and the tunnel passes them on.
+
+    Staff on the arcade Wi-Fi share one public address, so limits keyed on this are per
+    network, not per phone; they are set with that in mind.
+    """
+    remote = request.remote_addr or ""
+    if remote in LOOPBACK:
+        forwarded = request.headers.get("CF-Connecting-IP", "").strip()
+        try:
+            return str(ipaddress.ip_address(forwarded))
+        except ValueError:
+            pass
+    return remote or "unknown"
+

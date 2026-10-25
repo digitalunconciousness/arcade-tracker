@@ -1,8 +1,8 @@
 """Authentication blueprint — login, logout, setup, profile, change password."""
 
+import datetime as dt
 import os
 import uuid
-import datetime as dt
 from datetime import datetime
 
 from flask import (
@@ -16,24 +16,33 @@ from flask import (
 )
 from flask_login import current_user, login_required, login_user, logout_user
 
-from app.extensions import db
-from app.models import User
+from app.extensions import db, limiter
 from app.forms.auth import ChangePasswordForm, LoginForm, ProfileForm
-from app.utils.helpers import allowed_file, compress_and_save_image
+from app.models import User
 from app.security.utils import (
-    log_security_event,
-    record_failed_login,
-    is_account_locked,
+    check_password_strength,
     clear_failed_login_attempts,
     get_client_ip,
-    check_password_strength,
+    is_account_locked,
     is_safe_redirect_url,
+    log_security_event,
+    record_failed_login,
 )
+from app.utils.helpers import allowed_file, compress_and_save_image
 
 auth_bp = Blueprint("auth", __name__)
 
 
+def _failed_sign_in(response) -> bool:
+    """Only failures spend the login budget: a success redirects, a failure re-renders."""
+    return response.status_code == 200
+
+
+# Per visitor address (app/security/https.client_ip). A whole arcade shares one public address,
+# so only failed attempts count: a room of staff signing in correctly never reaches it, and
+# someone guessing passwords does within a minute. The per-username lockout below still applies.
 @auth_bp.route("/login", methods=["GET", "POST"])
+@limiter.limit("10 per minute;50 per hour", methods=["POST"], deduct_when=_failed_sign_in)
 def login():
     if current_user.is_authenticated:
         return redirect(url_for("dashboard.home"))
