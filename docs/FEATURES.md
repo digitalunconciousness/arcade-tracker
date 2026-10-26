@@ -112,6 +112,18 @@ outbox in the same commit; `scripts/send_alerts.py`, every minute from
 message per channel, and sends the daily summary at opening. **Outbound requests:** the sender
 posts to the configured ntfy server and Discord; nothing else in the app reaches out.
 
+**Branding** (`app/routes/branding.py`; added 2026-10-26):
+
+| ID | Route | Methods | Role | Template | Form | What it does |
+|----|-------|---------|------|----------|------|--------------|
+| B1 | `/admin/branding` | GET, POST | admin | `branding.html` | raw (files) | The arcade's name, logo, a dark-on-light logo for printing, and the sign-in background. |
+| B2 | `/branding/logo`, `/branding/print-logo`, `/branding/background` | GET | **public** | — | — | The files, for the sign-in page and coin-door form too. An SVG is served with `sandbox` so it can't run script. |
+
+The logo replaces the wordmark in the header and goes on the sign-in page, the coin-door form,
+labels and PDFs (PDFs can't draw SVG: they show the name). "Runs on Arcade Tracker" and the
+source link stay in the footer (AGPL). An uploaded SVG is cleaned to drawing elements only;
+a DOCTYPE or entities are refused.
+
 ## 4. Coin-door reporting (`app/routes/report.py`): the only unauthenticated write
 
 | ID | Route | Methods | Role | Template | Form | What it does |
@@ -555,3 +567,7 @@ anything is changed.
     role's home leads with what it acts on (readonly: what's down; operator: their orders,
     downtime, maintenance due, stock; manager: plays this week, downtime, swaps, stock; admin:
     the same, and alerts that failed).
+15. **Branding** (2026-10-26): an arcade can set its name, logo and sign-in background, like
+    Jellyfin's; the logo replaces the wordmark and appears on the sign-in page, coin-door form,
+    labels and PDFs; SVG is accepted (cleaned, and served so it can't run script). A separate
+    dark-on-light logo for printing is optional.

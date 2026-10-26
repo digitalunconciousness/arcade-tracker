@@ -104,6 +104,15 @@
   display: inline-flex;
   align-items: center;
 }
+.brand--logo {
+  display: inline-flex;
+  align-items: center;
+}
+.brand__logo {
+  display: block;
+  max-height: 40px;
+  max-width: 180px;
+}
 .brand b {
   color: var(--accent);
 }
@@ -1040,6 +1049,63 @@ legend {
 .auth__help {
   margin-top: var(--sp-5);
   font-size: var(--fs-sm);
+}
+/* The arcade's own sign-in page (Admin, Branding): logo, name, and a background behind it. */
+.auth__logo {
+  display: block;
+  max-width: 100%;
+  max-height: 120px;
+  margin: 0 auto var(--sp-3);
+}
+.auth__name {
+  margin: 0 0 var(--sp-2);
+  text-align: center;
+  font: 600 var(--fs-lg) / 1.2 var(--font-display);
+  letter-spacing: var(--track-display);
+}
+/* Above the page's own background (a negative z-index would sit under it), below the form,
+   the header (sticky, z-index 20) and the footer, which carries the AGPL credit. */
+.auth__bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: brightness(0.45);
+}
+.auth--over {
+  position: relative;
+  z-index: 1;
+  padding: var(--sp-5);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+}
+body:has(.auth__bg) .app-footer {
+  position: relative;
+  z-index: 1;
+}
+.branding__preview {
+  display: block;
+  max-width: 100%;
+  max-height: 120px;
+  padding: var(--sp-2);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+}
+.branding__preview--paper {
+  background: #fff;
+}
+.branding__preview--wide {
+  max-height: 200px;
+}
+.report-page__logo {
+  display: block;
+  max-width: 70%;
+  max-height: 80px;
+  margin-bottom: var(--sp-3);
 }
 
 /* =========================================================================================

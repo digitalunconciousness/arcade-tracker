@@ -16,7 +16,9 @@
 </head>
 <body>
 <main class="app-main report-page">
-  <p class="report-page__kicker">Report a problem</p>
+  {#- The arcade's logo, so whoever opened the door knows whose it is. An image, not a link. #}
+  {%- if branding.logo_url %}<img class="report-page__logo" src="{{ branding.logo_url }}" alt="{{ branding.name or '' }}">{% endif %}
+  <p class="report-page__kicker">Report a problem{% if branding.name %} · {{ branding.name }}{% endif %}</p>
   <h1>{{ game.name }}</h1>
 
   {%- with messages = get_flashed_messages(with_categories=true) %}

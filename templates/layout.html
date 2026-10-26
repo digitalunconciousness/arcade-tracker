@@ -11,7 +11,7 @@
     item appears if and only if the role can open its page.
 -#}
 {%- set section = {
-    "dashboard": "dashboard", "games": "machines", "collection": "machines", "rotation": "machines", "upkeep": "orders", "alerts": "admin", "maintenance": "orders",
+    "dashboard": "dashboard", "games": "machines", "collection": "machines", "rotation": "machines", "upkeep": "orders", "alerts": "admin", "branding": "admin", "maintenance": "orders",
     "inventory": "inventory", "rails": "rails", "reports": "reports", "admin": "admin",
     "styleguide": "admin", "auth": "account",
   }.get(request.blueprint) -%}
@@ -26,8 +26,9 @@
   <meta name="csrf-token" content="{{ csrf_token() }}">
   {%- endif %}
   <meta name="theme-color" content="#150a28">
-  <meta name="apple-mobile-web-app-title" content="Arcade Tracker">
-  <title>{% block title %}{% endblock %}{% if self.title() %} · {% endif %}Arcade Tracker</title>
+  {%- set site_name = branding.name or "Arcade Tracker" %}
+  <meta name="apple-mobile-web-app-title" content="{{ site_name }}">
+  <title>{% block title %}{% endblock %}{% if self.title() %} · {% endif %}{{ site_name }}</title>
   <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
   <link rel="apple-touch-icon" href="{{ url_for('static', filename='icon-192.png') }}">
   <link rel="preload" href="{{ asset('fonts/chakra-petch-600-latin.woff2') }}" as="font" type="font/woff2" crossorigin>
@@ -43,7 +44,11 @@
 <header class="app-header">
  <div class="app-header__inner">
   <div class="app-header__bar">
-    <a class="brand" href="{{ url_for('dashboard.home') if current_user.is_authenticated else url_for('auth.login') }}">ARCADE<b>//</b>TRACKER</a>
+    {#- The arcade's own logo or name replaces the wordmark when set (Admin, Branding). -#}
+    <a class="brand{% if branding.logo_url %} brand--logo{% endif %}" href="{{ url_for('dashboard.home') if current_user.is_authenticated else url_for('auth.login') }}">
+      {%- if branding.logo_url %}<img class="brand__logo" src="{{ branding.logo_url }}" alt="{{ branding.name or 'Home' }}">
+      {%- elif branding.name %}{{ branding.name }}
+      {%- else %}ARCADE<b>//</b>TRACKER{% endif %}</a>
     {%- if current_user.is_authenticated %}
     <a class="btn btn--sm app-header__scan" href="{{ url_for('games.scan') }}">Scan</a>
     <button class="btn btn--sm menu-toggle" type="button" aria-expanded="false" aria-controls="app-nav">Menu</button>
@@ -109,7 +114,7 @@
 {#- AGPL-3.0 section 13: people using the site over the network can get its source. The public
     coin-door page (coin_door_report.html) stays without it: that page links nowhere, by design. -#}
 <footer class="app-footer">
-  <a href="{{ config.SOURCE_URL }}" rel="noopener">Source code</a> · AGPL-3.0
+  {%- if branding.name or branding.logo_url %}Runs on Arcade Tracker · {% endif %}<a href="{{ config.SOURCE_URL }}" rel="noopener">Source code</a> · AGPL-3.0
 </footer>
 
 <dialog class="dialog" id="confirm-dialog" aria-labelledby="confirm-title">

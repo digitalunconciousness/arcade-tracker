@@ -31,6 +31,9 @@ PUBLIC = {
     "/login": "you cannot require a session to reach the login page",
     "/logout": "handled by flask_login",
     "/static/<path:filename>": "static assets",
+    "/branding/logo": "the arcade's logo, shown on the sign-in page and the coin-door form",
+    "/branding/background": "the sign-in page's background",
+    "/branding/print-logo": "the logo printed on labels, on pages that may be signed out",
     "/setup": "first-run admin creation, guarded by there being no users",
     "/api/v1/health": (
         "GATBOX reads it to choose between the LAN address and the tunnel, and needs the "

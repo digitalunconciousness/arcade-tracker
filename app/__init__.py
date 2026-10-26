@@ -150,6 +150,7 @@ def _register_blueprints(app: Flask) -> None:
         ("app.routes.rotation", "rotation_bp"),
         ("app.routes.upkeep", "upkeep_bp"),
         ("app.routes.alerts", "alerts_bp"),
+        ("app.routes.branding", "branding_bp"),
         ("app.routes.maintenance", "maintenance_bp"),
         ("app.routes.inventory", "inventory_bp"),
         ("app.routes.reports", "reports_bp"),
@@ -182,6 +183,17 @@ def _register_context_processors(app: Flask) -> None:
     from app.ui import register as register_ui_filters
 
     register_ui_filters(app)
+
+    @app.context_processor
+    def branding_processor() -> dict:
+        """The arcade's name and logo, for every page (app/services/branding.py)."""
+        from app.services.branding import current
+
+        try:
+            return {"branding": current()}
+        except Exception:  # noqa: BLE001 -- a missing table must not take every page down
+            return {"branding": {"name": None, "logo_url": None, "logo_is_svg": False,
+                                 "background_url": None, "print_logo_url": None}}
 
     @app.context_processor
     def utility_processor() -> dict:
@@ -273,5 +285,7 @@ def _register_after_request(app: Flask) -> None:
         # login included (fixed 2026-10-26).
         response.headers["Referrer-Policy"] = "same-origin"
         response.headers["X-XSS-Protection"] = "1; mode=block"
-        response.headers["Content-Security-Policy"] = CSP
+        # A response that sets a stricter policy of its own keeps it: an SVG logo is served
+        # with sandbox (app/routes/branding.py), which this would otherwise overwrite.
+        response.headers.setdefault("Content-Security-Policy", CSP)
         return response

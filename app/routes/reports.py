@@ -24,6 +24,7 @@ from app.models import (
     MaintenanceRecord,
     PlayRecord,
 )
+from app.services.branding import pdf_masthead
 from app.services.rankings import update_monthly_rankings_if_due
 from app.services.revenue import location_options, scope_label, scoped, series
 from app.ui import status_label, status_tone
@@ -264,6 +265,7 @@ def export_report_debug():
     styles = getSampleStyleSheet()
     story = []
 
+    story.extend(pdf_masthead(styles))   # the arcade's logo (Admin, Branding)
     story.append(Paragraph("Simple Arcade Report", styles["Title"]))
     story.append(Spacer(1, 12))
 
@@ -312,6 +314,7 @@ def export_report():
     styles = getSampleStyleSheet()
     story = []
 
+    story.extend(pdf_masthead(styles))   # the arcade's logo (Admin, Branding)
     story.append(Paragraph("Arcade Performance Report", styles["Title"]))
     story.append(Spacer(1, 12))
 
@@ -561,6 +564,7 @@ def export_revenue_report():
     styles = getSampleStyleSheet()
     story = []
 
+    story.extend(pdf_masthead(styles))   # the arcade's logo (Admin, Branding)
     story.append(Paragraph(title, styles["Title"]))
     story.append(Spacer(1, 12))
 
