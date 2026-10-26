@@ -261,7 +261,8 @@ def test_a_failure_is_retried_later_and_never_records_the_address(app, floor, wi
     db.session.commit()
     assert deliver(now=now)["failed"] == 1
     a = queued()[0]
-    assert (a.status, a.attempts, a.error) == ("pending", 1, "ConnectionError")
+    assert (a.status, a.attempts) == ("pending", 1)
+    assert a.error == "ConnectionError: ConnectionError (discord.com)"
     assert "secret" not in (a.error or "")
     assert deliver(now=now + dt.timedelta(seconds=30))["sent"] == 0, "not before its next try"
     wire.boom = False
@@ -279,7 +280,7 @@ def test_it_gives_up_after_a_day(app, floor, wire):
     queued()[0].created_at = naive(2026, 10, 1)
     db.session.commit()
     deliver(now=naive(2026, 10, 3))
-    assert (queued()[0].status, queued()[0].error) == ("failed", "HTTP 500")
+    assert (queued()[0].status, queued()[0].error) == ("failed", "HTTP 500 (ntfy.lan)")
 
 
 # --- opening hours ------------------------------------------------------------------------------
@@ -395,8 +396,8 @@ def test_the_test_button_reports_what_happened(client, floor, wire):
     wire.status = 404
     client.post(f"/admin/alerts/{cid}/test")
     messages = flashes(client)
-    expected = ("ntfy: not sent (HTTP 404). Check the address, and that this server can "
-                "reach it.")
+    expected = ("ntfy: not sent (HTTP 404 (ntfy.lan)). Check the address, and that this server "
+                "can reach it.")
     assert ("error", expected) in messages
     assert len(wire.calls) == 2 and all(a.status == "failed" for a in queued("test"))
 
@@ -470,3 +471,30 @@ def test_the_migration_round_trips(app, floor):
     migrate(upgrade, "a5b6c7d8e9f0")
     migrate(upgrade, "a5b6c7d8e9f0")
     assert {"alert", "alert_channel", "app_setting"} <= tables()
+
+
+DNS_FAILURE = ("HTTPSConnection(host='ntfy.example', port=443): Failed to resolve "
+               "'ntfy.example' ([Errno -2] Name or service not known)")
+REFUSED = ("HTTPConnection(host='10.0.0.9', port=80): Failed to establish a new connection: "
+           "[Errno 111] Connection refused")
+
+
+@pytest.mark.parametrize(("reason", "expected"), [
+    (DNS_FAILURE, "ConnectionError: [Errno -2] Name or service not known (ntfy.example)"),
+    (REFUSED, "ConnectionError: [Errno 111] Connection refused (ntfy.example)"),
+])
+def test_a_failure_says_why_and_where_but_never_the_path(reason, expected):
+    import requests
+
+    from app.services.alerts import describe
+
+    class Wrapped(Exception):
+        def __init__(self, text):
+            super().__init__(text)
+            self.reason = Exception(text)
+
+    url = "https://ntfy.example/secret-part-of-a-webhook"
+    error = requests.ConnectionError(Wrapped(reason))
+    assert describe(error, url) == expected
+    assert "secret" not in describe(error, url)
+

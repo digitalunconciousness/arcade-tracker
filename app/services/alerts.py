@@ -14,6 +14,8 @@ from __future__ import annotations
 
 import datetime as dt
 import logging
+import re
+from urllib.parse import urlsplit
 
 from app.extensions import db
 from app.models.alerts import Alert, AlertChannel, Setting, _utc_now
@@ -97,16 +99,32 @@ def _link(path: str | None) -> str | None:
     return f"{base}{path}" if base and path else None
 
 
+ERRNO = re.compile(r"\[Errno -?\d+\][^)'\"]*")
+
+
+def describe(error: Exception, url: str) -> str:
+    """What went wrong, safe to store: the kind of failure, the OS's reason, and the server's
+    name -- never the path, which for a Discord webhook is the secret.
+
+    requests wraps the real failure (a DNS lookup, a refused or timed-out connection) inside
+    its own; "ConnectionError" alone couldn't tell those apart, or show a mistyped name.
+    """
+    reason = getattr(error.args[0], "reason", None) if error.args else None
+    detail = ERRNO.search(str(reason or error))
+    cause = detail.group(0).strip() if detail else type(reason or error).__name__
+    host = urlsplit(url).hostname or "unknown host"
+    return f"{type(error).__name__}: {cause} ({host})"
+
+
 def _post(url: str, **kw):
     import requests
 
     try:
         resp = requests.post(url, timeout=TIMEOUT_S, **kw)
     except requests.RequestException as e:
-        # The exception's text includes the URL, and a webhook URL is a password.
-        raise SendError(type(e).__name__) from None
+        raise SendError(describe(e, url)) from None
     if resp.status_code >= 300:
-        raise SendError(f"HTTP {resp.status_code}")
+        raise SendError(f"HTTP {resp.status_code} ({urlsplit(url).hostname})")
     return resp
 
 
