@@ -1,9 +1,20 @@
 # Changelog
 
-All notable changes to Arcade Tracker will be documented in this file.
+All notable changes to Cabcrawl (called Arcade Tracker until October 2026) will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+### Changed
+- **The app is now called Cabcrawl** (it was Arcade Tracker). The header wordmark reads CABCRAWL,
+  the browser tab and home-screen icon say Cabcrawl, and so does the footer credit when an arcade
+  sets its own name or logo. GATBOX tests the board; Cabcrawl runs the floor.
+- Nothing a machine, a label or a server depends on changed: every URL (including `/g/<barcode>`
+  on printed QR labels), the GATBOX API contract, the database, role, cookie and environment
+  variable names, the systemd unit `arcade-tracker.service` and the server paths keep their
+  names. `deploy/RUNBOOK.md` says so.
 
 ## [1.0.0] - 2025-11-13
 
