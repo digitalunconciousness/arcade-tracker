@@ -250,3 +250,70 @@ def _new_code() -> str:
     from app.models.stock import new_code
 
     return new_code()
+
+
+# --- counts (inventory step 5) --------------------------------------------------------------
+
+COUNT_STATUSES = ("Counting", "Applied", "Cancelled")
+
+
+class StockCount(db.Model):
+    """A planned count: a full count of some places, or a cycle count of the parts counted
+    longest ago. Counters fill its lines blind (they don't see what's on record); nothing
+    changes until a manager reviews the differences and applies them. A count can repeat."""
+
+    __tablename__ = "stock_count"
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    kind = db.Column(db.String(10), nullable=False, default="full")     # full | cycle
+    status = db.Column(db.String(20), nullable=False, default="Counting")
+    due = db.Column(db.Date, nullable=True)
+    repeat_days = db.Column(db.Integer, nullable=True)
+    cycle_size = db.Column(db.Integer, nullable=True)
+    # A full count's places, as ids ("3,7"): kept so a repeat counts the same places.
+    place_ids = db.Column(db.String(500), nullable=True)
+    created_by_id = db.Column(db.Integer, db.ForeignKey("user.id", ondelete="SET NULL",
+                                                        name="fk_stock_count_created_by_id"),
+                              nullable=True, index=True)
+    created = db.Column(db.DateTime, nullable=False, default=_now)
+    applied = db.Column(db.DateTime, nullable=True)
+    applied_by_id = db.Column(db.Integer, db.ForeignKey("user.id", ondelete="SET NULL",
+                                                        name="fk_stock_count_applied_by_id"),
+                              nullable=True, index=True)
+
+    created_by = db.relationship("User", foreign_keys=[created_by_id])
+    applied_by = db.relationship("User", foreign_keys=[applied_by_id])
+    lines = db.relationship("StockCountLine", backref="count", cascade="all, delete-orphan",
+                            order_by="StockCountLine.id")
+
+    @property
+    def counted(self) -> int:
+        return sum(1 for line in self.lines if line.counted is not None)
+
+
+class StockCountLine(db.Model):
+    """One part in one place on a count: what was on record when it started, and what was
+    counted."""
+
+    __tablename__ = "stock_count_line"
+    __table_args__ = (db.UniqueConstraint("count_id", "item_id", "place_id",
+                                          name="uq_stock_count_line"),)
+
+    id = db.Column(db.Integer, primary_key=True)
+    count_id = db.Column(db.Integer, db.ForeignKey("stock_count.id", ondelete="CASCADE"),
+                         nullable=False, index=True)
+    item_id = db.Column(db.Integer, db.ForeignKey("inventory_item.id", ondelete="CASCADE"),
+                        nullable=False, index=True)
+    place_id = db.Column(db.Integer, db.ForeignKey("stock_place.id"), nullable=False,
+                         index=True)
+    expected = db.Column(db.Integer, nullable=False, default=0)
+    counted = db.Column(db.Integer, nullable=True)
+    counted_by_id = db.Column(db.Integer, db.ForeignKey("user.id", ondelete="SET NULL",
+                                                        name="fk_stock_count_line_counted_by_id"),
+                              nullable=True, index=True)
+    counted_at = db.Column(db.DateTime, nullable=True)
+
+    item = db.relationship("InventoryItem")
+    place = db.relationship("StockPlace")
+    counted_by = db.relationship("User")

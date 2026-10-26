@@ -91,6 +91,12 @@ def seed_floor() -> dict:
     db.session.add_all([cpu, in_game, spare, StockLevel(item=cpu, place=shelf, quantity=1),
                         UnitEvent(unit=in_game, kind="installed", detail="Neon Raider"),
                         UnitEvent(unit=spare, kind="recorded", detail="Back Room › Shelf A")])
+    # Planned counts (inventory step 5): an open count of the shelf, nothing counted yet.
+    from app.models import StockCount, StockCountLine
+
+    shelf_count = StockCount(name="Shelf A count", kind="full", place_ids=str(shelf.id))
+    db.session.add_all([shelf_count, StockCountLine(count=shelf_count, item=belt, place=shelf,
+                                                    expected=10)])
     order = PurchaseOrder(supplier=depot, status="Sent", notes="Synthetic order")
     db.session.add_all([spring, order, PurchaseOrderLine(order=order, item=spring,
                                                          quantity=20, unit_price=0.3)])
@@ -166,4 +172,5 @@ def seed_floor() -> dict:
         "category": belts.id, "supplier": depot.id, "supplier_link": belt.suppliers[0].id,
         "order": order.id, "order_line": order.lines[0].id,
         "cpu": cpu.id, "unit": spare.id, "unit_in_game": in_game.id,
+        "stock_count": shelf_count.id,
     }

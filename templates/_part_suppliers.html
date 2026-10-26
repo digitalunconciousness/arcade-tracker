@@ -28,7 +28,7 @@
             <div class="field"><label for="lk-url-{{ lk.id }}">Order page</label><input id="lk-url-{{ lk.id }}" name="url" maxlength="500" inputmode="url" value="{{ lk.url or '' }}"></div>
             <div class="form__actions"><button class="btn btn--sm btn--primary" type="submit">Save</button></div>
           </form>
-          <p class="cluster mt-3">
+          <div class="cluster mt-3">
             {%- if not lk.preferred %}
             <form class="inline-form" method="post" action="{{ url_for('parts.link_prefer', item_id=item.id, link_id=lk.id) }}">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -36,7 +36,7 @@
             </form>
             {%- endif %}
             {{ ui.danger_form(url_for("parts.link_remove", item_id=item.id, link_id=lk.id), "Remove", "Remove " ~ lk.supplier.name ~ " from this part? Its price history stays.") }}
-          </p>
+          </div>
         </details>
         {%- endif %}
       </span>

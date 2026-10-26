@@ -605,6 +605,7 @@
    "admin.manage_users()",
    "auth.logout()",
    "auth.profile()",
+   "counts.overview()",
    "dashboard.home()",
    "games.games_list()",
    "games.scan()",
@@ -630,6 +631,7 @@
   "manager": [
    "auth.logout()",
    "auth.profile()",
+   "counts.overview()",
    "dashboard.home()",
    "games.games_list()",
    "games.scan()",
@@ -655,6 +657,7 @@
   "operator": [
    "auth.logout()",
    "auth.profile()",
+   "counts.overview()",
    "dashboard.home()",
    "games.games_list()",
    "games.scan()",
@@ -858,6 +861,123 @@
    "parts.category_delete(category_id=category)",
    "parts.category_edit(category_id=category)",
    "parts.category_new()",
+   "rails.floor()",
+   "reports.reports()"
+  ]
+ },
+ "/inventory/counts/": {
+  "admin": [
+   "admin.manage_users()",
+   "auth.logout()",
+   "auth.profile()",
+   "counts.new()",
+   "counts.sheet(count_id=stock_count)",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "rails.floor()",
+   "reports.reports()"
+  ],
+  "manager": [
+   "auth.logout()",
+   "auth.profile()",
+   "counts.new()",
+   "counts.sheet(count_id=stock_count)",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "rails.floor()",
+   "reports.reports()"
+  ],
+  "operator": [
+   "auth.logout()",
+   "auth.profile()",
+   "counts.sheet(count_id=stock_count)",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "rails.floor()"
+  ]
+ },
+ "/inventory/counts/<int:count_id>": {
+  "admin": [
+   "admin.manage_users()",
+   "auth.logout()",
+   "auth.profile()",
+   "counts.found(count_id=stock_count)",
+   "counts.overview()",
+   "counts.review(count_id=stock_count)",
+   "counts.save(count_id=stock_count)",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "rails.floor()",
+   "reports.reports()"
+  ],
+  "manager": [
+   "auth.logout()",
+   "auth.profile()",
+   "counts.found(count_id=stock_count)",
+   "counts.overview()",
+   "counts.review(count_id=stock_count)",
+   "counts.save(count_id=stock_count)",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "rails.floor()",
+   "reports.reports()"
+  ],
+  "operator": [
+   "auth.logout()",
+   "auth.profile()",
+   "counts.found(count_id=stock_count)",
+   "counts.overview()",
+   "counts.save(count_id=stock_count)",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "rails.floor()"
+  ]
+ },
+ "/inventory/counts/<int:count_id>/review": {
+  "admin": [
+   "admin.manage_users()",
+   "auth.logout()",
+   "auth.profile()",
+   "counts.finish(action=apply, count_id=stock_count)",
+   "counts.finish(action=cancel, count_id=stock_count)",
+   "counts.sheet(count_id=stock_count)",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "rails.floor()",
+   "reports.reports()"
+  ],
+  "manager": [
+   "auth.logout()",
+   "auth.profile()",
+   "counts.finish(action=apply, count_id=stock_count)",
+   "counts.finish(action=cancel, count_id=stock_count)",
+   "counts.sheet(count_id=stock_count)",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
    "rails.floor()",
    "reports.reports()"
   ]

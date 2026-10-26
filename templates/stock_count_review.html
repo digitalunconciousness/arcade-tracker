@@ -1,0 +1,72 @@
+{% extends "layout.html" %}
+{% import "ui.html" as ui %}
+{% set counting = count.status == "Counting" %}
+{% block title %}Review · {{ count.name }}{% endblock %}
+
+{% block page_head %}
+{% call ui.page_head("Review " ~ count.name, sub=count.counted ~ " of " ~ count.lines|length ~ " counted · " ~ count.status, back=url_for("counts.sheet", count_id=count.id), back_label="Counting sheet") %}
+{% endcall %}
+{% endblock %}
+
+{#- Differences against the stock as it is now (it may have moved since the count started),
+    largest first. Applying sets each counted place to its count; uncounted lines are left. -#}
+{% block content %}
+<div class="stack">
+  <dl class="readouts">
+    {{ ui.readout("Differ", differ|length, "places that will change", "warn" if differ else "ok") }}
+    {{ ui.readout("Match", match|length) }}
+    {{ ui.readout("Not counted", missing|length, "left as they are", "warn" if missing and counting else none) }}
+  </dl>
+
+  {%- if differ %}
+  <section aria-labelledby="differ-title">
+    <h2 id="differ-title">{{ "Will change" if counting else "Differed" }}</h2>
+    <div class="table-wrap">
+      <table class="table table--stack">
+        <thead><tr><th>Part</th><th>Where</th><th class="num">On record</th><th class="num">Counted</th><th class="num">Change</th><th>By</th></tr></thead>
+        <tbody>
+          {%- for d in differ %}
+          <tr>
+            <td data-label="Part"><a href="{{ url_for('inventory.inventory_detail', item_id=d.line.item_id) }}">{{ d.line.item.name }}</a></td>
+            <td data-label="Where">{{ d.line.place.path }}</td>
+            <td data-label="On record" class="num">{{ d.now }}{% if d.now != d.line.expected %} <span class="dim">(was {{ d.line.expected }})</span>{% endif %}</td>
+            <td data-label="Counted" class="num">{{ d.line.counted }}</td>
+            <td data-label="Change" class="num {{ 'is-ok' if d.change > 0 else 'is-warn' }}">{{ "%+d"|format(d.change) }}</td>
+            <td data-label="By">{{ d.line.counted_by.username if d.line.counted_by else "—" }}</td>
+          </tr>
+          {%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {%- endif %}
+
+  {%- if missing and counting %}
+  <details class="card">
+    <summary class="btn btn--sm btn--ghost">{{ missing|length }} not counted yet</summary>
+    <ul class="rows mt-3">{% for ln in missing %}<li class="row"><span class="row__main"><span class="row__title">{{ ln.item.name }}</span><span class="row__meta">{{ ln.place.path }}</span></span></li>{% endfor %}</ul>
+  </details>
+  {%- endif %}
+
+  {%- if match %}
+  <details class="card">
+    <summary class="btn btn--sm btn--ghost">{{ match|length }} matched</summary>
+    <ul class="rows mt-3">{% for d in match %}<li class="row"><span class="row__main"><span class="row__title">{{ d.line.item.name }}</span><span class="row__meta">{{ d.line.place.path }} · {{ d.now }}</span></span></li>{% endfor %}</ul>
+  </details>
+  {%- endif %}
+
+  {%- if counting %}
+  <section class="card stack" aria-labelledby="apply-title">
+    <h2 id="apply-title">Apply</h2>
+    <p class="dim">Sets {{ differ|length }} place{{ "" if differ|length == 1 else "s" }} to what was counted and marks the {{ match|length }} matches as counted today.{% if count.repeat_days %} The next count starts, due in {{ count.repeat_days }} days.{% endif %}</p>
+    <div class="cluster">
+      <form class="inline-form" method="post" action="{{ url_for('counts.finish', count_id=count.id, action='apply') }}" data-confirm="Apply {{ count.name }}? {{ differ|length }} place(s) change." data-confirm-action="Apply">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn btn--primary" type="submit"{% if not count.counted %} disabled{% endif %}>Apply the count</button>
+      </form>
+      {{ ui.danger_form(url_for("counts.finish", count_id=count.id, action="cancel"), "Cancel count", "Cancel " ~ count.name ~ "? Nothing changes.") }}
+    </div>
+  </section>
+  {%- endif %}
+</div>
+{% endblock %}

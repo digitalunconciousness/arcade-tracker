@@ -69,6 +69,14 @@ PAGES = [
      "text/html"),
     ("/inventory/orders/<int:order_id>", lambda f: f"/inventory/orders/{f['order']}",
      "operator", 200, "Synthetic order", "text/html"),
+    # Planned counts (inventory step 5).
+    ("/inventory/counts/", lambda f: "/inventory/counts/", "operator", 200, "Shelf A count",
+     "text/html"),
+    ("/inventory/counts/<int:count_id>", lambda f: f"/inventory/counts/{f['stock_count']}",
+     "operator", 200, "Drive Belt", "text/html"),
+    ("/inventory/counts/<int:count_id>/review",
+     lambda f: f"/inventory/counts/{f['stock_count']}/review", "manager", 200,
+     "Shelf A count", "text/html"),
     # Serialized spares (inventory step 4).
     ("/inventory/units/<int:unit_id>", lambda f: f"/inventory/units/{f['unit']}", "operator",
      200, "CPU-0002", "text/html"),

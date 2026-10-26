@@ -6,6 +6,7 @@
 {% call ui.page_head("Parts", sub=data.items|length ~ (" shown" if search or low_only else " in the catalogue")) %}
   <a class="btn btn--sm btn--primary" href="{{ url_for('inventory.request_inventory') }}">Request a part</a>
   <a class="btn btn--sm" href="{{ url_for('places.overview') }}">Places</a>
+  <a class="btn btn--sm" href="{{ url_for('counts.overview') }}">Counts</a>
   <a class="btn btn--sm" href="{{ url_for('parts.suppliers') }}">Suppliers</a>
   <a class="btn btn--sm" href="{{ url_for('inventory.inventory_requests_list') }}">Requests{% if data.my_pending %} <span class="tabs__count">{{ data.my_pending }}</span>{% endif %}</a>
   {%- if orders_on %}<a class="btn btn--sm" href="{{ url_for('purchasing.orders') }}">Purchase orders</a>{% endif %}

@@ -27,6 +27,8 @@ from app.models.parts import (
     PurchaseOrder,
     PurchaseOrderLine,
     SerialUnit,
+    StockCount,
+    StockCountLine,
     Supplier,
     UnitEvent,
 )
@@ -55,6 +57,8 @@ __all__ = [
     "PurchaseOrderLine",
     "SerialUnit",
     "UnitEvent",
+    "StockCount",
+    "StockCountLine",
     "LowStockAlert",
     "MaintenanceInventoryUsage",
     "InventoryRequest",
