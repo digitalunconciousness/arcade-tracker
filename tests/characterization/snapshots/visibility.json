@@ -1635,7 +1635,9 @@
    "games.games_list()",
    "games.scan()",
    "inventory.inventory_list()",
+   "maintenance.game_maintenance(game_id=raider)",
    "maintenance.maintenance_orders()",
+   "rails.attach(uid=dddddddddddddddddddddddddddddddd)",
    "rails.floor()",
    "rails.machine(slug=neon-raider)",
    "reports.reports()"
@@ -1647,7 +1649,9 @@
    "games.games_list()",
    "games.scan()",
    "inventory.inventory_list()",
+   "maintenance.game_maintenance(game_id=raider)",
    "maintenance.maintenance_orders()",
+   "rails.attach(uid=dddddddddddddddddddddddddddddddd)",
    "rails.floor()",
    "rails.machine(slug=neon-raider)",
    "reports.reports()"
@@ -1659,7 +1663,9 @@
    "games.games_list()",
    "games.scan()",
    "inventory.inventory_list()",
+   "maintenance.game_maintenance(game_id=raider)",
    "maintenance.maintenance_orders()",
+   "rails.attach(uid=dddddddddddddddddddddddddddddddd)",
    "rails.floor()",
    "rails.machine(slug=neon-raider)"
   ],
