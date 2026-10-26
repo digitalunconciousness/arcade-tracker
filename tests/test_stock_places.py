@@ -124,6 +124,7 @@ def test_a_total_changed_elsewhere_is_reconciled(shop):
 
 
 def test_the_adjust_form_and_the_edit_form_still_work(shop):
+    from app.services import stock_places
     from app.services.inventory import adjust_stock
 
     item = shop["item"]
@@ -131,6 +132,10 @@ def test_the_adjust_form_and_the_edit_form_still_work(shop):
     assert adjust_stock(item, "removed", 20, "", shop["user"]) == (13, 0)
     assert adjust_stock(item, "adjusted", 6, "", shop["user"]) == (0, 6)
     assert levels(item) == {"Unsorted": 6}
+    adjust_stock(item, "moved", 4, "", shop["user"], stock_places.unsorted_place(), shop["shelf"])
+    assert adjust_stock(item, "adjusted", 1, "", shop["user"]) == (6, 1)   # the total, no place
+    assert adjust_stock(item, "adjusted", 9, "", shop["user"], shop["shelf"]) == (1, 9)
+    assert levels(item) == {"Shelf A": 9}
     assert_adds_up(item)
 
 

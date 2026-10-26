@@ -1,0 +1,52 @@
+{% extends "layout.html" %}
+{% import "ui.html" as ui %}
+{% from "_places.html" import parent_select %}
+{% block title %}Places{% endblock %}
+
+{% block page_head %}
+{{ ui.page_head("Places", sub="Rooms, shelves, drawers, bins and carts where parts are kept", back=url_for("inventory.inventory_list"), back_label="Parts") }}
+{% endblock %}
+
+{% block content %}
+<div class="stack">
+
+  <form class="card form stack" method="post" action="{{ url_for('places.create') }}" aria-labelledby="new-title">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <h2 id="new-title">Add a place</h2>
+    <div class="field-row">
+      <div class="field">
+        <label for="new-name">Name</label>
+        <input id="new-name" name="name" required maxlength="100" placeholder="Warehouse, Shelf A, Low drawer 2">
+      </div>
+      {{ parent_select("new-parent", parents) }}
+    </div>
+    <div class="form__actions"><button class="btn btn--primary" type="submit">Add place</button></div>
+  </form>
+
+  <section class="stack" aria-labelledby="tree-title">
+    <h2 id="tree-title">Every place</h2>
+    {%- if tree|length > 1 or (tree and not tree[0].place.is_unsorted) %}
+    <ul class="rows places">
+      {%- for n in tree %}
+      <li><a class="row places__row places__row--d{{ [n.depth, max_depth]|min }}" href="{{ url_for('places.detail', place_id=n.place.id) }}">
+        <span class="row__main">
+          <span class="row__title">{{ n.place.name }}</span>
+          <span class="row__meta">{% if n.parts %}{{ n.parts }} part{{ "" if n.parts == 1 else "s" }} · {{ n.units }} in all{% else %}empty{% endif %}
+            {%- if n.place.is_unsorted %} · stock nobody has put away yet{% endif %}</span>
+        </span>
+        {%- if n.place.archived %}<span class="row__end">{{ ui.chip("muted", "Archived") }}</span>{% endif %}
+      </a></li>
+      {%- endfor %}
+    </ul>
+    {%- else %}
+    {{ ui.empty("No places yet", "Add the rooms first (the bar's dry storage, the warehouse), then the shelves and drawers inside them as you count.") }}
+    {%- for n in tree %}
+    <ul class="rows"><li><a class="row" href="{{ url_for('places.detail', place_id=n.place.id) }}"><span class="row__main"><span class="row__title">{{ n.place.name }}</span><span class="row__meta">{{ n.units }} in all · stock nobody has put away yet</span></span></a></li></ul>
+    {%- endfor %}
+    {%- endif %}
+    {%- if archived_count or show_archived %}
+    <p><a href="{{ url_for('places.overview', archived=none if show_archived else '1') }}">{{ "Hide archived places" if show_archived else "Show " ~ archived_count ~ " archived" }}</a></p>
+    {%- endif %}
+  </section>
+</div>
+{% endblock %}

@@ -1,0 +1,135 @@
+{% extends "layout.html" %}
+{% import "ui.html" as ui %}
+{% from "_places.html" import parent_select %}
+{% set manager = current_user.has_role("manager") %}
+{% set node = nodes.get(place.id) %}
+{% block title %}{{ place.path }}{% endblock %}
+
+{% block page_head %}
+{% call ui.page_head(place.name, sub=place.parent.path if place.parent else "Place",
+    back=url_for("places.detail", place_id=place.parent.id) if place.parent else url_for("places.overview"),
+    back_label=place.parent.name if place.parent else "Places") %}
+  {%- if place.parent %}<a class="btn btn--sm btn--ghost" href="{{ url_for('places.overview') }}">All places</a>{% endif %}
+{% endcall %}
+{% endblock %}
+
+{% block content %}
+<div class="stack">
+
+  {%- if place.archived %}
+  <div class="banner is-warn" role="note"><div class="banner__body">
+    <span class="banner__title">Archived</span>
+    <p>Nothing can be put here until it is restored.</p>
+  </div></div>
+  {%- elif place.is_unsorted %}
+  <div class="banner" role="note"><div class="banner__body">
+    <span class="banner__title">Stock nobody has put away yet</span>
+    <p>Everything that was in stock before places existed starts here. Count each place as you
+       go and move parts out of here to where they really are.</p>
+  </div></div>
+  {%- endif %}
+
+  <dl class="readouts">
+    {{ ui.readout("Parts here", here|length, "in this place itself") }}
+    {{ ui.readout("Units here", here|sum(attribute="quantity")) }}
+    {%- if children %}{{ ui.readout("With what's inside", node.units if node else 0, (node.parts if node else 0) ~ (" different part" if node and node.parts == 1 else " different parts")) }}{% endif %}
+  </dl>
+
+  <section class="stack" aria-labelledby="parts-title">
+    <h2 id="parts-title">Parts here</h2>
+    {%- if here %}
+    <ul class="rows">
+      {%- for lv in here %}
+      <li><a class="row" href="{{ url_for('inventory.inventory_detail', item_id=lv.item.id) }}">
+        <span class="row__main">
+          <span class="row__title">{{ lv.item.name }}</span>
+          <span class="row__meta">{{ [lv.item.part_number, "counted " ~ lv.counted.strftime("%Y-%m-%d") if lv.counted else "not counted here yet"]|select|join(" · ") }}</span>
+        </span>
+        <span class="row__end num">{{ lv.quantity }}</span>
+      </a></li>
+      {%- endfor %}
+    </ul>
+    {%- else %}
+    {{ ui.empty("Nothing here", "Open a part and add, count or move it into this place.") }}
+    {%- endif %}
+  </section>
+
+  {%- if children or (can_nest and not place.archived) %}
+  <section class="stack" aria-labelledby="inside-title">
+    <h2 id="inside-title">Inside {{ place.name }}</h2>
+    {%- if children %}
+    <ul class="rows">
+      {%- for c in children %}
+      {%- set cn = nodes.get(c.id) %}
+      <li><a class="row" href="{{ url_for('places.detail', place_id=c.id) }}">
+        <span class="row__main"><span class="row__title">{{ c.name }}</span>
+          <span class="row__meta">{% if cn and cn.parts %}{{ cn.parts }} part{{ "" if cn.parts == 1 else "s" }} · {{ cn.units }} in all{% else %}empty{% endif %}</span></span>
+        {%- if c.archived %}<span class="row__end">{{ ui.chip("muted", "Archived") }}</span>{% endif %}
+      </a></li>
+      {%- endfor %}
+    </ul>
+    {%- endif %}
+    {%- if can_nest and not place.archived %}
+    <form class="form inline-add" method="post" action="{{ url_for('places.create') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="parent" value="{{ place.id }}">
+      <input type="hidden" name="back" value="place">
+      <div class="field">
+        <label for="inside-name">Add a place inside {{ place.name }}</label>
+        <input id="inside-name" name="name" required maxlength="100" placeholder="Shelf A, Bin 3, Low drawer 2">
+      </div>
+      <div class="form__actions"><button class="btn" type="submit">Add</button></div>
+    </form>
+    {%- endif %}
+  </section>
+  {%- endif %}
+
+  {%- if place.notes %}
+  <section class="card" aria-labelledby="notes-title"><h2 id="notes-title">Notes</h2><p class="prose">{{ place.notes }}</p></section>
+  {%- endif %}
+
+  {%- if not place.is_unsorted %}
+  <details class="card">
+    <summary class="btn btn--sm btn--ghost">Rename or move this place</summary>
+    <form class="form stack mt-3" method="post" action="{{ url_for('places.edit', place_id=place.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="field-row">
+        <div class="field">
+          <label for="edit-name">Name</label>
+          <input id="edit-name" name="name" required maxlength="100" value="{{ place.name }}">
+        </div>
+        {{ parent_select("edit-parent", parents, place.parent_id) }}
+      </div>
+      <div class="field">
+        <label for="edit-notes">Notes <span class="dim">(optional)</span></label>
+        <textarea id="edit-notes" name="notes" rows="2" maxlength="2000">{{ place.notes or "" }}</textarea>
+      </div>
+      <div class="form__actions"><button class="btn btn--primary" type="submit">Save</button></div>
+    </form>
+  </details>
+  {%- endif %}
+
+  {%- if manager and not place.is_unsorted %}
+  <section class="card stack" aria-labelledby="retire-title">
+    <h2 id="retire-title">Archive or delete</h2>
+    {%- if place.archived %}
+    <form class="inline-form" method="post" action="{{ url_for('places.archive', place_id=place.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn btn--sm" type="submit">Restore</button>
+    </form>
+    {%- elif holds_stock %}
+    <p class="dim">It still holds parts. Move them or count them out before archiving it.</p>
+    {%- else %}
+    <p class="dim">Archiving hides it, and everything inside it, from the lists. History keeps it.</p>
+    <form class="inline-form" method="post" action="{{ url_for('places.archive', place_id=place.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn btn--sm" type="submit">Archive</button>
+    </form>
+    {%- endif %}
+    {%- if not children and not place.levels %}
+    {{ ui.danger_form(url_for("places.delete", place_id=place.id), "Delete place", "Delete " ~ place.path ~ "? Its history rows stay, without the place.") }}
+    {%- endif %}
+  </section>
+  {%- endif %}
+</div>
+{% endblock %}

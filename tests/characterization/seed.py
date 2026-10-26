@@ -22,6 +22,7 @@ def seed_floor() -> dict:
     from app.models import (
         Device, Game, InventoryItem, InventoryRequest, InventoryRequestHistory, LowStockAlert,
         AlertChannel, MaintenanceRecord, MaintenanceTask, PlayRecord, RailSession, Reading, StockHistory,
+        StockLevel, StockPlace,
         User, WorkLog,
     )
 
@@ -60,6 +61,11 @@ def seed_floor() -> dict:
     fuse = InventoryItem(name="Glass Fuse 2A", stock_quantity=1, unit_price=0.5,
                          minimum_stock=5, part_number="FUSE-2A")
     db.session.add_all([belt, fuse])
+    # Places (inventory step 1): the belts are on a shelf in the back room; the fuse, like
+    # all stock from before places, has no place and so is in Unsorted.
+    back_room = StockPlace(name="Back Room")
+    shelf = StockPlace(name="Shelf A", parent=back_room)
+    db.session.add_all([back_room, shelf, StockLevel(item=belt, place=shelf, quantity=10)])
     db.session.flush()
     alert = LowStockAlert(item_id=fuse.id, email_sent=False)
     db.session.add(alert)
@@ -128,4 +134,5 @@ def seed_floor() -> dict:
         "open_order": open_order.id, "closed_order": closed_order.id, "general": general.id,
         "request": req.id, "session_uid": session.uid, "task": task.id,
         "channel": channel.id, "device": device.id,
+        "back_room": back_room.id, "shelf": shelf.id,
     }

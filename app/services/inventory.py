@@ -26,6 +26,7 @@ ADJUSTMENTS = {
     "adjusted": "Counted (set to)",
     "damaged": "Damaged / written off",
     "returned": "Returned to supplier",
+    "moved": "Moved",
 }
 REQUEST_STATUSES = ("Pending", "Approved", "Ordered", "Shipped", "Received", "Rejected")
 URGENCIES = ("Low", "Normal", "High", "Urgent")
@@ -70,19 +71,28 @@ def list_items(user, search: str = "", low_only: bool = False) -> ItemList:
 
 
 def adjust_stock(item: InventoryItem, kind: str, quantity: int, reason: str,
-                 user_id: int, place=None) -> tuple[int, int]:
+                 user_id: int, place=None, to_place=None) -> tuple[int, int]:
     """Apply one adjustment in *place* and log it. Returns the total (before, after). Caller
-    commits.
+    commits. Raises ``stock_places.StockError`` for a change that can't be made.
 
     added: plus quantity (into Unsorted when no place is given). removed / used / damaged /
     returned: minus quantity, never below zero; from *place*, or from wherever the part is.
-    adjusted: a count of *place* (Unsorted when none), so that place is set to quantity.
+    adjusted: a count of *place*, so that place is set to quantity; with no place, the total
+    is set, as before places.
+    moved: quantity from *place* to *to_place*; the total doesn't change.
     """
     from app.services import stock_places
 
     before = item.stock_quantity or 0
-    if kind == "added":
+    if kind == "moved":
+        if place is None or to_place is None:
+            raise stock_places.StockError("Say where it is now and where it's going.")
+        stock_places.move(item, quantity, user_id, place, to_place, reason)
+    elif kind == "added":
         stock_places.add(item, quantity, user_id, place, reason or "Manual added")
+    elif kind == "adjusted" and place is None:
+        # A count with no place (a form from before places): the total, as it always was.
+        stock_places.set_total(item, quantity, user_id, reason or "Manual adjusted")
     elif kind == "adjusted":
         stock_places.count(item, quantity, user_id, place, reason or "Manual adjusted")
     elif place is not None:

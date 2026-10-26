@@ -34,6 +34,34 @@ from app.utils.decorators import requires_role
 inventory_bp = Blueprint("inventory", __name__, url_prefix="/inventory")
 
 
+def _place_choices():
+    """Every place stock can go, as (place, depth) in tree order."""
+    from app.services import stock_places
+
+    return [(n.place, n.depth) for n in stock_places.place_tree()]
+
+
+def _form_place(field):
+    """The place a form names in *field*, or None. A missing or archived one is an error."""
+    from app.models import StockPlace
+    from app.services.stock_places import StockError
+
+    raw = request.form.get(field, "")
+    if not raw:
+        return None
+    place = db.session.get(StockPlace, int(raw)) if raw.isdigit() else None
+    if place is None or place.archived:
+        raise StockError("Pick a place from the list.")
+    return place
+
+
+def _stock_context(item):
+    """What the part page and the change-stock page need to offer places."""
+    held = sorted((lv for lv in item.levels if lv.quantity), key=lambda lv: -lv.quantity)
+    return {"places": _place_choices(), "held": held,
+            "default_place": held[0].place_id if held else None}
+
+
 def _machine_choices(form):
     form.compatible_games.choices = [
         (g.id, g.name) for g in Game.query.order_by(Game.name.asc()).all()]
@@ -77,7 +105,8 @@ def inventory_detail(item_id):
     return render_template("inventory_detail.html", item=item,
                            history=inv.item_history(item), active_alert=active_alert,
                            adjust_form=StockAdjustmentForm(), adjustments=inv.ADJUSTMENTS,
-                           requests=sorted(item.requests, key=lambda r: r.id, reverse=True)[:5])
+                           requests=sorted(item.requests, key=lambda r: r.id, reverse=True)[:5],
+                           **_stock_context(item))
 
 
 @inventory_bp.route("/<int:item_id>/edit", methods=["GET", "POST"])
@@ -103,15 +132,30 @@ def edit_inventory_item(item_id):
 @requires_role("operator")
 def adjust_stock(item_id):
     item = db.get_or_404(InventoryItem, item_id)
+    from app.services.stock_places import StockError
+
     form = StockAdjustmentForm()
+    error = None
     if form.validate_on_submit():
-        before, after = inv.adjust_stock(item, form.adjustment_type.data, form.quantity.data,
-                                         form.reason.data, current_user.id)
-        db.session.commit()
-        flash(f'Stock for "{item.name}": {before} → {after}.', "success")
-        return redirect(url_for("inventory.inventory_detail", item_id=item.id))
+        kind = form.adjustment_type.data
+        try:
+            place, to_place = _form_place("place"), _form_place("to_place")
+            before, after = inv.adjust_stock(item, kind, form.quantity.data, form.reason.data,
+                                             current_user.id, place, to_place)
+        except StockError as exc:
+            db.session.rollback()
+            error = str(exc)
+        else:
+            db.session.commit()
+            if kind == "moved":
+                flash(f'Moved {form.quantity.data} of "{item.name}" from {place.path} to '
+                      f"{to_place.path}.", "success")
+            else:
+                flash(f'Stock for "{item.name}": {before} → {after}.', "success")
+            return redirect(url_for("inventory.inventory_detail", item_id=item.id))
     status = 400 if request.method == "POST" else 200
-    return render_template("adjust_stock.html", form=form, item=item), status
+    return render_template("adjust_stock.html", form=form, item=item, error=error,
+                           **_stock_context(item)), status
 
 
 @inventory_bp.route("/<int:item_id>/delete", methods=["POST"])

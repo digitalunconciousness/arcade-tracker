@@ -49,6 +49,11 @@ PAGES = [
      "manager", 200, "Neon Raider", "text/csv"),
     ("/import_games", lambda f: "/import_games", "manager", 200, 'type="file"', "text/html"),
     ("/scan", lambda f: "/scan", "readonly", 200, "/g/", "text/html"),
+    # Places (inventory step 1).
+    ("/inventory/places/", lambda f: "/inventory/places/", "operator", 200, "Shelf A",
+     "text/html"),
+    ("/inventory/places/<int:place_id>", lambda f: f"/inventory/places/{f['shelf']}",
+     "operator", 200, "Drive Belt", "text/html"),
     ("/game/<int:game_id>/label", lambda f: f"/game/{f['raider']}/label", "operator", 200,
      "/g/neon-raider", "text/html"),
     ("/labels", lambda f: "/labels", "operator", 200, "Star Courier", "text/html"),

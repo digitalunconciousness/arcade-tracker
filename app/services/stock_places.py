@@ -105,7 +105,7 @@ def add(item: InventoryItem, quantity: int, user_id: int, place: StockPlace | No
     level.quantity = (level.quantity or 0) + quantity
     item.stock_quantity = before + quantity
     item.last_restocked = datetime.now(UTC)
-    _record(item, kind, quantity, before, reason or f"Added to {place.path}", user_id, place)
+    _record(item, kind, quantity, before, reason, user_id, place)
     _check(item)
     return level
 
@@ -124,7 +124,7 @@ def take(item: InventoryItem, quantity: int, user_id: int, place: StockPlace,
     before = item.stock_quantity or 0
     level.quantity = have - taken
     item.stock_quantity = before - taken
-    _record(item, kind, -taken, before, reason or f"Taken from {place.path}", user_id, place)
+    _record(item, kind, -taken, before, reason, user_id, place)
     _check(item)
     return taken
 
@@ -162,7 +162,7 @@ def count(item: InventoryItem, quantity: int, user_id: int, place: StockPlace | 
     item.stock_quantity = before + change
     if change > 0:
         item.last_restocked = datetime.now(UTC)
-    _record(item, "adjusted", change, before, reason or f"Counted in {place.path}", user_id,
+    _record(item, "adjusted", change, before, reason, user_id,
             place)
     _check(item)
     return change
@@ -186,7 +186,7 @@ def move(item: InventoryItem, quantity: int, user_id: int, source: StockPlace,
     target = level_of(item, dest, create=True)
     target.quantity = (target.quantity or 0) + moved
     before = item.stock_quantity or 0
-    _record(item, "moved", moved, before, reason or f"{source.path} → {dest.path}", user_id,
+    _record(item, "moved", moved, before, reason, user_id,
             source, dest)
     return moved
 
