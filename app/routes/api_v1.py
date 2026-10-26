@@ -37,6 +37,13 @@ CONTRACT = "v1"
 MAX_ITEMS = 100
 MAX_READINGS_PER_SESSION = 2000
 MAX_READINGS_PER_REQUEST = 20000
+# Text lengths (2026-10-26). An item over one is rejected, the rest of the batch goes through.
+# technician and file fit their columns: on PostgreSQL a longer one used to fail the whole batch.
+MAX_ISSUE = 2000
+MAX_NOTE = 2000
+MAX_TECHNICIAN = 50
+MAX_FILE = 64
+NOT_ALLOWED = "machine {slug!r} is not on this device's list"
 
 UID = re.compile(r"^[0-9a-f]{32}$")
 OPEN_STATUSES = ("Open", "In_Progress")
@@ -147,9 +154,9 @@ def ingest():
             if kind == "rail_session":
                 results.append(_ingest_session(device, item, games))
             elif kind == "order":
-                results.append(_ingest_order(item, games))
+                results.append(_ingest_order(device, item, games))
             elif kind == "session_tag":
-                results.append(_ingest_session_tag(item))
+                results.append(_ingest_session_tag(device, item))
             else:
                 results.append({"uid": item.get("uid"), "kind": kind, "status": "rejected",
                                 "reason": f"unknown kind {kind!r}"})
@@ -180,6 +187,8 @@ def _ingest_session(device, item, games):
     file_name = item.get("file")
     if not isinstance(file_name, str) or not file_name:
         return rejected("file is required")
+    if len(file_name) > MAX_FILE:
+        return rejected(f"file is at most {MAX_FILE} characters")
 
     readings = item.get("readings")
     if readings is None:
@@ -197,6 +206,8 @@ def _ingest_session(device, item, games):
         # Never invent a machine. An unknown slug means the two sides disagree about the
         # floor, and the fix is a roster import, not a row conjured here.
         return rejected(f"no machine with slug {slug!r}")
+    if not device.allows(game):
+        return rejected(NOT_ALLOWED.format(slug=slug))
 
     verdict = (item.get("verdict") or {})
     state = verdict.get("state")
@@ -309,7 +320,7 @@ def _ingest_readings(session, readings):
     return created, len(uids) - created, None
 
 
-def _ingest_order(item, games):
+def _ingest_order(device, item, games):
     """Store a maintenance order raised at the bench."""
     uid = item.get("uid")
     out = {"uid": uid, "kind": "order"}
@@ -322,11 +333,19 @@ def _ingest_order(item, games):
     issue = item.get("issue")
     if not isinstance(issue, str) or not issue.strip():
         return rejected("issue is required")
+    if len(issue.strip()) > MAX_ISSUE:
+        return rejected(f"issue is at most {MAX_ISSUE} characters")
+    technician = item.get("technician")
+    if technician is not None and (not isinstance(technician, str)
+                                   or len(technician) > MAX_TECHNICIAN):
+        return rejected(f"technician is text of at most {MAX_TECHNICIAN} characters")
 
     slug = item.get("machine")
     game = games.get(slug)
     if game is None:
         return rejected(f"no machine with slug {slug!r}")
+    if not device.allows(game):
+        return rejected(NOT_ALLOWED.format(slug=slug))
 
     if MaintenanceRecord.query.filter_by(external_id=uid).first() is not None:
         return {**out, "status": "duplicate"}
@@ -359,7 +378,7 @@ def _ingest_order(item, games):
     return {**out, "status": "created"}
 
 
-def _ingest_session_tag(item):
+def _ingest_session_tag(device, item):
     """Attach a trace to an order that already exists.
 
     Unlike an order, this has a natural key -- the (order, session) pair -- so that is what
@@ -380,6 +399,13 @@ def _ingest_session_tag(item):
     order = db.session.get(MaintenanceRecord, order_id)
     if order is None:
         return rejected(f"no order with id {order_id}")
+    # A device limited to some machines tags only their orders; a general order (no machine)
+    # isn't one of them.
+    if not device.all_machines and not device.allows(order.game):
+        return rejected("that order isn't for one of this device's machines")
+    note = item.get("note")
+    if note is not None and (not isinstance(note, str) or len(note) > MAX_NOTE):
+        return rejected(f"note is text of at most {MAX_NOTE} characters")
 
     session_uid = item.get("rail_session")
     if not isinstance(session_uid, str) or not session_uid:
@@ -403,7 +429,6 @@ def _ingest_session_tag(item):
     if existing is not None:
         return {**out, "status": "duplicate"}
 
-    note = item.get("note")
     db.session.add(RailSessionTag(
         maintenance_record_id=order.id,
         rail_session_id=session.id,
@@ -424,9 +449,8 @@ def roster():
     Only machines with an identifier appear: one without a barcode cannot be the subject of
     an ingest, so offering it would promise something that would be rejected.
     """
-    machines = (
-        Game.query.filter(Game.barcode.isnot(None)).order_by(Game.name).all()
-    )
+    machines = [m for m in Game.query.filter(Game.barcode.isnot(None)).order_by(Game.name)
+                if g.device.allows(m)]          # a limited device sees only its machines
     return jsonify({
         "contract": CONTRACT,
         "machines": [
@@ -447,7 +471,9 @@ def machine_orders(slug):
         return _bad("status must be 'open' or 'all'")
 
     game = Game.query.filter_by(barcode=slug).first()
-    if game is None:
+    # Another device's machine answers as an unknown one, so a limited device can't learn
+    # what else is on the floor.
+    if game is None or not g.device.allows(game):
         return _bad(f"no machine with slug {slug!r}", 404)
 
     query = MaintenanceRecord.query.filter_by(game_id=game.id)

@@ -420,7 +420,8 @@ anything is changed.
   - Not a hole after all: a deactivated user was already signed out on the next request (Flask-Login's
     `is_authenticated` is `is_active`). The user loader refuses them too now, as a second guard.
 
-  *Follow-up, after the feature work and before the final security review and Step 6 (owner's order):*
+  *Follow-up, after the feature work and before the final security review and Step 6 (owner's
+  order). Both done 2026-10-26: Admin, Devices, and `contract/v1/README.md`:*
   - **Device scope.** A device token can file orders and readings for any machine. Give each device an
     allow-list of machines. This changes the `/api/v1` contract, so it goes with GATBOX's copy.
   - **Text lengths on `/api/v1/ingest`.** `issue`, `technician`, `note` and `file` have no limit in the
@@ -578,3 +579,9 @@ anything is changed.
     top 10 by last month's plays. The CSV exports keep their column names ("Total Revenue",
     "Daily Revenue") so a spreadsheet reading them by name doesn't break; the
     `/revenue_reports` address is unchanged.
+17. **Device allow-list** (2026-10-26): a GATBOX device may use every machine (the default, so
+    existing devices are unchanged) or a list chosen on Admin, Devices. A limited device sees
+    only its machines in the roster, gets a 404 for another machine's orders (the same as an
+    unknown one), and has items for other machines rejected with a reason. Text over a limit
+    (issue and note 2000, technician 50, file 64) rejects the item, not the request. Both are in
+    `contract/v1/README.md`; GATBOX's vendored copy has to be updated to match its checksums.

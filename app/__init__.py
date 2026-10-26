@@ -151,6 +151,7 @@ def _register_blueprints(app: Flask) -> None:
         ("app.routes.upkeep", "upkeep_bp"),
         ("app.routes.alerts", "alerts_bp"),
         ("app.routes.branding", "branding_bp"),
+        ("app.routes.devices", "devices_bp"),
         ("app.routes.maintenance", "maintenance_bp"),
         ("app.routes.inventory", "inventory_bp"),
         ("app.routes.reports", "reports_bp"),

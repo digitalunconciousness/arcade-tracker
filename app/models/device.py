@@ -26,6 +26,17 @@ PUBLIC_ID_CHARS = 12          # hex; 48 bits is plenty to name a handful of devi
 SECRET_BYTES = 32             # -> 43 characters of URL-safe base64
 
 
+# The machines a device may file for, when it isn't allowed all of them (the device allow-list,
+# 2026-10-26). Deleting either side removes the link.
+device_machine = db.Table(
+    "device_machine",
+    db.Column("device_id", db.Integer, db.ForeignKey("device.id", ondelete="CASCADE"),
+              primary_key=True),
+    db.Column("game_id", db.Integer, db.ForeignKey("game.id", ondelete="CASCADE"),
+              primary_key=True, index=True),
+)
+
+
 class Device(db.Model):
     """A machine client allowed to post to the v1 API."""
 
@@ -42,6 +53,12 @@ class Device(db.Model):
     last_seen: datetime | None = db.Column(db.DateTime, nullable=True)
     last_ip: str | None = db.Column(db.String(45), nullable=True)
     notes: str | None = db.Column(db.Text, nullable=True)
+    # Which machines it may file for and see (owner's decisions, 2026-10-26). True, the default
+    # and what every device had before the allow-list existed, means all of them; False means
+    # only those in ``machines``. Set on Admin, Devices.
+    all_machines: bool = db.Column(db.Boolean, default=True, nullable=False)
+    machines = db.relationship("Game", secondary=device_machine, lazy="select",
+                               order_by="Game.name")
 
     # Relationships
     rail_sessions = db.relationship(
@@ -89,6 +106,12 @@ class Device(db.Model):
         if not public_id or not secret:
             return None
         return public_id, secret
+
+    def allows(self, game) -> bool:
+        """Whether this device may file for, tag, or see *game*."""
+        if self.all_machines:
+            return True
+        return game is not None and any(m.id == game.id for m in self.machines)
 
     def __repr__(self) -> str:
         return f"<Device {self.name!r}>"

@@ -1,0 +1,50 @@
+{% extends "layout.html" %}
+{% import "ui.html" as ui %}
+{% block title %}{{ device.name }}{% endblock %}
+
+{% block page_head %}
+{{ ui.page_head(device.name, sub=device.public_id ~ (" · last called in " ~ device.last_seen.strftime("%d %b %Y %H:%M") ~ " UTC" if device.last_seen else " · never called in"), back=url_for("devices.overview"), back_label="Devices") }}
+{% endblock %}
+
+{% block content %}
+<div class="stack phone-width">
+  <form class="form" method="post" novalidate>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="field field--check">
+      <input id="enabled" type="checkbox" name="enabled" value="1"{% if enabled %} checked{% endif %}>
+      <label for="enabled">Enabled (untick to refuse every request from it)</label>
+    </div>
+
+    <fieldset class="stack">
+      <legend>Machines it may use</legend>
+      <div class="field field--check">
+        <input id="scope-all" type="radio" name="scope" value="all"{% if all_machines %} checked{% endif %}>
+        <label for="scope-all">Every machine</label>
+      </div>
+      <div class="field field--check">
+        <input id="scope-list" type="radio" name="scope" value="list"{% if not all_machines %} checked{% endif %}>
+        <label for="scope-list">Only the ones ticked below</label>
+      </div>
+      {%- for loc, group in games|groupby("location") %}
+      <p class="dim mt-2">{{ loc or "No location" }}</p>
+      {%- for g in group %}
+      <div class="field field--check">
+        <input id="m-{{ g.id }}" type="checkbox" name="machines" value="{{ g.id }}"{% if g.id in chosen %} checked{% endif %}>
+        <label for="m-{{ g.id }}">{{ g.name }} <span class="dim">{{ g.barcode }}</span></label>
+      </div>
+      {%- endfor %}
+      {%- endfor %}
+      <span class="field__help">A limited device sees only these in its roster; anything it sends for another machine is refused with a reason, and asking about another machine's orders looks like asking about one that doesn't exist.</span>
+    </fieldset>
+
+    <div class="field">
+      <label for="notes">Notes</label>
+      <textarea id="notes" name="notes" rows="2">{{ device.notes or "" }}</textarea>
+    </div>
+    <div class="form__actions">
+      <button class="btn btn--primary" type="submit">Save</button>
+      <a class="btn btn--ghost" href="{{ url_for('devices.overview') }}">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
