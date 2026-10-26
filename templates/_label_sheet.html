@@ -36,6 +36,8 @@
     <div class="label-card">
       <img class="label-qr" src="{{ label.qr }}" alt="QR code for {{ label.game.name }}">
       <div class="label-text">
+        {%- set print_logo = branding.print_logo_url or branding.logo_url %}
+        {%- if print_logo %}<img class="label-logo" src="{{ print_logo }}" alt="{{ branding.name or '' }}">{% endif %}
         <div class="label-name">{{ label.game.name }}</div>
         {%- if kind == "coindoor" %}
         <div class="label-meta">Problem? Scan to report it.</div>

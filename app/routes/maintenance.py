@@ -25,6 +25,7 @@ from app.models import (
     MaintenanceRecord,
     WorkLog,
 )
+from app.services.branding import pdf_masthead
 from app.utils.decorators import requires_role
 
 maintenance_bp = Blueprint("maintenance", __name__)
@@ -427,6 +428,7 @@ def download_maintenance_record(record_id):
         title_text += f" - {record.game.name}"
     else:
         title_text += " - General Maintenance"
+    story.extend(pdf_masthead(styles))   # the arcade's logo (Admin, Branding)
     title = Paragraph(_p(title_text), styles["Title"])
     story.append(title)
     story.append(Spacer(1, 12))
@@ -722,6 +724,7 @@ def export_maintenance_report():
     styles = getSampleStyleSheet()
     story = []
 
+    story.extend(pdf_masthead(styles))   # the arcade's logo (Admin, Branding)
     # Title
     story.append(Paragraph(title, styles["Title"]))
     story.append(Spacer(1, 12))

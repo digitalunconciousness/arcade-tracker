@@ -2,7 +2,10 @@
 {% import "ui.html" as ui %}
 {% block title %}Sign in{% endblock %}
 {% block content %}
-<div class="auth">
+{%- if branding.background_url %}<img class="auth__bg" src="{{ branding.background_url }}" alt="">{% endif %}
+<div class="auth{% if branding.background_url %} auth--over{% endif %}">
+  {%- if branding.logo_url %}<img class="auth__logo" src="{{ branding.logo_url }}" alt="{{ branding.name or '' }}">{% endif %}
+  {%- if branding.name and not branding.logo_url %}<p class="auth__name">{{ branding.name }}</p>{% endif %}
   <h1>Sign in</h1>
   <p class="dim">Machines, work orders and parts for the floor.</p>
   <form class="form" method="post" novalidate>

@@ -63,43 +63,103 @@ same page: without them alerts are never held and there is no daily summary.
 
 ### The ntfy server (its own LXC)
 
-Staff phones need to reach it from anywhere, so give it its own hostname on the Cloudflare
-tunnel (e.g. `ntfy.<your-domain>`), like the tracker. In a new Debian LXC, as root, from
-ntfy's docs (repository moved to archive.ntfy.sh in September 2025):
+Staff phones need to reach it from anywhere, so it gets its own hostname through Cloudflare
+(e.g. `ntfy.<your-domain>`) from a small tunnel of its own in the same LXC; the tracker's
+tunnel is left alone. Done this way on 2026-10-26; the steps below are what worked.
+
+**1. A Debian LXC** (unprivileged, 1 CPU, 512 MB, 4 GB, fixed LAN address). As root, ntfy
+from its own repository (moved to archive.ntfy.sh in September 2025):
 
 ```bash
+apt update && apt install -y curl
 mkdir -p /etc/apt/keyrings
 curl -L -o /etc/apt/keyrings/ntfy.gpg https://archive.ntfy.sh/apt/keyring.gpg
-apt install apt-transport-https
 echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/ntfy.gpg] https://archive.ntfy.sh/apt stable main" \
-    | tee /etc/apt/sources.list.d/ntfy.list
-apt update && apt install ntfy
+    > /etc/apt/sources.list.d/ntfy.list
+apt update && apt install -y ntfy
 ```
 
-`/etc/ntfy/server.yml`:
+**2. `/etc/ntfy/server.yml`:**
 
 ```yaml
 base-url: "https://ntfy.<your-domain>"
+listen-http: "127.0.0.1:80"             # only the tunnel, on this box, needs to reach it
 behind-proxy: true                      # the tunnel connects from loopback
 auth-file: "/var/lib/ntfy/user.db"
 auth-default-access: "deny-all"         # nobody reads or posts without an account
+enable-login: true                      # without it the web page has no way to sign in
+require-login: true                     # and with it, the web page asks first
 # iPhones only get instant pushes through ntfy.sh: this server sends it the message id and
 # a hash of the topic address, never the message itself.
 upstream-base-url: "https://ntfy.sh"
 ```
 
+**3. Start it before adding accounts.** The account database is created on the first start;
+`ntfy user add` before then says "auth-file does not exist" and adds nothing.
+
 ```bash
-systemctl enable --now ntfy
+systemctl enable --now ntfy && sleep 2
 ntfy user add tracker                       # the tracker posts as this user
 ntfy access tracker "arcade-*" write-only
-ntfy token add tracker                      # paste the tk_... token into each channel
+ntfy token add tracker                      # the tk_... token goes in each alert channel
 ntfy user add staff                         # one shared login for the phones (or one each)
 ntfy access staff "arcade-*" read-only
+ntfy access                                 # check: tracker write-only, staff read-only
 ```
 
-Use topic names that start with `arcade-`, e.g. `https://ntfy.<your-domain>/arcade-techs` and
-`.../arcade-manager`. On each phone: install ntfy, add the server address with the staff
-login, subscribe to the topics that person wants. Then press **Send a test** on the channel.
+The token is a password for posting: keep it out of chats and tickets. To replace one,
+`ntfy token remove tracker tk_...` then `ntfy token add tracker`.
+
+**4. The tunnel, in the same LXC** (Cloudflare's apt repository):
+
+```bash
+mkdir -p --mode=0755 /usr/share/keyrings
+curl -fsSL https://pkg.cloudflare.com/cloudflare-main.gpg | tee /usr/share/keyrings/cloudflare-main.gpg >/dev/null
+echo "deb [signed-by=/usr/share/keyrings/cloudflare-main.gpg] https://pkg.cloudflare.com/cloudflared any main" \
+    > /etc/apt/sources.list.d/cloudflared.list
+apt-get update && apt-get install -y cloudflared
+cloudflared tunnel login                    # open the link it prints, pick your domain
+cloudflared tunnel create ntfy
+cloudflared tunnel list                     # the tunnel's ID
+```
+
+`/root/.cloudflared/config.yml`, with the real ID in **both** places (`ingress validate`
+doesn't check the credentials path, and a placeholder left there stops the service starting):
+
+```yaml
+tunnel: <ID>
+credentials-file: /root/.cloudflared/<ID>.json
+ingress:
+  - hostname: ntfy.<your-domain>
+    service: http://127.0.0.1:80
+  - service: http_status:404
+```
+
+```bash
+cloudflared tunnel route dns ntfy ntfy.<your-domain>
+cloudflared tunnel ingress validate
+cloudflared --config /root/.cloudflared/config.yml service install
+systemctl enable --now cloudflared && systemctl status cloudflared --no-pager
+```
+
+`service install` copies the config to `/etc/cloudflared/config.yml`, and that copy is what
+runs: edit that one afterwards, then `systemctl restart cloudflared`. Don't put the ntfy
+hostname behind Cloudflare Access: the phone app can't get past its login.
+
+**5. Check it from the tracker's LXC:**
+
+```bash
+curl -H "Authorization: Bearer tk_..." -d "hello from the tracker" https://ntfy.<your-domain>/arcade-test
+```
+
+`{"id":...` back means it works; 401 is a wrong token, 403 a missing access rule, a
+Cloudflare error page a tunnel that isn't running.
+
+**6. Phones and channels.** Use topic names that start with `arcade-`, e.g.
+`https://ntfy.<your-domain>/arcade-techs` and `.../arcade-manager`. On each phone: install
+ntfy, add the server address with the staff login, subscribe to the topics that person wants.
+In the tracker (Admin, Alerts), add a channel per topic with the token, then press **Send a
+test**.
 
 ## One-time cut-over
 

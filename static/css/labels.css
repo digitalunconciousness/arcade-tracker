@@ -45,6 +45,13 @@
 .label-text {
   min-width: 0;
 }
+/* The arcade's logo (Admin, Branding): small, so the QR code keeps its size. */
+.label-logo {
+  display: block;
+  max-width: 1.3in;
+  max-height: 0.22in;
+  margin: 0 auto 0.03in;
+}
 .label-name {
   display: -webkit-box;
   -webkit-line-clamp: 2;

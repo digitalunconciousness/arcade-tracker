@@ -1,0 +1,62 @@
+{% extends "layout.html" %}
+{% import "ui.html" as ui %}
+{% block title %}Branding{% endblock %}
+
+{% block page_head %}
+{{ ui.page_head("Branding", sub="Your arcade's name, logo and sign-in background", back=url_for("admin.manage_users"), back_label="Admin") }}
+{% endblock %}
+
+{% block content %}
+<div class="stack phone-width">
+  <form class="form" method="post" enctype="multipart/form-data" novalidate>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <div class="field">
+      <label for="arcade_name">Arcade name</label>
+      <input id="arcade_name" name="arcade_name" maxlength="60" value="{{ name }}" placeholder="Arcade Tracker">
+      <span class="field__help">In the browser tab and on the coin-door form, and in place of a logo where there isn't one. Blank goes back to Arcade Tracker.</span>
+    </div>
+
+    <fieldset class="stack">
+      <legend>Logo</legend>
+      {%- if branding.logo_url %}
+      <img class="branding__preview" src="{{ branding.logo_url }}" alt="The current logo">
+      <div class="field field--check"><input id="remove_logo" type="checkbox" name="remove_logo" value="1"><label for="remove_logo">Remove the logo</label></div>
+      {%- endif %}
+      <div class="field">
+        <label for="logo">{{ "Replace the logo" if branding.logo_url else "Upload a logo" }}</label>
+        <input id="logo" name="logo" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml,.svg">
+        <span class="field__help">PNG, JPEG, WebP or SVG, up to 2 MB. A wide logo on a transparent background looks best. It replaces ARCADE//TRACKER in the header and goes on the sign-in page, the coin-door form, printed labels and PDFs. PDFs can't draw SVG; with an SVG logo they show the arcade name.</span>
+      </div>
+    </fieldset>
+
+    <fieldset class="stack">
+      <legend>Logo for printing (optional)</legend>
+      {%- if branding.print_logo_url %}
+      <img class="branding__preview branding__preview--paper" src="{{ branding.print_logo_url }}" alt="The current logo for printing">
+      <div class="field field--check"><input id="remove_print_logo" type="checkbox" name="remove_print_logo" value="1"><label for="remove_print_logo">Remove it (labels and PDFs use the logo above)</label></div>
+      {%- endif %}
+      <div class="field">
+        <label for="print_logo">{{ "Replace the logo for printing" if branding.print_logo_url else "Upload a logo for printing" }}</label>
+        <input id="print_logo" name="print_logo" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml,.svg">
+        <span class="field__help">Labels and PDFs print on white, where a light logo disappears. If yours is light on dark, upload a dark-on-light version here. Without one, they use the logo above.</span>
+      </div>
+    </fieldset>
+
+    <fieldset class="stack">
+      <legend>Sign-in background</legend>
+      {%- if branding.background_url %}
+      <img class="branding__preview branding__preview--wide" src="{{ branding.background_url }}" alt="The current background">
+      <div class="field field--check"><input id="remove_background" type="checkbox" name="remove_background" value="1"><label for="remove_background">Remove the background</label></div>
+      {%- endif %}
+      <div class="field">
+        <label for="background">{{ "Replace the background" if branding.background_url else "Upload a background" }}</label>
+        <input id="background" name="background" type="file" accept="image/png,image/jpeg,image/webp">
+        <span class="field__help">PNG, JPEG or WebP, up to 12 MB; shown behind the sign-in form, darkened so the form stays readable.</span>
+      </div>
+    </fieldset>
+
+    <div class="form__actions"><button class="btn btn--primary" type="submit">Save</button></div>
+  </form>
+</div>
+{% endblock %}

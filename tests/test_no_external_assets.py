@@ -127,7 +127,10 @@ def test_the_other_security_headers_are_still_sent(client):
 
 def test_there_is_exactly_one_policy_in_the_codebase():
     """Two dead policies naming two different CDNs is how the live answer went
-    unnoticed. If a second one appears, it is dead or it is a conflict."""
+    unnoticed. If a second one appears, it is dead or it is a conflict.
+
+    One exception, on purpose: an uploaded SVG logo is served with a stricter policy of its
+    own (sandbox, no script), which the app-wide one leaves in place (2026-10-26)."""
     hits = []
     for path in _files("app", suffixes=(".py",)):
         body = open(path, encoding="utf-8").read()
@@ -139,4 +142,4 @@ def test_there_is_exactly_one_policy_in_the_codebase():
             if re.search(r"""Content-Security-Policy["']\]?\s*(=|:)""", line) or \
                re.match(r"^CSP\s*=", stripped):
                 hits.append(os.path.relpath(path, REPO_ROOT))
-    assert hits == ["app/__init__.py", "app/__init__.py"], hits
+    assert hits == ["app/__init__.py", "app/routes/branding.py"], hits

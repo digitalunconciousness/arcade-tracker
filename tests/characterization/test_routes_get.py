@@ -115,6 +115,8 @@ PAGES = [
     ("/admin/storage", lambda f: "/admin/storage", "admin", 200, "500", "text/html"),
     ("/backup_management", lambda f: "/backup_management", "admin", 200, None, "text/html"),
     ("/styleguide", lambda f: "/styleguide", "admin", 200, "Every component", "text/html"),
+    ("/admin/branding", lambda f: "/admin/branding", "admin", 200, 'name="arcade_name"',
+     "text/html"),
     # GATBOX rail history (Phase 1 data; restyle only)
     ("/rails/", lambda f: "/rails/", "readonly", 200, "Neon Raider", "text/html"),
     ("/rails/machine/<slug>", lambda f: "/rails/machine/neon-raider", "readonly", 200,
@@ -136,6 +138,9 @@ ELSEWHERE = {
     "/logout": "test_routes_post.py",
     "/setup": "test_routes_post.py",
     "/report/<token>": "tests/test_coin_door_report.py (public, token-authorised)",
+    "/branding/logo": "tests/test_branding.py: public, needs an uploaded logo",
+    "/branding/background": "tests/test_branding.py: public, needs an uploaded background",
+    "/branding/print-logo": "tests/test_branding.py: public, needs an uploaded print logo",
     "/api/v1/health": "tests/test_api_v1_contract.py (Phase 1 hub, untouched)",
     "/api/v1/roster": "tests/test_api_v1_contract.py",
     "/api/v1/machines/<slug>/orders": "tests/test_api_v1_contract.py",
