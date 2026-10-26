@@ -19,10 +19,9 @@ from app.models import (
     InventoryRequestHistory,
     MaintenanceInventoryUsage,
     MaintenanceRecord,
-    StockHistory,
     WorkLog,
 )
-from app.services.stock import check_low_stock_alert
+from app.services import stock_places
 
 OPEN_STATUSES = ("Open", "In_Progress")
 CLOSED_STATUSES = ("Fixed", "Deferred")
@@ -137,13 +136,8 @@ def use_parts(record: MaintenanceRecord, rows: list[tuple[int, int]], user_id: i
             maintenance_id=record.id, item_id=item.id, quantity_used=quantity,
             unit_price_at_time=item.unit_price, total_cost=quantity * item.unit_price)
         db.session.add(usage)
-        before = item.stock_quantity
-        item.stock_quantity -= quantity
-        db.session.add(StockHistory(
-            item_id=item.id, change_type="used", quantity_change=-quantity,
-            previous_quantity=before, new_quantity=item.stock_quantity,
-            reason=reason, user_id=user_id))
-        check_low_stock_alert(item)
+        # From wherever the part is, until a work order can pick a place (inventory step 6).
+        stock_places.take_anywhere(item, quantity, user_id, reason, kind="used")
         result.cost += usage.total_cost
         result.used += 1
     if result.cost:

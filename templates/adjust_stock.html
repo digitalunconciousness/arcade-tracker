@@ -1,5 +1,6 @@
 {% extends "layout.html" %}
 {% import "ui.html" as ui %}
+{% from "_places.html" import stock_fields %}
 {% block title %}Change stock · {{ item.name }}{% endblock %}
 
 {% block page_head %}
@@ -14,12 +15,12 @@
 
   <form class="form" method="post" novalidate>
     {{ form.hidden_tag() }}
-    {%- if form.errors %}
-    <div class="banners" role="alert"><div class="banner is-fault"><div class="banner__body"><span class="banner__title">Nothing was saved</span><p>Fix the fields marked below.</p></div></div></div>
+    {%- if form.errors or error %}
+    <div class="banners" role="alert"><div class="banner is-fault"><div class="banner__body"><span class="banner__title">Nothing was saved</span><p>{{ error or "Fix the fields marked below." }}</p></div></div></div>
     {%- endif %}
-    {{ ui.field(form.adjustment_type) }}
-    {{ ui.field(form.quantity, min=0, inputmode="numeric", help="Added, removed, used, damaged and returned take this many off or put them on. “Counted” sets the stock to this number. Stock never goes below 0.") }}
-    {{ ui.field(form.reason, placeholder="Optional") }}
+    {{ stock_fields(form, places, (request.form.get("place")|int) if request.form.get("place") else default_place) }}
+    <p class="dim">Added, removed, used, damaged and returned put this many in or take them out of
+       that place. “Counted” sets that place to this number. Stock never goes below 0.</p>
     <div class="form__actions">
       <button class="btn btn--primary" type="submit">Save change</button>
       <a class="btn btn--ghost" href="{{ url_for('inventory.inventory_detail', item_id=item.id) }}">Cancel</a>

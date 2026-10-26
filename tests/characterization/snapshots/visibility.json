@@ -614,6 +614,7 @@
    "inventory.low_stock_alerts()",
    "inventory.request_inventory()",
    "maintenance.maintenance_orders()",
+   "places.overview()",
    "rails.floor()",
    "reports.reports()"
   ],
@@ -632,6 +633,7 @@
    "inventory.low_stock_alerts()",
    "inventory.request_inventory()",
    "maintenance.maintenance_orders()",
+   "places.overview()",
    "rails.floor()",
    "reports.reports()"
   ],
@@ -648,6 +650,7 @@
    "inventory.inventory_requests_list()",
    "inventory.request_inventory()",
    "maintenance.maintenance_orders()",
+   "places.overview()",
    "rails.floor()"
   ]
  },
@@ -666,6 +669,8 @@
    "inventory.inventory_request_detail(request_id=request)",
    "inventory.request_inventory()",
    "maintenance.maintenance_orders()",
+   "places.detail(place_id=shelf)",
+   "places.overview()",
    "rails.floor()",
    "reports.reports()"
   ],
@@ -681,6 +686,8 @@
    "inventory.inventory_request_detail(request_id=request)",
    "inventory.request_inventory()",
    "maintenance.maintenance_orders()",
+   "places.detail(place_id=shelf)",
+   "places.overview()",
    "rails.floor()",
    "reports.reports()"
   ],
@@ -695,6 +702,8 @@
    "inventory.inventory_request_detail(request_id=request)",
    "inventory.request_inventory()",
    "maintenance.maintenance_orders()",
+   "places.detail(place_id=shelf)",
+   "places.overview()",
    "rails.floor()"
   ]
  },
@@ -817,6 +826,100 @@
    "maintenance.maintenance_orders()",
    "rails.floor()",
    "reports.reports()"
+  ]
+ },
+ "/inventory/places/": {
+  "admin": [
+   "admin.manage_users()",
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "places.create()",
+   "places.detail(place_id=back_room)",
+   "places.detail(place_id=shelf)",
+   "rails.floor()",
+   "reports.reports()"
+  ],
+  "manager": [
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "places.create()",
+   "places.detail(place_id=back_room)",
+   "places.detail(place_id=shelf)",
+   "rails.floor()",
+   "reports.reports()"
+  ],
+  "operator": [
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "places.create()",
+   "places.detail(place_id=back_room)",
+   "places.detail(place_id=shelf)",
+   "rails.floor()"
+  ]
+ },
+ "/inventory/places/<int:place_id>": {
+  "admin": [
+   "admin.manage_users()",
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_detail(item_id=belt)",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "places.create()",
+   "places.detail(place_id=back_room)",
+   "places.edit(place_id=shelf)",
+   "places.overview()",
+   "rails.floor()",
+   "reports.reports()"
+  ],
+  "manager": [
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_detail(item_id=belt)",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "places.create()",
+   "places.detail(place_id=back_room)",
+   "places.edit(place_id=shelf)",
+   "places.overview()",
+   "rails.floor()",
+   "reports.reports()"
+  ],
+  "operator": [
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_detail(item_id=belt)",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "places.create()",
+   "places.detail(place_id=back_room)",
+   "places.edit(place_id=shelf)",
+   "places.overview()",
+   "rails.floor()"
   ]
  },
  "/inventory/request": {

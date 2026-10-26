@@ -1,5 +1,6 @@
 {% extends "layout.html" %}
 {% import "ui.html" as ui %}
+{% from "_places.html" import stock_fields %}
 {% block title %}{{ item.name }}{% endblock %}
 
 {% block page_head %}
@@ -34,15 +35,31 @@
   </section>
   {%- endif %}
 
+  <section class="stack" aria-labelledby="where-title">
+    <h2 id="where-title">Where it is</h2>
+    {%- if held %}
+    <ul class="rows">
+      {%- for lv in held %}
+      <li><a class="row" href="{{ url_for('places.detail', place_id=lv.place.id) }}">
+        <span class="row__main">
+          <span class="row__title">{{ lv.place.path }}</span>
+          <span class="row__meta">{{ "counted " ~ lv.counted.strftime("%Y-%m-%d") if lv.counted else "not counted there yet" }}</span>
+        </span>
+        <span class="row__end num">{{ lv.quantity }}</span>
+      </a></li>
+      {%- endfor %}
+    </ul>
+    {%- else %}
+    {{ ui.empty("None in stock", "Add or count some below, in the place they're kept.") }}
+    {%- endif %}
+    <p><a href="{{ url_for('places.overview') }}">All places</a></p>
+  </section>
+
   <section class="card" aria-labelledby="adjust-title">
-    <h2 id="adjust-title">Change the stock</h2>
+    <h2 id="adjust-title">Take, add, count or move</h2>
     <form class="form form--wide" method="post" action="{{ url_for('inventory.adjust_stock', item_id=item.id) }}">
       {{ adjust_form.hidden_tag() }}
-      <div class="field-row">
-        {{ ui.field(adjust_form.adjustment_type) }}
-        {{ ui.field(adjust_form.quantity, min=0, inputmode="numeric", help="For “Counted”, the number on the shelf.") }}
-      </div>
-      {{ ui.field(adjust_form.reason, placeholder="Optional") }}
+      {{ stock_fields(adjust_form, places, default_place) }}
       <div class="form__actions"><button class="btn btn--primary" type="submit">Save change</button></div>
     </form>
   </section>
@@ -95,13 +112,18 @@
     {%- if history %}
     <div class="table-wrap">
       <table class="table table--stack">
-        <thead><tr><th>When</th><th>What</th><th class="num">Change</th><th class="num">After</th><th>Reason</th><th>By</th></tr></thead>
+        <thead><tr><th>When</th><th>What</th><th>Where</th><th class="num">Change</th><th class="num">After</th><th>Reason</th><th>By</th></tr></thead>
         <tbody>
           {%- for h in history %}
           <tr>
             <td data-label="When">{{ h.timestamp.strftime("%Y-%m-%d %H:%M") }}</td>
             <td data-label="What">{{ adjustments.get(h.change_type, h.change_type|title) }}</td>
+            <td data-label="Where">{% if h.place %}{{ h.place.path }}{% if h.to_place %} → {{ h.to_place.path }}{% endif %}{% else %}—{% endif %}</td>
+            {%- if h.change_type == "moved" %}
+            <td data-label="Change" class="num">{{ h.quantity_change }}</td>
+            {%- else %}
             <td data-label="Change" class="num {{ 'is-ok' if h.quantity_change > 0 else 'is-warn' if h.quantity_change < 0 else '' }}">{{ "%+d"|format(h.quantity_change) }}</td>
+            {%- endif %}
             <td data-label="After" class="num">{{ h.new_quantity }}</td>
             <td data-label="Reason">{{ h.reason or "—" }}</td>
             <td data-label="By">{{ h.user.username if h.user else "—" }}</td>

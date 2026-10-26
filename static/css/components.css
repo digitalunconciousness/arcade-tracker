@@ -1422,6 +1422,27 @@ body:has(.auth__bg) .app-footer {
   border-radius: var(--r-pill);
 }
 
+/* Places (/inventory/places): the tree, indented by depth (no inline styles under the CSP) */
+.places__row--d1 { padding-left: calc(var(--sp-3) + 1 * var(--sp-5)); }
+.places__row--d2 { padding-left: calc(var(--sp-3) + 2 * var(--sp-5)); }
+.places__row--d3 { padding-left: calc(var(--sp-3) + 3 * var(--sp-5)); }
+.places__row--d4 { padding-left: calc(var(--sp-3) + 4 * var(--sp-5)); }
+.places__row--d5,
+.places__row--d6 { padding-left: calc(var(--sp-3) + 5 * var(--sp-5)); }
+.places__row:not(.places__row--d0) .row__title::before {
+  content: "└ ";
+  color: var(--text-dim);
+}
+.inline-add {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--sp-3);
+}
+.inline-add .field {
+  flex: 1 1 16rem;
+}
+
 /* Scan page: one big box a USB scanner types into */
 .scan__box {
   min-height: 56px;

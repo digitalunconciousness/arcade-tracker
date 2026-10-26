@@ -27,6 +27,12 @@ item_game_compatibility = db.Table(
 )
 
 
+def _new_code() -> str:
+    from app.models.stock import new_code
+
+    return new_code()
+
+
 class InventoryItem(db.Model):
     """A trackable inventory / spare-parts item."""
 
@@ -45,6 +51,9 @@ class InventoryItem(db.Model):
     )
     last_restocked: datetime | None = db.Column(db.DateTime, nullable=True)
     notes: str | None = db.Column(db.Text, nullable=True)
+    # The part's label (/i/<code>). Printed labels encode it, so it never changes.
+    code: str | None = db.Column(db.String(16), nullable=True, unique=True, index=True,
+                                 default=lambda: _new_code())
 
     # Relationships
     compatible_games = db.relationship(
@@ -86,8 +95,21 @@ class StockHistory(db.Model):
     user_id: int = db.Column(
         db.Integer, db.ForeignKey("user.id"), nullable=False
     )
+    # Where it happened; null on rows from before places. A move has both.
+    place_id: int | None = db.Column(
+        db.Integer, db.ForeignKey("stock_place.id", ondelete="SET NULL",
+                                  name="fk_stock_history_place_id"), nullable=True,
+        index=True,
+    )
+    to_place_id: int | None = db.Column(
+        db.Integer, db.ForeignKey("stock_place.id", ondelete="SET NULL",
+                                  name="fk_stock_history_to_place_id"), nullable=True,
+        index=True,
+    )
 
     user = db.relationship("User", backref="stock_changes")
+    place = db.relationship("StockPlace", foreign_keys=[place_id])
+    to_place = db.relationship("StockPlace", foreign_keys=[to_place_id])
 
     def __repr__(self) -> str:
         return (

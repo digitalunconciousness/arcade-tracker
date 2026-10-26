@@ -1,0 +1,43 @@
+{% import "ui.html" as ui %}
+{#- The "Inside" picker: top level, or any place a new one may go in. Used by places.html and place_detail.html. -#}
+{% macro parent_select(id, parents, selected=none) -%}
+<div class="field">
+  <label for="{{ id }}">Inside</label>
+  <select id="{{ id }}" name="parent">
+    <option value="">Nothing (a room, building, cart or van)</option>
+    {%- for n in parents %}
+    <option value="{{ n.place.id }}"{% if selected == n.place.id %} selected{% endif %}>{{ n.place.path }}</option>
+    {%- endfor %}
+  </select>
+</div>
+{%- endmacro %}
+
+{#- The change-stock fields, on the part page and /inventory/<id>/adjust_stock. "Where" is the
+    place it happens in (for a move, where it is now); "Move to" is only read for a move. -#}
+{% macro stock_fields(form, places, default_place=none, prefix="adj") -%}
+<div class="field-row">
+  {{ ui.field(form.adjustment_type) }}
+  {{ ui.field(form.quantity, min=0, inputmode="numeric", help="For “Counted”, the number in that place.") }}
+</div>
+<div class="field-row">
+  <div class="field">
+    <label for="{{ prefix }}-place">Where</label>
+    <select id="{{ prefix }}-place" name="place">
+      {%- for p, depth in places %}
+      <option value="{{ p.id }}"{% if (default_place and p.id == default_place) or (not default_place and p.is_unsorted) %} selected{% endif %}>{{ p.path }}</option>
+      {%- endfor %}
+    </select>
+    <span class="field__help">For a move, where it is now.</span>
+  </div>
+  <div class="field">
+    <label for="{{ prefix }}-to">Move to</label>
+    <select id="{{ prefix }}-to" name="to_place">
+      <option value="">Only for a move</option>
+      {%- for p, depth in places %}
+      <option value="{{ p.id }}">{{ p.path }}</option>
+      {%- endfor %}
+    </select>
+  </div>
+</div>
+{{ ui.field(form.reason, placeholder="Optional") }}
+{%- endmacro %}

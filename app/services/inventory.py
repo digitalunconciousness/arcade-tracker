@@ -26,6 +26,7 @@ ADJUSTMENTS = {
     "adjusted": "Counted (set to)",
     "damaged": "Damaged / written off",
     "returned": "Returned to supplier",
+    "moved": "Moved",
 }
 REQUEST_STATUSES = ("Pending", "Approved", "Ordered", "Shipped", "Received", "Rejected")
 URGENCIES = ("Low", "Normal", "High", "Urgent")
@@ -70,27 +71,36 @@ def list_items(user, search: str = "", low_only: bool = False) -> ItemList:
 
 
 def adjust_stock(item: InventoryItem, kind: str, quantity: int, reason: str,
-                 user_id: int) -> tuple[int, int]:
-    """Apply one adjustment and log it. Returns (before, after). Caller commits.
+                 user_id: int, place=None, to_place=None) -> tuple[int, int]:
+    """Apply one adjustment in *place* and log it. Returns the total (before, after). Caller
+    commits. Raises ``stock_places.StockError`` for a change that can't be made.
 
-    added: plus quantity. removed / used / damaged / returned: minus quantity, never below
-    zero. adjusted: a count, so the stock is set to quantity.
+    added: plus quantity (into Unsorted when no place is given). removed / used / damaged /
+    returned: minus quantity, never below zero; from *place*, or from wherever the part is.
+    adjusted: a count of *place*, so that place is set to quantity; with no place, the total
+    is set, as before places.
+    moved: quantity from *place* to *to_place*; the total doesn't change.
     """
+    from app.services import stock_places
+
     before = item.stock_quantity or 0
-    if kind == "added":
-        after, change = before + quantity, quantity
-        item.last_restocked = datetime.now(dt.UTC)
+    if kind == "moved":
+        if place is None or to_place is None:
+            raise stock_places.StockError("Say where it is now and where it's going.")
+        stock_places.move(item, quantity, user_id, place, to_place, reason)
+    elif kind == "added":
+        stock_places.add(item, quantity, user_id, place, reason or "Manual added")
+    elif kind == "adjusted" and place is None:
+        # A count with no place (a form from before places): the total, as it always was.
+        stock_places.set_total(item, quantity, user_id, reason or "Manual adjusted")
     elif kind == "adjusted":
-        after, change = quantity, quantity - before
-    else:
-        taken = min(quantity, before)
-        after, change = before - taken, -taken
-    item.stock_quantity = after
-    db.session.add(StockHistory(
-        item_id=item.id, change_type=kind, quantity_change=change, previous_quantity=before,
-        new_quantity=after, reason=reason or f"Manual {kind}", user_id=user_id))
-    check_low_stock_alert(item)
-    return before, after
+        stock_places.count(item, quantity, user_id, place, reason or "Manual adjusted")
+    elif place is not None:
+        stock_places.take(item, quantity, user_id, place, reason or f"Manual {kind}", kind)
+    elif before:
+        stock_places.take_anywhere(item, min(quantity, before), user_id,
+                                   reason or f"Manual {kind}", kind)
+    return before, item.stock_quantity or 0
 
 
 def save_item(item: InventoryItem, form, user_id: int) -> None:
@@ -106,20 +116,19 @@ def save_item(item: InventoryItem, form, user_id: int) -> None:
     item.notes = form.notes.data or None
     item.compatible_games = (Game.query.filter(Game.id.in_(form.compatible_games.data)).all()
                              if form.compatible_games.data else [])
+    from app.services import stock_places
+
     after = form.stock_quantity.data
-    item.stock_quantity = after
     if is_new:
+        item.stock_quantity = 0
         db.session.add(item)
         db.session.flush()
+        if after:
+            stock_places.add(item, after, user_id, reason="Initial stock")
+        return
     if after != before:
-        db.session.add(StockHistory(
-            item_id=item.id, change_type="added" if is_new else "adjusted",
-            quantity_change=after - before, previous_quantity=before, new_quantity=after,
-            reason="Initial stock" if is_new else "Manual adjustment via edit",
-            user_id=user_id))
-        if after > before:
-            item.last_restocked = datetime.now(dt.UTC)
-    if not is_new:
+        stock_places.set_total(item, after, user_id, "Manual adjustment via edit")
+    else:
         check_low_stock_alert(item)
 
 
@@ -255,25 +264,21 @@ def _receive(req: InventoryRequest, user_id: int) -> tuple[str, str]:
         if item is None:
             return ("error", (f"Request #{req.id} is Received, but item #{req.item_id} no "
                               "longer exists, so no stock was added."))
-        before = item.stock_quantity or 0
-        item.stock_quantity = before + req.quantity_requested
-        item.last_restocked = datetime.now(dt.UTC)
-        db.session.add(StockHistory(
-            item_id=item.id, change_type="added", quantity_change=req.quantity_requested,
-            previous_quantity=before, new_quantity=item.stock_quantity,
-            reason=f"Inventory request #{req.id} received", user_id=user_id))
-        check_low_stock_alert(item)
+        from app.services import stock_places
+
+        stock_places.add(item, req.quantity_requested, user_id,
+                         reason=f"Inventory request #{req.id} received")
         return ("success", (f"Request #{req.id} received: {req.quantity_requested} added to "
                             f'"{item.name}". In stock now: {item.stock_quantity}.'))
-    item = InventoryItem(name=req.item_name, stock_quantity=req.quantity_requested,
-                         unit_price=0.0, minimum_stock=5, last_restocked=datetime.now(dt.UTC))
+    from app.services import stock_places
+
+    item = InventoryItem(name=req.item_name, stock_quantity=0, unit_price=0.0,
+                         minimum_stock=5)
     db.session.add(item)
     db.session.flush()
     req.item_id = item.id
-    db.session.add(StockHistory(
-        item_id=item.id, change_type="added", quantity_change=req.quantity_requested,
-        previous_quantity=0, new_quantity=req.quantity_requested,
-        reason=f"New item created from inventory request #{req.id}", user_id=user_id))
+    stock_places.add(item, req.quantity_requested, user_id,
+                     reason=f"New item created from inventory request #{req.id}")
     return ("success", (f'Request #{req.id} received: created "{item.name}" with '
                         f"{req.quantity_requested} in stock. Add its price and details."))
 
