@@ -1429,6 +1429,33 @@ body:has(.auth__bg) .app-footer {
   letter-spacing: 0.04em;
 }
 
+/* The camera preview, with a square to aim the label at */
+.scan-camera__view {
+  position: relative;
+  max-width: 480px;
+  overflow: hidden;
+  border-radius: var(--r);
+  background: #000;
+}
+.scan-camera__view video {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.scan-camera__frame {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  width: 60%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  border: 2px solid var(--accent);
+  border-radius: var(--r);
+  pointer-events: none;
+}
+.scan-camera [data-camera-status]:empty {
+  display: none;
+}
+
 /* =========================================================================================
    Footer: the AGPL source link, quiet on every page.
    ========================================================================================= */

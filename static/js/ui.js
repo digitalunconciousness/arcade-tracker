@@ -80,8 +80,9 @@
     });
 
     // --- keep the scan box focused --------------------------------------------------------
+    // Not on a touch screen: there it would open the keyboard on every tap.
     var keep = document.querySelector("[data-keep-focus]");
-    if (keep) {
+    if (keep && !window.matchMedia("(pointer: coarse)").matches) {
       document.addEventListener("click", function (e) {
         if (!e.target.closest("a, button, input, select, textarea, label, summary")) keep.focus();
       });

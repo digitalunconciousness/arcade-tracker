@@ -3,18 +3,39 @@
 {% block title %}Scan{% endblock %}
 
 {% block page_head %}
-{{ ui.page_head("Scan a machine", sub="Point the USB scanner at a cabinet label, or type its ID") }}
+{{ ui.page_head("Scan a machine", sub="Scan a cabinet label with the camera or a USB scanner, or type its ID") }}
 {% endblock %}
 
 {% block content %}
-{#- No script: the form submits to /scan?code=, which sends a bare ID or a whole label URL to
-    /g/<id>, the address every printed label opens. -#}
+<div class="stack">
+{#- The camera panel stays hidden until static/js/scan.js shows it, so a browser without
+    scripts sees only the form. A code it reads goes into the box below and is submitted. -#}
+<section class="card stack scan-camera" data-camera data-jsqr="{{ asset('js/vendor/jsQR.js') }}" aria-labelledby="camera-title" hidden>
+  <h2 id="camera-title">Camera</h2>
+  <div class="scan-camera__view" hidden>
+    <video muted playsinline aria-label="Camera preview"></video>
+    <span class="scan-camera__frame" aria-hidden="true"></span>
+  </div>
+  <p class="cluster">
+    <button class="btn btn--primary" type="button" data-camera-start>Scan with camera</button>
+    <button class="btn" type="button" data-camera-stop hidden>Stop camera</button>
+  </p>
+  <p class="dim" data-camera-status role="status" aria-live="polite"></p>
+</section>
+
+{#- No script needed: the form submits to /scan?code=, which sends a bare ID or a whole label
+    URL to /g/<id>, the address every printed label opens. -#}
 <form class="form scan" method="get" action="{{ url_for('games.scan') }}" role="search">
   <div class="field">
     <label for="code">Machine ID or label</label>
     <input id="code" name="code" class="scan__box" autocomplete="off" autocapitalize="none" spellcheck="false" autofocus placeholder="Scan or type, then Enter" data-keep-focus>
-    <span class="field__help">A scanner types the label and presses Enter for you. The labels open <code>/g/&lt;id&gt;</code>.</span>
+    <span class="field__help">A USB scanner types the label and presses Enter for you. The labels open <code>/g/&lt;id&gt;</code>.</span>
   </div>
   <div class="form__actions"><button class="btn btn--primary" type="submit">Go</button></div>
 </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ asset('js/scan.js') }}"></script>
 {% endblock %}
