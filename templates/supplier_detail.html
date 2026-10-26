@@ -14,7 +14,7 @@
     <dl class="kv">
       <dt>Website</dt><dd>{% if supplier.website %}<a href="{{ supplier.website }}" rel="noopener noreferrer" target="_blank">{{ supplier.website }}</a>{% else %}—{% endif %}</dd>
       <dt>Phone</dt><dd>{% if supplier.phone %}<a href="tel:{{ supplier.phone }}">{{ supplier.phone }}</a>{% else %}—{% endif %}</dd>
-      <dt>Account</dt><dd>{{ supplier.account_number or "—" }}</dd>
+      {%- if manager %}<dt>Account</dt><dd>{{ supplier.account_number or "—" }}</dd>{% endif %}
     </dl>
     {%- if supplier.notes %}<h3>Notes</h3><p class="prose">{{ supplier.notes }}</p>{% endif %}
   </section>

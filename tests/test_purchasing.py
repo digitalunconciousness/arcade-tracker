@@ -160,9 +160,14 @@ def test_a_delivery_in_two_pieces(manager, shop, request_for_switch):
     assert part(shop["switch"]).stock_quantity == 12            # nothing more after Received
 
 
-def test_operators_receive_deliveries(client, shop, request_for_switch):
-    sign_in(client, "operator")
-    receive(client, request_for_switch, quantity="10")
+def test_operators_receive_their_own_requests(client, shop):
+    from app.extensions import db
+    from app.services import purchasing
+
+    uid = sign_in(client, "operator")
+    req = purchasing.request_from_list(part(shop["switch"]), 10, uid)
+    db.session.commit()
+    receive(client, req.id, quantity="10")
     assert part(shop["switch"]).stock_quantity == 12
 
 

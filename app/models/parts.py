@@ -314,8 +314,11 @@ class StockCountLine(db.Model):
                               nullable=True, index=True)
     counted_at = db.Column(db.DateTime, nullable=True)
 
-    item = db.relationship("InventoryItem")
-    place = db.relationship("StockPlace")
+    # Deleted with the part by the ORM too, not only by the database's ON DELETE CASCADE:
+    # SQLite, as this app opens it, doesn't enforce foreign keys (security review, 2026-10-26).
+    item = db.relationship("InventoryItem",
+                           backref=db.backref("count_lines", cascade="all, delete-orphan"))
+    place = db.relationship("StockPlace", backref="count_lines")
     counted_by = db.relationship("User")
 
 
@@ -366,4 +369,6 @@ class TaskPart(db.Model):
     task = db.relationship("MaintenanceTask",
                            backref=db.backref("parts", cascade="all, delete-orphan",
                                               order_by="TaskPart.id"))
-    item = db.relationship("InventoryItem")
+    # Deleted with the part by the ORM too (see StockCountLine.item).
+    item = db.relationship("InventoryItem",
+                           backref=db.backref("task_parts", cascade="all, delete-orphan"))

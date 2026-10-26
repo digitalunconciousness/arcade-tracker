@@ -44,6 +44,22 @@ def unsorted_place() -> StockPlace:
     return place
 
 
+def lock(item: InventoryItem) -> None:
+    """Hold the part's row until this request commits, and work from what is stored now.
+
+    Every change here reads a number and writes it back, so two at once (two techs, or one
+    double-tapped button) could lose one (security review, 2026-10-26). On PostgreSQL the
+    second request waits here for the first to commit, then reloads the part and its levels;
+    SQLite has no row locks and writes one request at a time anyway. Pending changes in this
+    request are flushed first, so nothing of its own is lost by the reload.
+    """
+    if item.id is None:
+        return
+    (InventoryItem.query.filter_by(id=item.id)
+     .populate_existing().with_for_update().one())
+    StockLevel.query.filter_by(item_id=item.id).populate_existing().all()
+
+
 def reconcile(item: InventoryItem) -> None:
     """Make the levels add up to ``stock_quantity`` before a change, without logging it.
 
@@ -51,6 +67,7 @@ def reconcile(item: InventoryItem) -> None:
     is in Unsorted, which is what Unsorted means. If the places hold more than the total,
     the extra comes off Unsorted first, then the fullest place.
     """
+    lock(item)
     total = item.stock_quantity or 0
     held = sum(lv.quantity or 0 for lv in item.levels)
     if held < total:

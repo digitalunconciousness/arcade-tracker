@@ -667,7 +667,9 @@ def export_csv():
         "Top 5 Count", "Top 10 Count",
     ])
     writer.writeheader()
-    writer.writerows(data)
+    from app.utils.helpers import csv_safe
+
+    writer.writerows({k: csv_safe(v) for k, v in row.items()} for row in data)
     output.seek(0)
 
     response = make_response(output.getvalue())

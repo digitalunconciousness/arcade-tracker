@@ -128,7 +128,7 @@
       <button class="btn btn--sm" type="submit">Archive</button>
     </form>
     {%- endif %}
-    {%- if not children and not place.levels %}
+    {%- if not children and not place.levels and not place.count_lines %}
     {{ ui.danger_form(url_for("places.delete", place_id=place.id), "Delete place", "Delete " ~ place.path ~ "? Its history rows stay, without the place.") }}
     {%- endif %}
   </section>

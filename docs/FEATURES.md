@@ -434,6 +434,20 @@ anything is changed.
   against a hash, so timing gives nothing away); a few GETs
   write (the monthly ranking, F-14); cookies are not Secure on plain-HTTP LAN logins (F-22's choice).
 
+- **F-44 Security review of 2026-10-26**, the final one before Step 6, over everything since F-43
+  (inventory steps 1 to 6 and the rails). Every one of the 155 routes checks a role or a sign-in.
+  *Fixed in the same pass, each with a test in `tests/test_security_review_2.py`:*
+  - Two stock changes at once could lose one: each read the number and wrote it back. Every change
+    now locks the part's row first (PostgreSQL), and a form ignores a second tap while the first is
+    on its way (a double tap on "Receive" took the delivery in twice).
+  - Deleting a part left its count lines and task parts behind, which SQLite doesn't stop; the count
+    sheet, then the work orders list once the task came due, failed with an error. They go with the
+    part now, and a place on a count can't be deleted.
+  - An operator could receive any request by its number, though they can only see their own.
+  - CSV exports passed a machine name starting with `=`, `+`, `-` or `@` to the spreadsheet as a
+    formula. Such cells now start with an apostrophe.
+  - Supplier account numbers are shown to managers and up only (owner's decision).
+
 ### Unreachable or unclear
 
 - **F-25 Two tunnel setups.** `scripts/setup_autostart.sh` installs `arcade-tracker-ngrok.service`, which

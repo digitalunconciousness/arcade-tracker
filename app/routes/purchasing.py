@@ -154,7 +154,14 @@ def shopping_settings():
 @login_required
 @requires_role("operator")
 def receive_request(request_id):
+    from app.services.inventory import can_view_request
+
     req = db.get_or_404(InventoryRequest, request_id)
+    if not can_view_request(current_user, req):
+        # Who may receive it is who may see it: managers, and whoever asked for it
+        # (security review, 2026-10-26).
+        flash("You can only receive your own requests.", "error")
+        return redirect(url_for("inventory.inventory_requests_list"))
     try:
         quantity = _int("quantity", purchasing.request_outstanding(req))
         message = purchasing.receive_request(req, quantity, _place(), current_user.id,
