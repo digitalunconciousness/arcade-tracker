@@ -262,10 +262,16 @@ def _register_after_request(app: Flask) -> None:
         response.headers["X-Frame-Options"] = "SAMEORIGIN"
         response.headers["X-Content-Type-Options"] = "nosniff"
         # Phase 2.5 put a credential in a URL: /report/<token>, the coin-door form. Any
-        # off-origin request a page makes would carry that URL in its Referer. Set for the
-        # whole application rather than on the one blueprint that needs it, because a header
-        # only some responses carry is a header someone will forget.
-        response.headers["Referrer-Policy"] = "no-referrer"
+        # off-origin request a page makes would carry that URL in its Referer, so no other
+        # site is ever sent one. Set for the whole application rather than on the one
+        # blueprint that needs it, because a header only some responses carry is a header
+        # someone will forget.
+        #
+        # same-origin, not no-referrer: over HTTPS Flask-WTF refuses a form posted without a
+        # Referer from this host (WTF_CSRF_SSL_STRICT). With no-referrer, once Step 5.1 let
+        # the app see the tunnel's HTTPS, every form posted through it was refused, the
+        # login included (fixed 2026-10-26).
+        response.headers["Referrer-Policy"] = "same-origin"
         response.headers["X-XSS-Protection"] = "1; mode=block"
         response.headers["Content-Security-Policy"] = CSP
         return response
