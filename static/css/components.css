@@ -1321,7 +1321,8 @@ body:has(.auth__bg) .app-footer {
 }
 @media (min-width: 700px) {
   .parts__row--request {
-    grid-template-columns: 2fr 5.5rem 1fr 1fr;
+    /* part, qty, use/reserve/order, take from (inventory step 6), urgency */
+    grid-template-columns: 2fr 5.5rem 1.2fr 1.2fr 0.9fr;
   }
   .parts__row--request > .field:first-child {
     grid-column: auto;

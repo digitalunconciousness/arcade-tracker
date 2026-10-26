@@ -161,6 +161,13 @@ def seed_floor() -> dict:
     db.session.add(channel)
     db.session.commit()
 
+    # Inventory step 6: a belt reserved for the open order, and the task needs a belt.
+    from app.models import PartReservation, TaskPart
+
+    reservation = PartReservation(order=open_order, item=belt, place=shelf, quantity=1)
+    db.session.add_all([reservation, TaskPart(task=task, item=belt, quantity=1)])
+    db.session.commit()
+
     return {
         "users": {role: u.id for role, u in users.items()},
         "raider": raider.id, "pinball": pinball.id, "courier": courier.id,
@@ -172,5 +179,5 @@ def seed_floor() -> dict:
         "category": belts.id, "supplier": depot.id, "supplier_link": belt.suppliers[0].id,
         "order": order.id, "order_line": order.lines[0].id,
         "cpu": cpu.id, "unit": spare.id, "unit_in_game": in_game.id,
-        "stock_count": shelf_count.id,
+        "stock_count": shelf_count.id, "reservation": reservation.id,
     }

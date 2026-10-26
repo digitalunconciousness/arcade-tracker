@@ -30,6 +30,10 @@ class MachinePage:
     moves: list = field(default_factory=list)      # GameEvent, newest first
     # The last order closed as Fixed: how it was fixed last time, and by whom (usability round).
     last_fixed: MaintenanceRecord | None = None
+    # Inventory step 6: parts used on it over all its orders, per part: (item, quantity,
+    # cost), most spent first; and their total.
+    parts_used: list = field(default_factory=list)
+    parts_cost: float = 0.0
     extra: dict = field(default_factory=dict)
 
     @property
@@ -94,7 +98,23 @@ def machine_page(game: Game, today: date | None = None) -> MachinePage:
         moves=timeline(game.id, limit=RECENT_MOVES),
         last_fixed=max((o for o in closed if o.status == "Fixed"),
                        key=lambda o: (o.date_fixed or o.date_reported, o.id), default=None),
+        **_parts_used([o.id for o in orders]),
     )
+
+
+def _parts_used(order_ids: list[int]) -> dict:
+    """What its work orders took out of stock, summed per part, at the price paid then."""
+    from app.models import MaintenanceInventoryUsage
+
+    totals: dict[int, list] = {}
+    if order_ids:
+        for use in MaintenanceInventoryUsage.query.filter(
+                MaintenanceInventoryUsage.maintenance_id.in_(order_ids)):
+            row = totals.setdefault(use.item_id, [use.item, 0, 0.0])
+            row[1] += use.quantity_used or 0
+            row[2] += use.total_cost or 0.0
+    rows = sorted((tuple(r) for r in totals.values()), key=lambda r: (-r[2], r[0].name))
+    return {"parts_used": rows, "parts_cost": sum(r[2] for r in rows)}
 
 
 @dataclass

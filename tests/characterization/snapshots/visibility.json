@@ -5,6 +5,7 @@
    "auth.logout()",
    "auth.profile()",
    "collection.overview()",
+   "counts.overview()",
    "dashboard.home()",
    "games.game_detail(game_id=courier)",
    "games.game_detail(game_id=raider)",
@@ -17,6 +18,7 @@
    "maintenance.maintenance_detail(record_id=general)",
    "maintenance.maintenance_detail(record_id=open_order)",
    "maintenance.maintenance_orders()",
+   "purchasing.shopping()",
    "rails.floor()",
    "reports.export_report()",
    "reports.graphs()",
@@ -27,6 +29,7 @@
    "auth.logout()",
    "auth.profile()",
    "collection.overview()",
+   "counts.overview()",
    "dashboard.home()",
    "games.game_detail(game_id=courier)",
    "games.game_detail(game_id=raider)",
@@ -39,6 +42,7 @@
    "maintenance.maintenance_detail(record_id=general)",
    "maintenance.maintenance_detail(record_id=open_order)",
    "maintenance.maintenance_orders()",
+   "purchasing.shopping()",
    "rails.floor()",
    "reports.export_report()",
    "reports.graphs()",
@@ -49,6 +53,7 @@
    "auth.logout()",
    "auth.profile()",
    "collection.overview()",
+   "counts.overview()",
    "dashboard.home()",
    "games.game_detail(game_id=courier)",
    "games.game_detail(game_id=raider)",
@@ -690,6 +695,7 @@
    "inventory.inventory_list()",
    "inventory.inventory_request_detail(request_id=request)",
    "inventory.request_inventory()",
+   "maintenance.maintenance_detail(record_id=open_order)",
    "maintenance.maintenance_orders()",
    "parts.link_edit(item_id=belt, link_id=supplier_link)",
    "parts.link_new(item_id=belt)",
@@ -713,6 +719,7 @@
    "inventory.inventory_list()",
    "inventory.inventory_request_detail(request_id=request)",
    "inventory.request_inventory()",
+   "maintenance.maintenance_detail(record_id=open_order)",
    "maintenance.maintenance_orders()",
    "parts.link_edit(item_id=belt, link_id=supplier_link)",
    "parts.link_new(item_id=belt)",
@@ -735,6 +742,7 @@
    "inventory.inventory_list()",
    "inventory.inventory_request_detail(request_id=request)",
    "inventory.request_inventory()",
+   "maintenance.maintenance_detail(record_id=open_order)",
    "maintenance.maintenance_orders()",
    "parts.photo_upload(item_id=belt)",
    "parts.supplier_detail(supplier_id=supplier)",
@@ -1984,6 +1992,7 @@
    "games.game_detail(game_id=raider)",
    "games.games_list()",
    "games.scan()",
+   "inventory.inventory_detail(item_id=belt)",
    "inventory.inventory_list()",
    "inventory.request_inventory()",
    "maintenance.close_maintenance(record_id=open_order)",
@@ -1993,7 +2002,9 @@
    "maintenance.maintenance_photos(maintenance_id=open_order)",
    "maintenance.update_maintenance(record_id=open_order)",
    "rails.floor()",
-   "reports.reports()"
+   "reports.reports()",
+   "reservations.act(action=release, record_id=open_order, res_id=reservation)",
+   "reservations.act(action=use, record_id=open_order, res_id=reservation)"
   ],
   "manager": [
    "auth.logout()",
@@ -2002,6 +2013,7 @@
    "games.game_detail(game_id=raider)",
    "games.games_list()",
    "games.scan()",
+   "inventory.inventory_detail(item_id=belt)",
    "inventory.inventory_list()",
    "inventory.request_inventory()",
    "maintenance.close_maintenance(record_id=open_order)",
@@ -2011,7 +2023,9 @@
    "maintenance.maintenance_photos(maintenance_id=open_order)",
    "maintenance.update_maintenance(record_id=open_order)",
    "rails.floor()",
-   "reports.reports()"
+   "reports.reports()",
+   "reservations.act(action=release, record_id=open_order, res_id=reservation)",
+   "reservations.act(action=use, record_id=open_order, res_id=reservation)"
   ],
   "operator": [
    "auth.logout()",
@@ -2020,6 +2034,7 @@
    "games.game_detail(game_id=raider)",
    "games.games_list()",
    "games.scan()",
+   "inventory.inventory_detail(item_id=belt)",
    "inventory.inventory_list()",
    "inventory.request_inventory()",
    "maintenance.close_maintenance(record_id=open_order)",
@@ -2027,7 +2042,9 @@
    "maintenance.maintenance_orders()",
    "maintenance.maintenance_photos(maintenance_id=open_order)",
    "maintenance.update_maintenance(record_id=open_order)",
-   "rails.floor()"
+   "rails.floor()",
+   "reservations.act(action=release, record_id=open_order, res_id=reservation)",
+   "reservations.act(action=use, record_id=open_order, res_id=reservation)"
   ],
   "readonly": [
    "auth.logout()",
@@ -2036,6 +2053,7 @@
    "games.game_detail(game_id=raider)",
    "games.games_list()",
    "games.scan()",
+   "inventory.inventory_detail(item_id=belt)",
    "maintenance.download_maintenance_record(record_id=open_order)",
    "maintenance.maintenance_orders()",
    "rails.floor()"

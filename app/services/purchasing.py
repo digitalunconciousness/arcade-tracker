@@ -75,9 +75,12 @@ def target(item: InventoryItem) -> int:
 
 
 def suggested(item: InventoryItem, already: int | None = None) -> int:
-    """How many to buy: up to the target, less what's coming, in whole packs."""
+    """How many to buy: up to the target, less what's coming, in whole packs. Parts reserved
+    for open work orders don't count as in stock (inventory step 6)."""
+    from app.services.reservations import available
+
     coming = on_order(item) if already is None else already
-    need = target(item) - (item.stock_quantity or 0) - coming
+    need = target(item) - available(item) - coming
     if need <= 0:
         return 0
     pack = item.pack_size or 1
@@ -103,11 +106,13 @@ class ShoppingGroup:
 
 
 def shopping_list() -> list[ShoppingGroup]:
-    """Parts at or below their reorder level, grouped by preferred supplier. A part with no
-    reorder level (0) is never on it."""
-    low = (InventoryItem.query.filter(InventoryItem.minimum_stock > 0,
-                                      InventoryItem.stock_quantity <= InventoryItem.minimum_stock)
-           .order_by(InventoryItem.name).all())
+    """Parts at or below their reorder level, grouped by preferred supplier; what's reserved
+    for open work orders doesn't count as in stock. A part with no reorder level (0) is never
+    on it."""
+    from app.services.reservations import available
+
+    low = [i for i in InventoryItem.query.filter(InventoryItem.minimum_stock > 0)
+           .order_by(InventoryItem.name).all() if available(i) <= i.minimum_stock]
     groups: dict[int | None, ShoppingGroup] = {}
     for item in low:
         link = parts.preferred(item)

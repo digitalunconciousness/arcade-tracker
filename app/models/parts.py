@@ -317,3 +317,53 @@ class StockCountLine(db.Model):
     item = db.relationship("InventoryItem")
     place = db.relationship("StockPlace")
     counted_by = db.relationship("User")
+
+
+# --- inventory meets work orders and tasks (inventory step 6) -------------------------------
+
+class PartReservation(db.Model):
+    """Parts set aside for an open work order: still on the shelf (and in stock), but spoken
+    for. Used (taken out of stock against the order) or released; an order that closes
+    releases what it never used."""
+
+    __tablename__ = "part_reservation"
+
+    id = db.Column(db.Integer, primary_key=True)
+    order_id = db.Column(db.Integer, db.ForeignKey("maintenance_record.id", ondelete="CASCADE"),
+                         nullable=False, index=True)
+    item_id = db.Column(db.Integer, db.ForeignKey("inventory_item.id", ondelete="CASCADE"),
+                        nullable=False, index=True)
+    place_id = db.Column(db.Integer, db.ForeignKey("stock_place.id", ondelete="SET NULL",
+                                                   name="fk_part_reservation_place_id"),
+                         nullable=True, index=True)
+    quantity = db.Column(db.Integer, nullable=False)
+    created = db.Column(db.DateTime, nullable=False, default=_now)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id", ondelete="SET NULL",
+                                                  name="fk_part_reservation_user_id"),
+                        nullable=True, index=True)
+
+    order = db.relationship("MaintenanceRecord",
+                            backref=db.backref("reservations", cascade="all, delete-orphan"))
+    item = db.relationship("InventoryItem",
+                           backref=db.backref("reservations", cascade="all, delete-orphan"))
+    place = db.relationship("StockPlace")
+    user = db.relationship("User")
+
+
+class TaskPart(db.Model):
+    """A part a maintenance task needs each time, reserved when the task opens its order."""
+
+    __tablename__ = "task_part"
+    __table_args__ = (db.UniqueConstraint("task_id", "item_id", name="uq_task_part"),)
+
+    id = db.Column(db.Integer, primary_key=True)
+    task_id = db.Column(db.Integer, db.ForeignKey("maintenance_task.id", ondelete="CASCADE"),
+                        nullable=False, index=True)
+    item_id = db.Column(db.Integer, db.ForeignKey("inventory_item.id", ondelete="CASCADE"),
+                        nullable=False, index=True)
+    quantity = db.Column(db.Integer, nullable=False, default=1)
+
+    task = db.relationship("MaintenanceTask",
+                           backref=db.backref("parts", cascade="all, delete-orphan",
+                                              order_by="TaskPart.id"))
+    item = db.relationship("InventoryItem")

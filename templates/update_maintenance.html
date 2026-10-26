@@ -21,10 +21,19 @@
     <input id="inventory_quantity_{{ i }}" name="inventory_quantity_{{ i }}" type="number" min="0" max="999" inputmode="numeric" value="{{ form.get('inventory_quantity_' ~ i, '') }}">
   </div>
   <div class="field">
-    <label for="item_action_{{ i }}">Use or order</label>
+    <label for="item_action_{{ i }}">Use, reserve or order</label>
     <select id="item_action_{{ i }}" name="item_action_{{ i }}">
-      <option value="use"{% if form.get("item_action_" ~ i) != "request" %} selected{% endif %}>Use now</option>
-      <option value="request"{% if form.get("item_action_" ~ i) == "request" %} selected{% endif %}>Order it</option>
+      {%- set act = form.get("item_action_" ~ i, "use") %}
+      <option value="use"{% if act == "use" %} selected{% endif %}>Use now</option>
+      <option value="reserve"{% if act == "reserve" %} selected{% endif %}>Reserve</option>
+      <option value="request"{% if act == "request" %} selected{% endif %}>Order it</option>
+    </select>
+  </div>
+  <div class="field">
+    <label for="place_{{ i }}">Take from</label>
+    <select id="place_{{ i }}" name="place_{{ i }}">
+      <option value="">Wherever it is</option>
+      {%- for p, depth in places %}<option value="{{ p.id }}"{% if form.get("place_" ~ i) == p.id|string %} selected{% endif %}>{{ p.path }}</option>{% endfor %}
     </select>
   </div>
   <div class="field">

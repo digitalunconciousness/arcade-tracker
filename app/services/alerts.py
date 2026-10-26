@@ -199,7 +199,8 @@ def release_held(now_local: dt.datetime | None = None) -> int:
 
 
 def summary_text() -> tuple[str, str]:
-    """Today's summary: what's down, what's open, what's low, what's due."""
+    """Today's summary: what's down, what's open, what's low, what's due (machines, and
+    inventory counts and deliveries)."""
     from app.models import Game, LowStockAlert, MaintenanceRecord
 
     down = (Game.query.filter(Game.location == "Floor",
@@ -216,6 +217,13 @@ def summary_text() -> tuple[str, str]:
                                                if down else ""),
              f"Open work orders: {open_orders} ({pm} preventive maintenance)",
              f"Parts low: {low}"]
+    from app.services.inventory_due import due
+
+    inv = due()
+    if inv.counts_late:
+        lines.append(f"Counts overdue: {inv.counts_late}")
+    if inv.deliveries:
+        lines.append(f"Deliveries due: {inv.deliveries}")
     return "Today's summary", "\n".join(lines)
 
 

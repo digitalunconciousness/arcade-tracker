@@ -40,7 +40,7 @@ ARG_TABLE = {"game_id": "game", "item_id": "item", "record_id": "order", "task_i
              "maintenance_id": "order", "request_id": "request", "alert_id": "alert",
              "place_id": "place", "category_id": "category", "supplier_id": "supplier",
              "link_id": "supplier_link", "order_id": "purchase_order", "line_id": "order_line",
-             "unit_id": "unit", "count_id": "stock_count"}
+             "unit_id": "unit", "count_id": "stock_count", "res_id": "reservation"}
 # delete_play_record's record_id is a play record, not a work order.
 ENDPOINT_ARG_TABLE = {("games.delete_play_record", "record_id"): "play"}
 
@@ -65,6 +65,7 @@ def _names(floor: dict) -> dict:
         "order_line": {floor["order_line"]: "order_line"},
         "unit": {floor["unit"]: "unit", floor["unit_in_game"]: "unit_in_game"},
         "stock_count": {floor["stock_count"]: "stock_count"},
+        "reservation": {floor["reservation"]: "reservation"},
         "play": {},
     }
 
@@ -167,7 +168,7 @@ def _minimum_roles() -> dict[str, str]:
                             "open_order", "closed_order", "general", "request", "task", "channel",
                             "device", "back_room", "shelf", "category", "supplier",
                             "supplier_link", "order", "order_line", "cpu", "unit",
-                            "unit_in_game", "stock_count")}
+                            "unit_in_game", "stock_count", "reservation")}
     floor["session_uid"] = "d" * 32
     adapter = current_app.url_map.bind("localhost")
     out = {}

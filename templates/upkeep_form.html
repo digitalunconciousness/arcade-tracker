@@ -61,6 +61,28 @@
       <input id="active" type="checkbox" name="active" value="1"{% if values.get('active') %} checked{% endif %}>
       <label for="active">Active (untick to pause it)</label>
     </div>
+    <fieldset class="stack{% if errors.parts %} is-invalid{% endif %}">
+      <legend>Parts it needs</legend>
+      <p class="dim">Reserved for its work order each time it comes due, so they're on the shelf when the tech gets there.</p>
+      {%- for i in range(part_rows) %}
+      {%- set row = values.parts[i] if values.parts and i < values.parts|length else none %}
+      <div class="field-row">
+        <div class="field">
+          <label for="part_item_{{ i }}">Part {{ i + 1 }}</label>
+          <select id="part_item_{{ i }}" name="part_item_{{ i }}">
+            <option value="">—</option>
+            {%- for item in items %}<option value="{{ item.id }}"{% if row and row[0] == item.id %} selected{% endif %}>{{ item.name }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="field count__qty">
+          <label for="part_qty_{{ i }}">How many</label>
+          <input id="part_qty_{{ i }}" name="part_qty_{{ i }}" inputmode="numeric" maxlength="3" value="{{ row[1] if row else '' }}" placeholder="1">
+        </div>
+      </div>
+      {%- endfor %}
+      {%- if errors.parts %}<span class="field__error">{{ errors.parts }}</span>{% endif %}
+    </fieldset>
+
     <div class="form__actions">
       <button class="btn btn--primary" type="submit">Save</button>
       <a class="btn btn--ghost" href="{{ url_for('upkeep.overview') }}">Cancel</a>

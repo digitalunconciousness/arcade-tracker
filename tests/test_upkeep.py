@@ -269,6 +269,11 @@ def test_the_migration_round_trips(app, floor):
     def inspect():
         return sa.inspect(db.engine)
 
+    # A database at f4a5 has no task_part (inventory step 6), which would hold the table.
+    # End the session's read first: on PostgreSQL the drop waits for it.
+    db.session.commit()
+    with db.engine.begin() as conn:
+        conn.execute(sa.text("DROP TABLE IF EXISTS task_part"))
     stamp(directory=os.path.join(ROOT, "migrations"), revision="f4a5b6c7d8e9")
     migrate(downgrade, "e3f4a5b6c7d8")
     assert not inspect().has_table("maintenance_task")

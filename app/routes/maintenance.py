@@ -25,6 +25,7 @@ from app.models import (
     MaintenanceRecord,
     WorkLog,
 )
+from app.services import reservations
 from app.services.branding import pdf_masthead
 from app.utils.decorators import requires_role
 
@@ -130,6 +131,31 @@ def _create_order(form, game=None, machine_down=None, rail_session=None):
     for warning in parts.warnings:
         flash(warning, "warning")
     return record, parts
+
+
+def _places():
+    """Every place parts can be taken from, for the work order forms (inventory step 6)."""
+    from app.services import stock_places
+
+    return [(n.place, n.depth) for n in stock_places.place_tree()]
+
+
+def _reserve_rows(record, rows, warnings) -> int:
+    """Reserve (item_id, quantity, place_id) rows for *record*; refusals become warnings."""
+    from app.models import StockPlace
+
+    done = 0
+    for item_id, quantity, place_id in rows:
+        item = db.session.get(InventoryItem, item_id)
+        place = db.session.get(StockPlace, place_id) if place_id else None
+        if item is None:
+            continue
+        try:
+            reservations.reserve(record, item, quantity, current_user.id, place)
+            done += 1
+        except reservations.ReservationError as exc:
+            warnings.append(str(exc))
+    return done
 
 
 def _rail_session_for(game, uid):
@@ -285,11 +311,13 @@ def update_maintenance(record_id):
         time_spent = _float("time_spent", errors, "Time spent")
         work_cost = _float("work_cost", errors, "Cost of this work")
 
-        used_rows, requested_rows = [], []
+        used_rows, requested_rows, reserved_rows = [], [], []
         for i in range(MAX_PART_ROWS):
             item_id = request.form.get(f"inventory_item_{i}", "")
             qty = request.form.get(f"inventory_quantity_{i}", "")
             action = request.form.get(f"item_action_{i}", "")
+            place_raw = request.form.get(f"place_{i}", "")
+            place_id = int(place_raw) if place_raw.isdigit() else None
             if not item_id or item_id in ("-1", "0") or not qty:
                 continue
             try:
@@ -300,7 +328,9 @@ def update_maintenance(record_id):
             if qty <= 0:
                 continue
             if action == "use":
-                used_rows.append((item_id, qty))
+                used_rows.append((item_id, qty, place_id))
+            elif action == "reserve":
+                reserved_rows.append((item_id, qty, place_id))
             elif action == "request":
                 requested_rows.append((item_id, qty, request.form.get(f"urgency_{i}", "Normal")))
             else:
@@ -308,6 +338,7 @@ def update_maintenance(record_id):
 
         if errors:
             return render_template("update_maintenance.html", maintenance=record, items=items,
+                                   places=_places(),
                                    errors=errors, form=request.form, statuses=STATUSES,
                                    priorities=PRIORITIES, urgencies=URGENCIES,
                                    rows=MAX_PART_ROWS), 400
@@ -338,6 +369,9 @@ def update_maintenance(record_id):
 
         parts = use_parts(record, used_rows, current_user.id, f"Used in Work Order #{record.id}")
         requested = request_parts(record, requested_rows, current_user.id)
+        # Inventory step 6: parts set aside for this order, and given back when it closes.
+        reserved = _reserve_rows(record, reserved_rows, parts.warnings)
+        released = reservations.release_closed(record)
         db.session.commit()
 
         for warning in parts.warnings:
@@ -347,6 +381,10 @@ def update_maintenance(record_id):
             done.append("Work log added")
         if parts.used:
             done.append(f"{parts.used} item(s) used (${parts.cost:.2f})")
+        if reserved:
+            done.append(f"{reserved} part(s) reserved")
+        if released:
+            done.append(f"{released} reservation(s) released, as the order is closed")
         if requested:
             done.append(f"{requested} item(s) requested")
         flash(". ".join(done) + "." if done else f"Maintenance record #{record.id} updated.",
@@ -354,6 +392,7 @@ def update_maintenance(record_id):
         return redirect(url_for("maintenance.maintenance_detail", record_id=record.id))
 
     return render_template("update_maintenance.html", maintenance=record, items=items,
+                           places=_places(),
                            errors={}, form={}, statuses=STATUSES, priorities=PRIORITIES,
                            urgencies=URGENCIES, rows=MAX_PART_ROWS)
 
@@ -386,6 +425,7 @@ def close_maintenance(record_id):
     if status == "Fixed":
         record.fixed_by_id = current_user.id
     sync_machine_status(record)
+    reservations.release_closed(record)            # unused parts go back on the shelf
     db.session.commit()
 
     name = record.game.name if record.game else "General Maintenance"

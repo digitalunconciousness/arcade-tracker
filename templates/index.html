@@ -110,6 +110,43 @@
   {%- endif %}
 {%- endmacro %}
 
+{#- Inventory step 6: counts to do, deliveries due, and (managers) parts to buy. -#}
+{% macro inventory_section() -%}
+  {%- set inv = d.inventory %}
+  {%- if inv and inv.anything %}
+  <section aria-labelledby="inv-title">
+    <h2 id="inv-title">Inventory</h2>
+    <ul class="rows">
+      {%- if inv.counts %}
+      <li><a class="row" href="{{ url_for('counts.overview') }}">
+        <span class="row__main"><span class="row__title">{{ inv.counts|length }} count{{ "" if inv.counts|length == 1 else "s" }} to do</span>
+          <span class="row__meta">{{ inv.counts[0].name }}{% if inv.counts[0].due %} · due {{ inv.counts[0].due.strftime("%Y-%m-%d") }}{% endif %}</span></span>
+        {%- if inv.counts_late %}<span class="row__end">{{ ui.chip("warn", inv.counts_late ~ " overdue") }}</span>{% endif %}
+      </a></li>
+      {%- endif %}
+      {%- for o in inv.orders_due %}
+      <li><a class="row" href="{{ url_for('purchasing.order', order_id=o.id) }}">
+        <span class="row__main"><span class="row__title">Delivery due: order #{{ o.id }}</span>
+          <span class="row__meta">{{ o.supplier.name }} · expected {{ o.expected.strftime("%Y-%m-%d") }}</span></span>
+      </a></li>
+      {%- endfor %}
+      {%- for r in inv.requests_due %}
+      <li><a class="row" href="{{ url_for('inventory.inventory_request_detail', request_id=r.id) }}">
+        <span class="row__main"><span class="row__title">Delivery due: {{ r.item_name }} × {{ r.quantity_requested }}</span>
+          <span class="row__meta">Request #{{ r.id }} · expected {{ r.estimated_arrival.strftime("%Y-%m-%d") }}</span></span>
+      </a></li>
+      {%- endfor %}
+      {%- if inv.to_buy %}
+      <li><a class="row" href="{{ url_for('purchasing.shopping') }}">
+        <span class="row__main"><span class="row__title">{{ inv.to_buy }} part{{ "" if inv.to_buy == 1 else "s" }} to buy</span>
+          <span class="row__meta">At or below their reorder level</span></span>
+      </a></li>
+      {%- endif %}
+    </ul>
+  </section>
+  {%- endif %}
+{%- endmacro %}
+
 {% macro swaps_section() -%}
   <section aria-labelledby="swaps-title">
     <div class="card__head">
@@ -211,9 +248,9 @@
 
   <div class="dash__grid">
     {%- if role == "operator" %}
-    {{ orders_section() }}{{ down_section() }}{{ pm_section() }}{{ stock_section() }}{{ recent_section() }}{{ floor_section() }}
+    {{ orders_section() }}{{ down_section() }}{{ pm_section() }}{{ stock_section() }}{{ inventory_section() }}{{ recent_section() }}{{ floor_section() }}
     {%- elif boss %}
-    {{ down_section() }}{{ swaps_section() }}{{ stock_section() }}{{ orders_section() }}{{ recent_section() }}{{ floor_section() }}
+    {{ down_section() }}{{ swaps_section() }}{{ stock_section() }}{{ inventory_section() }}{{ orders_section() }}{{ recent_section() }}{{ floor_section() }}
     {%- else %}
     {{ down_section() }}{{ floor_section() }}{{ orders_section() }}{{ recent_section() }}
     {%- endif %}
