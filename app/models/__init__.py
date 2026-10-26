@@ -26,7 +26,11 @@ from app.models.parts import (
     PriceChange,
     PurchaseOrder,
     PurchaseOrderLine,
+    SerialUnit,
+    StockCount,
+    StockCountLine,
     Supplier,
+    UnitEvent,
 )
 from app.models.rail import RailSession, RailSessionTag, Reading
 from app.models.stock import StockLevel, StockPlace
@@ -51,6 +55,10 @@ __all__ = [
     "PriceChange",
     "PurchaseOrder",
     "PurchaseOrderLine",
+    "SerialUnit",
+    "UnitEvent",
+    "StockCount",
+    "StockCountLine",
     "LowStockAlert",
     "MaintenanceInventoryUsage",
     "InventoryRequest",

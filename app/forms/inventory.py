@@ -2,6 +2,7 @@
 
 from flask_wtf import FlaskForm
 from wtforms import (
+    BooleanField,
     DecimalField,
     IntegerField,
     SelectField,
@@ -38,6 +39,7 @@ class InventoryItemForm(FlaskForm):
     supplier = StringField("Preferred supplier", validators=[Optional(), Length(max=200)])
     category = SelectField("Category", coerce=int, default=0, validators=[Optional()])
     unit = StringField("Unit", validators=[Optional(), Length(max=20)])
+    serialized = BooleanField("Tracked one by one, each with a serial number")
     pack_size = IntegerField("Bought in packs of",
                              validators=[Optional(), NumberRange(min=1, max=100_000)])
     compatible_games = SelectMultipleField("Fits these machines", coerce=int,

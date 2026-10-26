@@ -59,6 +59,9 @@ class InventoryItem(db.Model):
     )
     unit: str = db.Column(db.String(20), nullable=False, default="each", server_default="each")
     pack_size: int | None = db.Column(db.Integer, nullable=True)
+    # Step 4: tracked one by one, each unit with a serial (SerialUnit).
+    serialized: bool = db.Column(db.Boolean, nullable=False, default=False,
+                                 server_default=db.false())
     # Step 3: what the shopping list tops it up to (blank: twice the reorder level).
     reorder_to: int | None = db.Column(db.Integer, nullable=True)
     photo_filename: str | None = db.Column(db.String(255), nullable=True)

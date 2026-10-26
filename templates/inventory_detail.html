@@ -60,8 +60,14 @@
     <p><a href="{{ url_for('places.overview') }}">All places</a></p>
   </section>
 
+  {%- if item.serialized %}{% include "_part_units.html" %}{% endif %}
+
   <section class="card" aria-labelledby="adjust-title">
     <h2 id="adjust-title">Take, add, count or move</h2>
+    {%- if item.serialized %}
+    <p class="dim">This part is tracked one by one: add, move and install it unit by unit above,
+       so each serial stays where it really is. Use this form only to correct a count.</p>
+    {%- endif %}
     <form class="form form--wide" method="post" action="{{ url_for('inventory.adjust_stock', item_id=item.id) }}">
       {{ adjust_form.hidden_tag() }}
       {{ stock_fields(adjust_form, places, default_place) }}

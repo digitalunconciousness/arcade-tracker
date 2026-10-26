@@ -1,0 +1,144 @@
+{% extends "layout.html" %}
+{% import "ui.html" as ui %}
+{% set manager = current_user.has_role("manager") %}
+{% set states = {"in_stock": "ok", "in_machine": "info", "at_repair": "warn", "retired": "muted"} %}
+{% block title %}{{ unit.item.name }} {{ unit.serial }}{% endblock %}
+
+{% block page_head %}
+{% call ui.page_head(unit.item.name ~ " · " ~ unit.serial, sub=unit.where, back=url_for("inventory.inventory_detail", item_id=unit.item_id) ~ "#units-title", back_label=unit.item.name) %}
+  <a class="btn btn--sm" href="{{ url_for('stock_labels.sheet', ids='u' ~ unit.id) }}">Label</a>
+{% endcall %}
+{% endblock %}
+
+{#- One unit of a part tracked one by one: where it is, what can happen to it next, and
+    everything that has. The forms offered follow its state. -#}
+{% block content %}
+<div class="stack">
+  <dl class="readouts">
+    {{ ui.readout("Now", {"in_stock": "In stock", "in_machine": "In a machine", "at_repair": "Out for repair", "retired": "Retired"}[unit.state], unit.where, states[unit.state]) }}
+    {{ ui.readout("Serial", unit.serial) }}
+    {{ ui.readout("Recorded", unit.created.strftime("%Y-%m-%d")) }}
+  </dl>
+  {%- if unit.state == "in_machine" and unit.game %}
+  <p><a href="{{ url_for('games.game_detail', game_id=unit.game_id) }}">Open {{ unit.game.name }}</a></p>
+  {%- endif %}
+  {%- if unit.notes %}<section class="card"><h2>Notes</h2><p class="prose">{{ unit.notes }}</p></section>{% endif %}
+
+  {%- macro note_field(id) %}
+  <div class="field"><label for="{{ id }}">Note <span class="dim">(optional)</span></label><input id="{{ id }}" name="note" maxlength="500"></div>
+  {%- endmacro %}
+  {%- macro place_select(id, label, selected) %}
+  <div class="field">
+    <label for="{{ id }}">{{ label }}</label>
+    <select id="{{ id }}" name="place">
+      {%- for p, depth in places %}<option value="{{ p.id }}"{% if p.id == selected %} selected{% endif %}>{{ p.path }}</option>{% endfor %}
+    </select>
+  </div>
+  {%- endmacro %}
+
+  {%- if unit.state != "retired" %}
+  <section class="stack" aria-labelledby="do-title">
+    <h2 id="do-title">What's happening to it</h2>
+
+    {%- if unit.state == "in_stock" %}
+    <details class="card" open>
+      <summary class="btn btn--sm btn--ghost">Put it in a machine</summary>
+      <form class="form stack mt-3" method="post" action="{{ url_for('serials.act', unit_id=unit.id, action='install') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="field">
+          <label for="u-game">Machine</label>
+          <select id="u-game" name="game" required>
+            <option value="">Pick a machine…</option>
+            {%- for g in machines %}<option value="{{ g.id }}">{{ g.name }}</option>{% endfor %}
+          </select>
+        </div>
+        {{ note_field("u-install-note") }}
+        <div class="form__actions"><button class="btn btn--primary" type="submit">Install</button></div>
+      </form>
+    </details>
+    <details class="card">
+      <summary class="btn btn--sm btn--ghost">Move it to another place</summary>
+      <form class="form stack mt-3" method="post" action="{{ url_for('serials.act', unit_id=unit.id, action='move') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {{ place_select("u-move-place", "To", none) }}
+        {{ note_field("u-move-note") }}
+        <div class="form__actions"><button class="btn" type="submit">Move</button></div>
+      </form>
+    </details>
+    {%- endif %}
+
+    {%- if unit.state == "in_machine" %}
+    <details class="card" open>
+      <summary class="btn btn--sm btn--ghost">Take it out of {{ unit.game.name if unit.game else "the machine" }}</summary>
+      <form class="form stack mt-3" method="post" action="{{ url_for('serials.act', unit_id=unit.id, action='remove') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {{ place_select("u-remove-place", "Put it in", default_place.id) }}
+        {{ note_field("u-remove-note") }}
+        <div class="form__actions"><button class="btn btn--primary" type="submit">Take out</button></div>
+      </form>
+    </details>
+    {%- endif %}
+
+    {%- if unit.state in ("in_stock", "in_machine") %}
+    <details class="card">
+      <summary class="btn btn--sm btn--ghost">Send it for repair</summary>
+      <form class="form stack mt-3" method="post" action="{{ url_for('serials.act', unit_id=unit.id, action='repair') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="field"><label for="u-repair-with">Who has it</label><input id="u-repair-with" name="repair_with" maxlength="200" placeholder="A repair shop, or a tech's bench"></div>
+        {{ note_field("u-repair-note") }}
+        <div class="form__actions"><button class="btn" type="submit">Send for repair</button></div>
+      </form>
+    </details>
+    {%- endif %}
+
+    {%- if unit.state == "at_repair" %}
+    <details class="card" open>
+      <summary class="btn btn--sm btn--ghost">It's back from repair</summary>
+      <form class="form stack mt-3" method="post" action="{{ url_for('serials.act', unit_id=unit.id, action='back') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {{ place_select("u-back-place", "Put it in", default_place.id) }}
+        {{ note_field("u-back-note") }}
+        <div class="form__actions"><button class="btn btn--primary" type="submit">Back in stock</button></div>
+      </form>
+    </details>
+    {%- endif %}
+
+    <details class="card">
+      <summary class="btn btn--sm btn--ghost">Retire it</summary>
+      <form class="form stack mt-3" method="post" action="{{ url_for('serials.act', unit_id=unit.id, action='retire') }}" data-confirm="Retire {{ unit.serial }}? It stays in the records, out of service." data-confirm-action="Retire">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <p class="dim">Scrapped, sold or lost. It keeps its history.</p>
+        {{ note_field("u-retire-note") }}
+        <div class="form__actions"><button class="btn btn--danger" type="submit">Retire</button></div>
+      </form>
+    </details>
+  </section>
+  {%- endif %}
+
+  <section aria-labelledby="hist-title">
+    <h2 id="hist-title">History</h2>
+    <ul class="rows">
+      {%- for e in unit.events %}
+      <li class="row">
+        <span class="row__main">
+          <span class="row__title">{{ {"added": "Arrived", "recorded": "Recorded", "moved": "Moved", "installed": "Installed", "removed": "Taken out", "repair": "Sent for repair", "returned": "Back from repair", "retired": "Retired", "edited": "Corrected"}.get(e.kind, e.kind) }}{% if e.detail %} · {{ e.detail }}{% endif %}</span>
+          <span class="row__meta">{{ e.at.strftime("%Y-%m-%d %H:%M") }}{% if e.user %} · {{ e.user.username }}{% endif %}{% if e.note %} · {{ e.note }}{% endif %}</span>
+        </span>
+      </li>
+      {%- endfor %}
+    </ul>
+  </section>
+
+  {%- if manager %}
+  <details class="card">
+    <summary class="btn btn--sm btn--ghost">Correct the serial or notes</summary>
+    <form class="form stack mt-3" method="post" action="{{ url_for('serials.edit', unit_id=unit.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="field"><label for="u-serial">Serial</label><input id="u-serial" name="serial" required maxlength="100" value="{{ unit.serial }}"></div>
+      <div class="field"><label for="u-notes">Notes</label><textarea id="u-notes" name="notes" rows="2" maxlength="2000">{{ unit.notes or "" }}</textarea></div>
+      <div class="form__actions"><button class="btn btn--sm btn--primary" type="submit">Save</button></div>
+    </form>
+  </details>
+  {%- endif %}
+</div>
+{% endblock %}

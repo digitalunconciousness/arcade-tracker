@@ -1,0 +1,92 @@
+{% extends "layout.html" %}
+{% import "ui.html" as ui %}
+{% set manager = current_user.has_role("manager") %}
+{% block title %}Counts{% endblock %}
+
+{% block page_head %}
+{{ ui.page_head("Counts", sub="Planned counts, reviewed before they change anything", back=url_for("inventory.inventory_list"), back_label="Parts") }}
+{% endblock %}
+
+{% block content %}
+<div class="stack">
+  {%- for c in overdue %}
+  <div class="banner is-warn" role="note"><div class="banner__body">
+    <span class="banner__title">{{ c.name }} was due {{ c.due.strftime("%Y-%m-%d") }}</span>
+    <p><a href="{{ url_for('counts.sheet', count_id=c.id) }}">Count it</a>{% if manager %} or <a href="{{ url_for('counts.review', count_id=c.id) }}">review it</a>{% endif %}.</p>
+  </div></div>
+  {%- endfor %}
+
+  <section class="stack" aria-labelledby="open-title">
+    <h2 id="open-title">To count</h2>
+    {%- if open_counts %}
+    <ul class="rows">
+      {%- for c in open_counts %}
+      <li><a class="row" href="{{ url_for('counts.sheet', count_id=c.id) }}">
+        <span class="row__main">
+          <span class="row__title">{{ c.name }}</span>
+          <span class="row__meta">{{ "Cycle count" if c.kind == "cycle" else "Full count" }} · {{ c.counted }} of {{ c.lines|length }} counted
+            {%- if c.due %} · due {{ c.due.strftime("%Y-%m-%d") }}{% endif %}{% if c.repeat_days %} · every {{ c.repeat_days }} days{% endif %}</span>
+        </span>
+        {%- if c.due and c.due < today %}<span class="row__end">{{ ui.chip("warn", "Overdue") }}</span>{% endif %}
+      </a></li>
+      {%- endfor %}
+    </ul>
+    {%- else %}
+    {{ ui.empty("Nothing to count", "A manager starts a count below." if not manager else none) }}
+    {%- endif %}
+  </section>
+
+  {%- if manager %}
+  <section class="card stack" aria-labelledby="start-title">
+    <h2 id="start-title">Start a count</h2>
+    <div class="grid grid--pair">
+      <form class="form stack" method="post" action="{{ url_for('counts.new') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="kind" value="full">
+        <h3>Full count of some places</h3>
+        <p class="dim">Every part on record in the places you tick, and in the places inside them.</p>
+        <div class="field"><label for="full-name">Name</label><input id="full-name" name="name" maxlength="100" placeholder="Warehouse, end of month"></div>
+        <fieldset class="stack">
+          <legend>Places</legend>
+          {%- for n in tree %}
+          <div class="field field--check places__row--d{{ [n.depth, 6]|min }}"><input id="cp-{{ n.place.id }}" type="checkbox" name="place" value="{{ n.place.id }}"><label for="cp-{{ n.place.id }}">{{ n.place.name }}</label></div>
+          {%- endfor %}
+        </fieldset>
+        <div class="field-row">
+          <div class="field"><label for="full-due">Due</label><input id="full-due" name="due" type="date"></div>
+          <div class="field"><label for="full-repeat">Repeat every (days)</label><input id="full-repeat" name="repeat_days" inputmode="numeric" placeholder="Once"></div>
+        </div>
+        <div class="form__actions"><button class="btn btn--primary" type="submit">Start full count</button></div>
+      </form>
+      <form class="form stack" method="post" action="{{ url_for('counts.new') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="kind" value="cycle">
+        <h3>Cycle count</h3>
+        <p class="dim">A few parts at a time, the ones counted longest ago first, in every place each is kept. Repeated weekly, the whole stock gets counted without a big count day.</p>
+        <div class="field"><label for="cyc-name">Name</label><input id="cyc-name" name="name" maxlength="100" placeholder="Weekly cycle count"></div>
+        <div class="field"><label for="cyc-size">How many parts</label><input id="cyc-size" name="size" inputmode="numeric" value="10"></div>
+        <div class="field-row">
+          <div class="field"><label for="cyc-due">Due</label><input id="cyc-due" name="due" type="date"></div>
+          <div class="field"><label for="cyc-repeat">Repeat every (days)</label><input id="cyc-repeat" name="repeat_days" inputmode="numeric" value="7"></div>
+        </div>
+        <div class="form__actions"><button class="btn btn--primary" type="submit">Start cycle count</button></div>
+      </form>
+    </div>
+  </section>
+  {%- endif %}
+
+  {%- if done %}
+  <section class="stack" aria-labelledby="done-title">
+    <h2 id="done-title">Finished</h2>
+    <ul class="rows">
+      {%- for c in done %}
+      <li><a class="row" href="{{ url_for('counts.review', count_id=c.id) if manager else url_for('counts.sheet', count_id=c.id) }}">
+        <span class="row__main"><span class="row__title">{{ c.name }}</span>
+          <span class="row__meta">{{ c.status }}{% if c.applied %} {{ c.applied.strftime("%Y-%m-%d") }}{% if c.applied_by %} by {{ c.applied_by.username }}{% endif %}{% endif %} · {{ c.counted }} of {{ c.lines|length }} counted</span></span>
+      </a></li>
+      {%- endfor %}
+    </ul>
+  </section>
+  {%- endif %}
+</div>
+{% endblock %}

@@ -80,6 +80,23 @@ def seed_floor() -> dict:
     # A part of its own, so the parts the other tests delete aren't held by the order.
     spring = InventoryItem(name="Coin Mech Spring", stock_quantity=0, minimum_stock=0,
                            unit_price=0.3, part_number="SPR-1")
+    # Serialized spares (inventory step 4): a board tracked one by one, one in Neon Raider and
+    # one on the shelf.
+    from app.models import SerialUnit, UnitEvent
+
+    cpu = InventoryItem(name="CPU Board", stock_quantity=1, minimum_stock=0, serialized=True,
+                        part_number="CPU-1")
+    in_game = SerialUnit(item=cpu, serial="CPU-0001", state="in_machine", game=raider)
+    spare = SerialUnit(item=cpu, serial="CPU-0002", state="in_stock", place=shelf)
+    db.session.add_all([cpu, in_game, spare, StockLevel(item=cpu, place=shelf, quantity=1),
+                        UnitEvent(unit=in_game, kind="installed", detail="Neon Raider"),
+                        UnitEvent(unit=spare, kind="recorded", detail="Back Room › Shelf A")])
+    # Planned counts (inventory step 5): an open count of the shelf, nothing counted yet.
+    from app.models import StockCount, StockCountLine
+
+    shelf_count = StockCount(name="Shelf A count", kind="full", place_ids=str(shelf.id))
+    db.session.add_all([shelf_count, StockCountLine(count=shelf_count, item=belt, place=shelf,
+                                                    expected=10)])
     order = PurchaseOrder(supplier=depot, status="Sent", notes="Synthetic order")
     db.session.add_all([spring, order, PurchaseOrderLine(order=order, item=spring,
                                                          quantity=20, unit_price=0.3)])
@@ -154,4 +171,6 @@ def seed_floor() -> dict:
         "back_room": back_room.id, "shelf": shelf.id,
         "category": belts.id, "supplier": depot.id, "supplier_link": belt.suppliers[0].id,
         "order": order.id, "order_line": order.lines[0].id,
+        "cpu": cpu.id, "unit": spare.id, "unit_in_game": in_game.id,
+        "stock_count": shelf_count.id,
     }

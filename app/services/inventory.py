@@ -124,6 +124,7 @@ def save_item(item: InventoryItem, form, user_id: int) -> None:
     item.category_id = form.category.data or None
     item.unit = parts.clean_unit(form.unit.data)
     item.pack_size = parts.clean_pack(form.pack_size.data)
+    item.serialized = bool(form.serialized.data)
     item.notes = form.notes.data or None
     item.compatible_games = (Game.query.filter(Game.id.in_(form.compatible_games.data)).all()
                              if form.compatible_games.data else [])

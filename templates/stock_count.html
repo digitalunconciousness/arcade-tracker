@@ -1,0 +1,84 @@
+{% extends "layout.html" %}
+{% import "ui.html" as ui %}
+{% set manager = current_user.has_role("manager") %}
+{% set counting = count.status == "Counting" %}
+{% block title %}{{ count.name }}{% endblock %}
+
+{% block page_head %}
+{% call ui.page_head(count.name, sub=count.counted ~ " of " ~ count.lines|length ~ " counted" ~ ("" if counting else " · " ~ count.status), back=url_for("counts.overview"), back_label="Counts") %}
+  {%- if manager %}<a class="btn btn--sm{% if counting %} btn--primary{% endif %}" href="{{ url_for('counts.review', count_id=count.id) }}">Review</a>{% endif %}
+{% endcall %}
+{% endblock %}
+
+{#- Blind: the boxes never show what's on record, only what this count has recorded, so a
+    counter counts what is there. Save as often as you like; nothing changes the stock until a
+    manager applies the count. -#}
+{% block content %}
+<div class="stack count">
+  {%- if counting %}
+  <p class="dim">Count what you see and type the number. Leave a box blank if you haven't
+     counted it; 0 if there are none. Nothing changes the stock until a manager applies the count.</p>
+
+  <form class="stack" method="post" action="{{ url_for('counts.save', count_id=count.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {%- for place, lines in groups %}
+    <section class="stack" aria-labelledby="pl-{{ place.id }}">
+      <h2 id="pl-{{ place.id }}">{{ place.path }}</h2>
+      <ul class="rows">
+        {%- for ln in lines %}
+        <li class="row count__row">
+          {%- if ln.item.photo_filename %}<img class="count__thumb" src="{{ url_for('parts.photo', filename=ln.item.photo_filename) }}" alt="" loading="lazy">{% endif %}
+          <label class="row__main" for="line-{{ ln.id }}">
+            <span class="row__title">{{ ln.item.name }}</span>
+            <span class="row__meta">{{ [ln.item.part_number, ("counted by " ~ ln.counted_by.username) if ln.counted_by else none, "tracked one by one" if ln.item.serialized else none]|select|join(" · ") or "not counted yet" }}</span>
+          </label>
+          <input class="count__box" id="line-{{ ln.id }}" name="line-{{ ln.id }}" inputmode="numeric" pattern="[0-9]*" maxlength="7" autocomplete="off" value="{{ ln.counted if ln.counted is not none else '' }}">
+        </li>
+        {%- endfor %}
+      </ul>
+    </section>
+    {%- else %}
+    {{ ui.empty("Nothing on record in these places", "Add what you find below.") }}
+    {%- endfor %}
+    {%- if groups %}<div class="form__actions"><button class="btn btn--primary" type="submit">Save counts</button></div>{% endif %}
+  </form>
+
+  <section class="card stack" aria-labelledby="found-title">
+    <h2 id="found-title">Found something not listed</h2>
+    <div class="scan-camera stack" data-camera data-camera-input="found-part" data-camera-then="found-qty" data-jsqr="{{ asset('js/vendor/jsQR.js') }}" hidden>
+      <div class="scan-camera__view" hidden>
+        <video muted playsinline aria-label="Camera preview"></video>
+        <span class="scan-camera__frame" aria-hidden="true"></span>
+      </div>
+      <p class="cluster">
+        <button class="btn" type="button" data-camera-start>Scan a label</button>
+        <button class="btn" type="button" data-camera-stop hidden>Stop camera</button>
+      </p>
+      <p class="dim" data-camera-status role="status" aria-live="polite"></p>
+    </div>
+    <form class="form stack" method="post" action="{{ url_for('counts.found', count_id=count.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="field-row">
+        <div class="field"><label for="found-part">Part</label><input id="found-part" name="part" list="part-names" autocomplete="off" autocapitalize="none" maxlength="200" placeholder="Label, name or part number"></div>
+        <datalist id="part-names">{% for n in names %}<option value="{{ n }}">{% endfor %}</datalist>
+        <div class="field">
+          <label for="found-place">Where</label>
+          <select id="found-place" name="place">
+            {%- set here = groups[0][0].id if groups else none %}
+            {%- for p, depth in places %}<option value="{{ p.id }}"{% if p.id == here %} selected{% endif %}>{{ p.path }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="field count__qty"><label for="found-qty">How many</label><input id="found-qty" name="quantity" inputmode="numeric" pattern="[0-9]*" maxlength="7"></div>
+      </div>
+      <div class="form__actions"><button class="btn" type="submit">Add it</button></div>
+    </form>
+  </section>
+  {%- else %}
+  <p class="dim">This count is {{ count.status|lower }}.{% if manager %} <a href="{{ url_for('counts.review', count_id=count.id) }}">See what it found</a>.{% endif %}</p>
+  {%- endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+{%- if counting %}<script src="{{ asset('js/scan.js') }}"></script>{% endif %}
+{% endblock %}

@@ -195,6 +195,22 @@
   </section>
   {%- endif %}
 
+  {%- set installed = g.serial_units|selectattr("state", "equalto", "in_machine")|list %}
+  {%- if installed %}
+  <section aria-labelledby="units-title">
+    <h2 id="units-title">Tracked parts in it</h2>
+    <ul class="rows">
+      {%- for u in installed|sort(attribute="item.name") %}
+      <li>
+        {%- if current_user.has_role("operator") %}<a class="row" href="{{ url_for('serials.unit', unit_id=u.id) }}">{% else %}<span class="row">{% endif %}
+        <span class="row__main"><span class="row__title">{{ u.item.name }}</span><span class="row__meta">Serial {{ u.serial }}</span></span>
+        {%- if current_user.has_role("operator") %}</a>{% else %}</span>{% endif %}
+      </li>
+      {%- endfor %}
+    </ul>
+  </section>
+  {%- endif %}
+
   <section class="card" aria-labelledby="details-title">
     <h2 id="details-title">Details</h2>
     {%- if g.image_filename %}
