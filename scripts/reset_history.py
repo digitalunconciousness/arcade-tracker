@@ -5,13 +5,16 @@ Deleted:
   - work orders, their work logs, their parts used and their rail-session tags
   - play records (coin-meter readings), and each machine's play, revenue and ranking totals
   - the whole inventory: parts, stock history, low-stock alerts, part requests and their
-    history
+    history, stock in each place, supplier links and price history, purchase orders, serial
+    units and their history, stock counts, reservations, and the parts on maintenance tasks
   - the work-order photo files in static/maintenance_photos/
 
 Kept:
   - machines: name, barcode (printed QR labels), coin-door code (printed coin-door labels),
     location, status, counter status, price per play, notes, cabinet photo
   - user accounts, GATBOX device tokens, and the rail voltage history (sessions, readings)
+  - each machine's location and status timeline (no longer linked to the deleted work orders)
+  - storage places, part categories, suppliers, and maintenance tasks
 
 Run it from the repository root with the application's environment loaded, so DATABASE_URL
 points at the real database. Without --yes it only counts what it would delete:
@@ -44,15 +47,27 @@ from app import create_app                      # noqa: E402
 from app.extensions import db                   # noqa: E402
 from app.models import (                        # noqa: E402
     Game,
+    GameEvent,
     InventoryItem,
     InventoryRequest,
     InventoryRequestHistory,
+    ItemSupplier,
     LowStockAlert,
     MaintenanceInventoryUsage,
     MaintenanceRecord,
+    PartReservation,
     PlayRecord,
+    PriceChange,
+    PurchaseOrder,
+    PurchaseOrderLine,
     RailSessionTag,
+    SerialUnit,
+    StockCount,
+    StockCountLine,
     StockHistory,
+    StockLevel,
+    TaskPart,
+    UnitEvent,
     WorkLog,
     item_game_compatibility,
 )
@@ -62,12 +77,23 @@ DELETE_ORDER = (
     ("rail-session tags on work orders", RailSessionTag),
     ("part requests: history", InventoryRequestHistory),
     ("part requests", InventoryRequest),
+    ("parts reserved for work orders", PartReservation),
+    ("serial units: history", UnitEvent),
+    ("serial units", SerialUnit),
     ("parts used in work orders", MaintenanceInventoryUsage),
     ("work logs", WorkLog),
     ("work orders", MaintenanceRecord),
     ("play records (coin-meter readings)", PlayRecord),
     ("stock history", StockHistory),
     ("low-stock alerts", LowStockAlert),
+    ("stock count lines", StockCountLine),
+    ("stock counts", StockCount),
+    ("purchase order lines", PurchaseOrderLine),
+    ("purchase orders", PurchaseOrder),
+    ("price history", PriceChange),
+    ("part-to-supplier links", ItemSupplier),
+    ("stock in each place", StockLevel),
+    ("parts on maintenance tasks", TaskPart),
     ("part-to-machine links", item_game_compatibility),
     ("parts", InventoryItem),
 )
@@ -136,8 +162,9 @@ def main(argv: list[str] | None = None, app=None) -> int:
         for label, n in counts:
             print(f"  {n:>7}  {label}")
         print(f"  {len(photos):>7}  work-order photo files")
-        print(f"Keeping {machines} machines (totals and rankings reset to zero), users, "
-              "devices and rail history.")
+        print(f"Keeping {machines} machines (totals and rankings reset to zero) and their "
+              "timelines, users, devices, rail history, storage places, part categories, "
+              "suppliers and maintenance tasks.")
 
         if not args.yes:
             print("\nNothing was changed. Take a backup and re-run with --yes --backup FILE.")
@@ -148,6 +175,9 @@ def main(argv: list[str] | None = None, app=None) -> int:
             return 2
 
         try:
+            # The machine timeline stays. PostgreSQL clears its link to a deleted work order
+            # itself (ON DELETE SET NULL); SQLite doesn't enforce foreign keys, so do it here.
+            db.session.execute(db.update(GameEvent).values(maintenance_id=None))
             for _label, target in DELETE_ORDER:
                 _delete(target)
             db.session.execute(db.update(Game).values(

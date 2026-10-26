@@ -100,6 +100,53 @@ def test_it_deletes_the_history_and_keeps_the_machines(app, floor, sandbox, rese
     assert list((sandbox / "static" / "maintenance_photos").iterdir()) == []
 
 
+def test_it_clears_the_inventory_and_keeps_the_places(app, floor, sandbox, reset, dump):
+    from app.extensions import db
+    from app.models import (
+        GameEvent, ItemSupplier, MaintenanceRecord, MaintenanceTask, PartCategory,
+        PartReservation, PriceChange, PurchaseOrder, PurchaseOrderLine, SerialUnit, StockCount,
+        StockCountLine, StockLevel, StockPlace, Supplier, TaskPart, UnitEvent,
+    )
+
+    order = MaintenanceRecord.query.first()
+    db.session.add(GameEvent(game_id=order.game_id, kind="status", new_value="Down",
+                             maintenance_id=order.id))
+    db.session.commit()
+    kept = (StockPlace, PartCategory, Supplier, MaintenanceTask)
+    before = {m.__name__: m.query.count() for m in kept}
+    cleared = (ItemSupplier, PriceChange, PurchaseOrder, PurchaseOrderLine, SerialUnit,
+               UnitEvent, StockCount, StockCountLine, StockLevel, PartReservation, TaskPart)
+    assert all(m.query.count() for m in (StockLevel, PurchaseOrderLine, SerialUnit,
+                                          StockCountLine, PartReservation, TaskPart))
+
+    assert reset.main(["--yes", "--backup", dump], app=app) == 0
+    db.session.expire_all()
+    for model in cleared:
+        assert model.query.count() == 0, model.__name__
+    assert {m.__name__: m.query.count() for m in kept} == before
+    event = GameEvent.query.filter_by(new_value="Down").one()
+    assert event.maintenance_id is None
+
+
+def test_nothing_is_left_pointing_at_a_deleted_row(reset):
+    """A table added later that points at what the reset deletes must be added to it too."""
+    from app.extensions import db
+
+    deleted = {getattr(t, "__table__", t).name for _label, t in reset.DELETE_ORDER}
+    # Kept on purpose: the machine timeline (its work-order link is cleared first).
+    kept = {"game_event"}
+    for table in db.metadata.sorted_tables:
+        if table.name in deleted or table.name in kept:
+            continue
+        hits = {fk.column.table.name for fk in table.foreign_keys} & deleted
+        assert not hits, f"{table.name} points at {hits}, which the reset deletes"
+    # Children before parents: each table is deleted before any table it points at.
+    order = [getattr(t, "__table__", t).name for _label, t in reset.DELETE_ORDER]
+    for i, name in enumerate(order):
+        parents = {fk.column.table.name for fk in db.metadata.tables[name].foreign_keys}
+        assert not parents & set(order[:i]), f"{name} is deleted after its parent"
+
+
 def test_the_tracker_works_afterwards(app, client, floor, sandbox, reset, dump):
     from char_support import login
 
