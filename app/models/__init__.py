@@ -21,6 +21,7 @@ from app.models.inventory import (
 )
 from app.models.maintenance import MaintenanceRecord, WorkLog
 from app.models.rail import RailSession, RailSessionTag, Reading
+from app.models.stock import StockLevel, StockPlace
 from app.models.upkeep import MaintenanceTask
 from app.models.user import User
 
@@ -34,6 +35,8 @@ __all__ = [
     "WorkLog",
     "InventoryItem",
     "StockHistory",
+    "StockPlace",
+    "StockLevel",
     "LowStockAlert",
     "MaintenanceInventoryUsage",
     "InventoryRequest",

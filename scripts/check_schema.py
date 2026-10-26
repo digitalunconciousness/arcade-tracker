@@ -62,6 +62,9 @@ INTRODUCED_BY = {
     ("maintenance_record", "reported_by_id"): "b6c7d8e9f0a1",
     ("maintenance_record", "fixed_by_id"): "b6c7d8e9f0a1",
     ("device", "all_machines"): "c8d9e0f1a2b3",
+    ("inventory_item", "code"): "d9e0f1a2b3c4",
+    ("stock_history", "place_id"): "d9e0f1a2b3c4",
+    ("stock_history", "to_place_id"): "d9e0f1a2b3c4",
 }
 
 # Which migration created each table. Only tables a migration actually creates belong here:
@@ -82,6 +85,8 @@ TABLE_INTRODUCED_BY = {
     "alert": "a5b6c7d8e9f0",
     "app_setting": "a5b6c7d8e9f0",
     "device_machine": "c8d9e0f1a2b3",
+    "stock_place": "d9e0f1a2b3c4",
+    "stock_level": "d9e0f1a2b3c4",
 }
 
 # The revision that precedes each, i.e. what to stamp so `upgrade` will apply it.
@@ -104,6 +109,7 @@ PREDECESSOR = {
     "a5b6c7d8e9f0": "f4a5b6c7d8e9",
     "b6c7d8e9f0a1": "a5b6c7d8e9f0",
     "c8d9e0f1a2b3": "b6c7d8e9f0a1",
+    "d9e0f1a2b3c4": "c8d9e0f1a2b3",
 }
 
 # Every index app/models/indexes.py declares came from this revision.
@@ -114,7 +120,7 @@ ORDER = ["5a026e6869ec", "ebead5244def", "3e5463d29981", "e7582856b8aa",
          "f1c2d3e4a5b6", "d4e5f6a7b8c9", "e6f7a8b9c0d1", "b1c2d3e4f5a6",
          "c7d8e9f0a1b2", "d1e2f3a4b5c6", "e3f4a5b6c7d8",
          "f4a5b6c7d8e9", "a5b6c7d8e9f0",
-         "b6c7d8e9f0a1", "c8d9e0f1a2b3"]
+         "b6c7d8e9f0a1", "c8d9e0f1a2b3", "d9e0f1a2b3c4"]
 
 
 def check_encoding(db) -> dict | None:
