@@ -54,6 +54,24 @@ token is shown once, when `scripts/create_device.py` mints it.
 `GET /api/v1/health` takes no token on purpose: GATBOX uses it to decide whether the LAN
 address or the tunnel is reachable, which it needs to know before it commits to a request.
 
+## Machines a device may use
+
+Added 2026-10-26; additive, so a device set up before then behaves as it always did.
+
+A device is allowed either **every machine** (the default, and what every device had before)
+or **a list of machines**, chosen on the hub's Admin, Devices page. A device limited to a list:
+
+- sees only those machines in `GET /api/v1/roster`;
+- gets `404` from `GET /api/v1/machines/<slug>/orders` for any other machine, the same answer
+  as for an unknown slug, so it can't learn what else is on the floor;
+- has a `rail_session` or `order` for any other machine `rejected` with
+  `"machine '<slug>' is not on this device's list"`;
+- has a `session_tag` `rejected` when the order isn't for one of its machines (an order with no
+  machine is not one of them).
+
+Changing a device's list takes effect on its next request. Refusals for a machine off the list
+never clear on retry: the fix is the list, or the Pi's machine setting.
+
 ## Identity and idempotency
 
 Every item carries a `uid` that GATBOX computes. Re-sending an item is harmless: the hub
@@ -109,8 +127,14 @@ Readings carry `up` (the Pi's monotonic uptime in seconds) alongside `epoch`. Wi
 | readings per session | 2000 |
 | readings per request | 20000 |
 | request body | 8 MB |
+| `order.issue` | 2000 characters |
+| `order.technician` | 50 characters |
+| `session_tag.note` | 2000 characters |
+| `rail_session.file` | 64 characters |
 
-Exceeding any of them is a `400` and writes nothing. GATBOX decides how to batch within them.
+Exceeding any of the first four is a `400` and writes nothing. GATBOX decides how to batch
+within them. The text lengths (added 2026-10-26) are per item: an item over one is `rejected`
+with the reason, and the rest of the request goes through.
 2000 points is what `GET /api/rail/samples/<name>?max=2000` on the Pi produces: its downsampler
 keeps the minimum and maximum of each bucket and never discards a `spike`, an `alarm` or an
 out-of-range sample, so the shape of the trace survives.

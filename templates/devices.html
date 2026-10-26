@@ -1,0 +1,33 @@
+{% extends "layout.html" %}
+{% import "ui.html" as ui %}
+{% block title %}Devices{% endblock %}
+
+{% block page_head %}
+{{ ui.page_head("Devices", sub="GATBOX units that send bench readings and orders", back=url_for("admin.manage_users"), back_label="Admin") }}
+{% endblock %}
+
+{% block content %}
+<div class="stack">
+  <p class="measure mt-0">Each device may use every machine, or only the ones you tick. A limited device sees only its
+  machines in its roster, and anything it sends for another machine is refused. New devices and
+  their tokens are made on the server with <code>scripts/create_device.py</code>.</p>
+  {%- if devices %}
+  <ul class="rows">
+    {%- for d in devices %}
+    <li><a class="row" href="{{ url_for('devices.edit', device_id=d.id) }}">
+      <span class="row__main">
+        <span class="row__title">{{ d.name }}</span>
+        <span class="row__meta">{{ d.public_id }} · {% if d.last_seen %}last called in {{ d.last_seen.strftime("%d %b %Y %H:%M") }} UTC{% else %}never called in{% endif %}</span>
+      </span>
+      <span class="row__end">
+        {%- if not d.enabled %}{{ ui.chip("fault", "Off") }}{% endif %}
+        {{ ui.chip("info", "All machines") if d.all_machines else ui.chip("warn", d.machines|length ~ " machine" ~ ("" if d.machines|length == 1 else "s")) }}
+      </span>
+    </a></li>
+    {%- endfor %}
+  </ul>
+  {%- else %}
+  {{ ui.empty("No devices yet", "Make one on the server: python scripts/create_device.py") }}
+  {%- endif %}
+</div>
+{% endblock %}

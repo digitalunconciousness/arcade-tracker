@@ -57,6 +57,7 @@ POSTS = [
     (lambda f: f"/admin/alerts/{f['channel']}/test", "admin"),
     (lambda f: "/admin/alerts/hours", "admin"),
     (lambda f: "/admin/branding", "admin"),
+    (lambda f: f"/admin/devices/{f['device']}", "admin"),
     (lambda f: f"/add_baseline/{f['courier']}", "operator"),
     (lambda f: f"/delete_game/{f['pinball']}", "admin"),
     (lambda f: "/bulk_update_games", "manager"),

@@ -127,5 +127,5 @@ def seed_floor() -> dict:
         "belt": belt.id, "fuse": fuse.id, "alert": alert.id,
         "open_order": open_order.id, "closed_order": closed_order.id, "general": general.id,
         "request": req.id, "session_uid": session.uid, "task": task.id,
-        "channel": channel.id,
+        "channel": channel.id, "device": device.id,
     }

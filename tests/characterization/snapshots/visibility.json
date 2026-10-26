@@ -189,6 +189,36 @@
    "reports.reports()"
   ]
  },
+ "/admin/devices/": {
+  "admin": [
+   "admin.manage_users()",
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "devices.edit(device_id=device)",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "rails.floor()",
+   "reports.reports()"
+  ]
+ },
+ "/admin/devices/<int:device_id>": {
+  "admin": [
+   "admin.manage_users()",
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "devices.overview()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "rails.floor()",
+   "reports.reports()"
+  ]
+ },
  "/admin/storage": {
   "admin": [
    "admin.admin_cleanup_photos()",
@@ -216,6 +246,7 @@
    "auth.profile()",
    "branding.settings()",
    "dashboard.home()",
+   "devices.overview()",
    "games.coin_door_label_pick()",
    "games.games_list()",
    "games.scan()",

@@ -117,6 +117,9 @@ PAGES = [
     ("/styleguide", lambda f: "/styleguide", "admin", 200, "Every component", "text/html"),
     ("/admin/branding", lambda f: "/admin/branding", "admin", 200, 'name="arcade_name"',
      "text/html"),
+    ("/admin/devices/", lambda f: "/admin/devices/", "admin", 200, "bench-test", "text/html"),
+    ("/admin/devices/<int:device_id>", lambda f: f"/admin/devices/{f['device']}", "admin", 200,
+     "neon-raider", "text/html"),
     # GATBOX rail history (Phase 1 data; restyle only)
     ("/rails/", lambda f: "/rails/", "readonly", 200, "Neon Raider", "text/html"),
     ("/rails/machine/<slug>", lambda f: "/rails/machine/neon-raider", "readonly", 200,
