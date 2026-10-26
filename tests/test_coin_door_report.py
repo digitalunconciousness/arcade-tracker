@@ -399,17 +399,18 @@ def test_hitting_the_limit_is_logged_without_the_token(client, machine, caplog):
     assert machine["token"] not in logged, "the token reached a log line"
 
 
-def test_the_form_tells_the_browser_to_send_no_referrer(client, machine):
+def test_the_form_never_sends_its_url_to_another_site(client, machine):
     """The token is in the URL, so any request the page makes off-origin would carry it in
-    the Referer header."""
+    the Referer header. same-origin sends a Referer only back to this site, which the CSRF
+    check over HTTPS needs (tests/test_csrf_https.py)."""
     response = client.get(f"/report/{machine['token']}")
-    assert response.headers.get("Referrer-Policy") == "no-referrer"
+    assert response.headers.get("Referrer-Policy") == "same-origin"
 
 
-def test_every_page_says_no_referrer(client):
+def test_every_page_sets_the_referrer_policy(client):
     """Set once, for the whole application, rather than on the one blueprint that needs it:
     a header that only some responses carry is a header someone will forget."""
-    assert client.get("/login").headers.get("Referrer-Policy") == "no-referrer"
+    assert client.get("/login").headers.get("Referrer-Policy") == "same-origin"
 
 
 # --- who reported it (usability round, owner's decisions of 2026-10-25) -------------------------
