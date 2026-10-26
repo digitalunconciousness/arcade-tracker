@@ -164,9 +164,10 @@ def delete(place_id):
     if place.is_unsorted:
         flash("Unsorted can't be deleted.", "error")
         return redirect(url_for("places.detail", place_id=place.id))
-    if place.children or place.levels:
-        flash("Only an empty place with nothing inside it can be deleted. Archive it instead.",
-              "error")
+    if place.children or place.levels or place.count_lines:
+        # A count that listed it keeps pointing at it (security review, 2026-10-26).
+        flash("Only an empty place with nothing inside it, on no count, can be deleted. "
+              "Archive it instead.", "error")
         return redirect(url_for("places.detail", place_id=place.id))
     path, parent = place.path, place.parent
     db.session.delete(place)
