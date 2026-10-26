@@ -121,6 +121,8 @@ def add_inventory_item():
 @login_required
 @requires_role("operator")
 def inventory_detail(item_id):
+    from app.services import serials
+
     item = db.get_or_404(InventoryItem, item_id)
     active_alert = LowStockAlert.query.filter_by(item_id=item.id, resolved=False).first()
     return render_template("inventory_detail.html", item=item,
@@ -128,6 +130,8 @@ def inventory_detail(item_id):
                            adjust_form=StockAdjustmentForm(), adjustments=inv.ADJUSTMENTS,
                            requests=sorted(item.requests, key=lambda r: r.id, reverse=True)[:5],
                            supplier_names=_form_lists()["supplier_names"],
+                           unrecorded=serials.unrecorded(item) if item.serialized else [],
+                           mismatched=serials.mismatched(item) if item.serialized else [],
                            **_stock_context(item))
 
 
@@ -141,6 +145,14 @@ def edit_inventory_item(item_id):
     if request.method == "GET":
         form.compatible_games.data = [g.id for g in item.compatible_games]
         form.category.data = item.category_id or 0
+    if (request.method == "POST" and item.serialized and not form.serialized.data
+            and any(u.state != "retired" for u in item.units)):
+        # Step 4: units in service would lose their meaning.
+        form.validate()
+        form.serialized.errors = list(form.serialized.errors) + [
+            "It has units in service. Retire them first."]
+        return render_template("inventory_form.html", form=form, item=item,
+                               **_form_lists()), 400
     if form.validate_on_submit():
         inv.save_item(item, form, current_user.id)
         db.session.commit()

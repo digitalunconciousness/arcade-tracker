@@ -36,6 +36,12 @@
                   help="If it only comes in boxes or rolls, how many units are in one.") }}
     </div>
     <datalist id="unit-names">{% for u in units %}<option value="{{ u }}">{% endfor %}</datalist>
+    <div class="field field--check{% if form.serialized.errors %} is-invalid{% endif %}">
+      {{ form.serialized(aria_describedby="serialized-help") }}
+      {{ form.serialized.label }}
+      <span class="field__help" id="serialized-help">For boards, monitors and the like: each unit gets its own serial, label and history, and you can see which machine it's in.</span>
+      {%- for error in form.serialized.errors %}<span class="field__error">{{ error }}</span>{% endfor %}
+    </div>
     {{ ui.field(form.supplier, list="supplier-names", autocomplete="off",
                 help="A name not on the list is added to it. More suppliers, with their prices and part numbers, go on the part's page.") }}
     <datalist id="supplier-names">{% for name in supplier_names %}<option value="{{ name }}">{% endfor %}</datalist>

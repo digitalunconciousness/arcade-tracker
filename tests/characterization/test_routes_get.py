@@ -69,6 +69,9 @@ PAGES = [
      "text/html"),
     ("/inventory/orders/<int:order_id>", lambda f: f"/inventory/orders/{f['order']}",
      "operator", 200, "Synthetic order", "text/html"),
+    # Serialized spares (inventory step 4).
+    ("/inventory/units/<int:unit_id>", lambda f: f"/inventory/units/{f['unit']}", "operator",
+     200, "CPU-0002", "text/html"),
     ("/inventory/labels", lambda f: "/inventory/labels", "operator", 200, "Shelf A",
      "text/html"),
     ("/inventory/labels/sheet",
@@ -166,6 +169,7 @@ ELSEWHERE = {
     "/p/<code>": "tests/test_stock_labels.py: a place's label, a redirect",
     "/i/<code>": "tests/test_stock_labels.py: a part's label, a redirect",
     "/inventory/photos/<filename>": "tests/test_part_details.py: needs an uploaded photo",
+    "/u/<code>": "tests/test_serial_units.py: a unit's label, a redirect",
     "/download_backup/<filename>": "test_routes_post.py: needs a backup file on disk",
     "/machine-images/<path:filename>": "test_machine_page.py: needs an uploaded image",
     "/login": "test_routes_post.py",

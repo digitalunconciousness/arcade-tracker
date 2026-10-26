@@ -1,6 +1,7 @@
 """Labels for places and parts (inventory step 1), and the addresses they encode.
 
-**Printed labels encode /p/<code> (a place) and /i/<code> (a part): these never change**,
+**Printed labels encode /p/<code> (a place), /i/<code> (a part) and /u/<code> (a unit of a
+part tracked one by one, step 4): these never change**,
 like the machines' /g/<barcode>. The codes are made once (``app.models.stock.new_code``) and
 never edited. The sheet reuses the machine labels' formats and template.
 """
@@ -17,7 +18,7 @@ from flask import (
 from flask_login import login_required
 
 from app.extensions import db
-from app.models import InventoryItem, StockPlace
+from app.models import InventoryItem, SerialUnit, StockPlace
 from app.services import stock_places
 from app.services.labels import FORMATS, address_problem, label_format, pages
 from app.utils.decorators import requires_role
@@ -59,24 +60,32 @@ def _qr(url: str) -> str:
 
 
 def _picked():
-    """The places and parts in ``ids`` ("p3,p4,i12", or repeated ``ids``), in that order.
-    None for a malformed link."""
+    """The places, parts and units in ``ids`` ("p3,i12,u7", or repeated ``ids``), in that
+    order. None for a malformed link."""
     tokens = [t for raw in request.args.getlist("ids") for t in raw.split(",") if t.strip()]
-    places, items = [], []
+    found = {"p": [], "i": [], "u": []}
+    models = {"p": StockPlace, "i": InventoryItem, "u": SerialUnit}
     for token in (t.strip().lower() for t in tokens):
         kind, number = token[:1], token[1:]
-        if kind not in ("p", "i") or not number.isdigit():
+        if kind not in models or not number.isdigit():
             return None
-        found = db.session.get(StockPlace if kind == "p" else InventoryItem, int(number))
-        if found is not None and found not in (places if kind == "p" else items):
-            (places if kind == "p" else items).append(found)
-    return places, items
+        row = db.session.get(models[kind], int(number))
+        if row is not None and row not in found[kind]:
+            found[kind].append(row)
+    return found["p"], found["i"], found["u"]
 
 
 def place_label(place) -> dict:
     url = f"{_base_url()}/p/{place.code}"
     above = place.parent.path if place.parent else None
     return {"name": place.name, "lines": [x for x in (above, place.code) if x],
+            "url": url, "qr": _qr(url)}
+
+
+def unit_label(unit) -> dict:
+    """A unit of a part tracked one by one (step 4): /u/<code>."""
+    url = f"{_base_url()}/u/{unit.code}"
+    return {"name": unit.item.name, "lines": [f"S/N {unit.serial}", unit.code],
             "url": url, "qr": _qr(url)}
 
 
@@ -104,9 +113,10 @@ def sheet():
     if picked is None:
         flash("That label sheet link is malformed; pick the places and parts again.", "error")
         return redirect(url_for("stock_labels.pick"))
-    places, items = picked
+    places, items, units = picked
     labels = ([place_label(p) for p in places] +
-              [part_label(i) for i in items if i.code])
+              [part_label(i) for i in items if i.code] +
+              [unit_label(u) for u in units])
     if not labels:
         flash("Nothing selected to print.", "error")
         return redirect(url_for("stock_labels.pick"))
@@ -117,5 +127,7 @@ def sheet():
         formats=FORMATS.values(), pages=pages(labels, fmt), example_url=example,
         address_problem=address_problem(example),
         base_url_set=bool(current_app.config.get("BASE_URL")),
-        ids=",".join([f"p{p.id}" for p in places] + [f"i{i.id}" for i in items]),
-        n_places=len(places), n_items=len(labels) - len(places))
+        ids=",".join([f"p{p.id}" for p in places] + [f"i{i.id}" for i in items]
+                     + [f"u{u.id}" for u in units]),
+        n_places=len(places), n_items=len(labels) - len(places) - len(units),
+        n_units=len(units))

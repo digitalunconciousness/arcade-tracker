@@ -5,7 +5,7 @@
 {% block head %}<link rel="stylesheet" href="{{ asset('css/labels.css') }}">{% endblock %}
 
 {% block page_head %}
-{% call ui.page_head("Inventory labels", sub=[n_places ~ " place" ~ ("" if n_places == 1 else "s") if n_places else none, n_items ~ " part" ~ ("" if n_items == 1 else "s") if n_items else none]|select|join(" · "), back=url_for("stock_labels.pick"), back_label="Choose labels") %}
+{% call ui.page_head("Inventory labels", sub=[n_places ~ " place" ~ ("" if n_places == 1 else "s") if n_places else none, n_items ~ " part" ~ ("" if n_items == 1 else "s") if n_items else none, n_units ~ " unit" ~ ("" if n_units == 1 else "s") if n_units else none]|select|join(" · "), back=url_for("stock_labels.pick"), back_label="Choose labels") %}
   <button class="btn btn--sm btn--primary" type="button" data-print>Print {{ n }}</button>
 {% endcall %}
 {% endblock %}

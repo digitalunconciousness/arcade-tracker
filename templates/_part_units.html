@@ -1,0 +1,62 @@
+{#- The units of a part tracked one by one, on its page: each with where it is, and a form
+    to add more. Included, so it shares the page's context (item, ui, places, held). -#}
+{%- set active = item.units|rejectattr("state", "equalto", "retired")|list %}
+{%- set retired = item.units|selectattr("state", "equalto", "retired")|list %}
+<section class="stack" aria-labelledby="units-title">
+  <h2 id="units-title">Units</h2>
+  {%- for place, gap in unrecorded %}
+  <div class="banner is-warn" role="note"><div class="banner__body">
+    <span class="banner__title">{{ gap }} in {{ place.path }} without a serial recorded</span>
+    <p>Add their serials below with “Already here”: the stock stays as it is.</p>
+  </div></div>
+  {%- endfor %}
+  {%- for place, units, level in mismatched %}
+  <div class="banner is-fault" role="note"><div class="banner__body">
+    <span class="banner__title">{{ units }} units recorded in {{ place.path }}, but its stock says {{ level }}</span>
+    <p>The stock was changed without the units. Count {{ place.name }}, then move or retire the units that aren't there.</p>
+  </div></div>
+  {%- endfor %}
+  {%- if active %}
+  <ul class="rows">
+    {%- for u in active %}
+    <li><a class="row" href="{{ url_for('serials.unit', unit_id=u.id) }}">
+      <span class="row__main"><span class="row__title">{{ u.serial }}</span><span class="row__meta">{{ u.where }}</span></span>
+      <span class="row__end">{{ ui.chip({"in_stock": "ok", "in_machine": "info", "at_repair": "warn"}[u.state], {"in_stock": "In stock", "in_machine": "In a machine", "at_repair": "Repair"}[u.state]) }}</span>
+    </a></li>
+    {%- endfor %}
+  </ul>
+  {%- else %}
+  {{ ui.empty("No units recorded yet") }}
+  {%- endif %}
+  {%- if retired %}
+  <details><summary>{{ retired|length }} retired</summary>
+    <ul class="rows mt-3">{% for u in retired %}<li><a class="row" href="{{ url_for('serials.unit', unit_id=u.id) }}"><span class="row__main"><span class="row__title">{{ u.serial }}</span></span></a></li>{% endfor %}</ul>
+  </details>
+  {%- endif %}
+
+  <details class="card"{% if not item.units %} open{% endif %}>
+    <summary class="btn btn--sm btn--ghost">Add units</summary>
+    <form class="form stack mt-3" method="post" action="{{ url_for('serials.add', item_id=item.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="field">
+        <label for="units-serials">Serial numbers</label>
+        <textarea id="units-serials" name="serials" rows="3" required placeholder="One per line"></textarea>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="units-place">Where</label>
+          <select id="units-place" name="place">
+            {%- for p, depth in places %}<option value="{{ p.id }}"{% if (default_place and p.id == default_place) or (not default_place and p.is_unsorted) %} selected{% endif %}>{{ p.path }}</option>{% endfor %}
+          </select>
+        </div>
+        <fieldset class="stack">
+          <legend>These are</legend>
+          <div class="field field--check"><input id="units-new" type="radio" name="arriving" value="1"{% if not unrecorded %} checked{% endif %}><label for="units-new">They just arrived (adds to stock)</label></div>
+          <div class="field field--check"><input id="units-here" type="radio" name="arriving" value="0"{% if unrecorded %} checked{% endif %}><label for="units-here">Already here (records them, stock stays)</label></div>
+        </fieldset>
+      </div>
+      <div class="field"><label for="units-note">Note <span class="dim">(optional)</span></label><input id="units-note" name="note" maxlength="500"></div>
+      <div class="form__actions"><button class="btn btn--primary" type="submit">Add units</button></div>
+    </form>
+  </details>
+</section>

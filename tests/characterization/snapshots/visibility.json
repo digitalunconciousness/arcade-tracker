@@ -376,7 +376,8 @@
    "rails.floor()",
    "rails.machine(slug=neon-raider)",
    "rails.session(uid=dddddddddddddddddddddddddddddddd)",
-   "reports.reports()"
+   "reports.reports()",
+   "serials.unit(unit_id=unit_in_game)"
   ],
   "manager": [
    "auth.logout()",
@@ -398,7 +399,8 @@
    "rails.floor()",
    "rails.machine(slug=neon-raider)",
    "rails.session(uid=dddddddddddddddddddddddddddddddd)",
-   "reports.reports()"
+   "reports.reports()",
+   "serials.unit(unit_id=unit_in_game)"
   ],
   "operator": [
    "auth.logout()",
@@ -417,7 +419,8 @@
    "maintenance.update_maintenance(record_id=open_order)",
    "rails.floor()",
    "rails.machine(slug=neon-raider)",
-   "rails.session(uid=dddddddddddddddddddddddddddddddd)"
+   "rails.session(uid=dddddddddddddddddddddddddddddddd)",
+   "serials.unit(unit_id=unit_in_game)"
   ],
   "readonly": [
    "auth.logout()",
@@ -608,6 +611,7 @@
    "inventory.add_inventory_item()",
    "inventory.inventory_detail(item_id=?)",
    "inventory.inventory_detail(item_id=belt)",
+   "inventory.inventory_detail(item_id=cpu)",
    "inventory.inventory_detail(item_id=fuse)",
    "inventory.inventory_list()",
    "inventory.inventory_request_detail(request_id=request)",
@@ -632,6 +636,7 @@
    "inventory.add_inventory_item()",
    "inventory.inventory_detail(item_id=?)",
    "inventory.inventory_detail(item_id=belt)",
+   "inventory.inventory_detail(item_id=cpu)",
    "inventory.inventory_detail(item_id=fuse)",
    "inventory.inventory_list()",
    "inventory.inventory_request_detail(request_id=request)",
@@ -655,6 +660,7 @@
    "games.scan()",
    "inventory.inventory_detail(item_id=?)",
    "inventory.inventory_detail(item_id=belt)",
+   "inventory.inventory_detail(item_id=cpu)",
    "inventory.inventory_detail(item_id=fuse)",
    "inventory.inventory_list()",
    "inventory.inventory_request_detail(request_id=request)",
@@ -1120,6 +1126,7 @@
    "games.games_list()",
    "games.scan()",
    "inventory.inventory_detail(item_id=belt)",
+   "inventory.inventory_detail(item_id=cpu)",
    "inventory.inventory_list()",
    "maintenance.maintenance_orders()",
    "places.count(place_id=shelf)",
@@ -1138,6 +1145,7 @@
    "games.games_list()",
    "games.scan()",
    "inventory.inventory_detail(item_id=belt)",
+   "inventory.inventory_detail(item_id=cpu)",
    "inventory.inventory_list()",
    "maintenance.maintenance_orders()",
    "places.count(place_id=shelf)",
@@ -1156,6 +1164,7 @@
    "games.games_list()",
    "games.scan()",
    "inventory.inventory_detail(item_id=belt)",
+   "inventory.inventory_detail(item_id=cpu)",
    "inventory.inventory_list()",
    "maintenance.maintenance_orders()",
    "places.count(place_id=shelf)",
@@ -1175,6 +1184,7 @@
    "dashboard.home()",
    "games.games_list()",
    "games.scan()",
+   "inventory.inventory_detail(item_id=cpu)",
    "inventory.inventory_list()",
    "maintenance.maintenance_orders()",
    "places.count(place_id=shelf)",
@@ -1190,6 +1200,7 @@
    "dashboard.home()",
    "games.games_list()",
    "games.scan()",
+   "inventory.inventory_detail(item_id=cpu)",
    "inventory.inventory_list()",
    "maintenance.maintenance_orders()",
    "places.count(place_id=shelf)",
@@ -1205,6 +1216,7 @@
    "dashboard.home()",
    "games.games_list()",
    "games.scan()",
+   "inventory.inventory_detail(item_id=cpu)",
    "inventory.inventory_list()",
    "maintenance.maintenance_orders()",
    "places.count(place_id=shelf)",
@@ -1463,6 +1475,61 @@
    "maintenance.maintenance_orders()",
    "parts.suppliers()",
    "rails.floor()"
+  ]
+ },
+ "/inventory/units/<int:unit_id>": {
+  "admin": [
+   "admin.manage_users()",
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_detail(item_id=cpu)",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "rails.floor()",
+   "reports.reports()",
+   "serials.act(action=install, unit_id=unit)",
+   "serials.act(action=move, unit_id=unit)",
+   "serials.act(action=repair, unit_id=unit)",
+   "serials.act(action=retire, unit_id=unit)",
+   "serials.edit(unit_id=unit)",
+   "stock_labels.sheet()"
+  ],
+  "manager": [
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_detail(item_id=cpu)",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "rails.floor()",
+   "reports.reports()",
+   "serials.act(action=install, unit_id=unit)",
+   "serials.act(action=move, unit_id=unit)",
+   "serials.act(action=repair, unit_id=unit)",
+   "serials.act(action=retire, unit_id=unit)",
+   "serials.edit(unit_id=unit)",
+   "stock_labels.sheet()"
+  ],
+  "operator": [
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_detail(item_id=cpu)",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "rails.floor()",
+   "serials.act(action=install, unit_id=unit)",
+   "serials.act(action=move, unit_id=unit)",
+   "serials.act(action=repair, unit_id=unit)",
+   "serials.act(action=retire, unit_id=unit)",
+   "stock_labels.sheet()"
   ]
  },
  "/labels": {

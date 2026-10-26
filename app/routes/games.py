@@ -481,13 +481,16 @@ def scan():
                 return redirect(url_for("stock_labels.resolve_place", code=code))
             if kind == "i" or (not kind and _stock_code(code) == "i"):
                 return redirect(url_for("stock_labels.resolve_part", code=code))
+            if kind == "u" or (not kind and _stock_code(code) == "u"):
+                return redirect(url_for("serials.resolve", code=code))
             return redirect(url_for("games.resolve_barcode", code=code))
     return render_template("scan.html")
 
 
 def _stock_code(code: str) -> str | None:
-    """"p" or "i" when a bare code is a place's or a part's and no machine's."""
-    from app.models import InventoryItem, StockPlace
+    """"p", "i" or "u" when a bare code is a place's, a part's or a unit's, and no
+    machine's."""
+    from app.models import InventoryItem, SerialUnit, StockPlace
 
     if Game.query.filter_by(barcode=code).first() or code.isdigit():
         return None
@@ -495,6 +498,8 @@ def _stock_code(code: str) -> str | None:
         return "p"
     if InventoryItem.query.filter_by(code=code.lower()).first():
         return "i"
+    if SerialUnit.query.filter_by(code=code.lower()).first():
+        return "u"
     return None
 
 

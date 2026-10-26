@@ -39,7 +39,8 @@ ARG_TABLE = {"game_id": "game", "item_id": "item", "record_id": "order", "task_i
              "channel_id": "channel", "device_id": "device",
              "maintenance_id": "order", "request_id": "request", "alert_id": "alert",
              "place_id": "place", "category_id": "category", "supplier_id": "supplier",
-             "link_id": "supplier_link", "order_id": "purchase_order", "line_id": "order_line"}
+             "link_id": "supplier_link", "order_id": "purchase_order", "line_id": "order_line",
+             "unit_id": "unit"}
 # delete_play_record's record_id is a play record, not a work order.
 ENDPOINT_ARG_TABLE = {("games.delete_play_record", "record_id"): "play"}
 
@@ -48,7 +49,7 @@ def _names(floor: dict) -> dict:
     return {
         "game": {floor["raider"]: "raider", floor["pinball"]: "pinball",
                  floor["courier"]: "courier"},
-        "item": {floor["belt"]: "belt", floor["fuse"]: "fuse"},
+        "item": {floor["belt"]: "belt", floor["fuse"]: "fuse", floor["cpu"]: "cpu"},
         "order": {floor["open_order"]: "open_order", floor["closed_order"]: "closed_order",
                   floor["general"]: "general"},
         "request": {floor["request"]: "request"},
@@ -62,6 +63,7 @@ def _names(floor: dict) -> dict:
         "supplier_link": {floor["supplier_link"]: "supplier_link"},
         "purchase_order": {floor["order"]: "purchase_order"},
         "order_line": {floor["order_line"]: "order_line"},
+        "unit": {floor["unit"]: "unit", floor["unit_in_game"]: "unit_in_game"},
         "play": {},
     }
 
@@ -163,7 +165,8 @@ def _minimum_roles() -> dict[str, str]:
     floor = {k: 1 for k in ("raider", "pinball", "courier", "belt", "fuse", "alert",
                             "open_order", "closed_order", "general", "request", "task", "channel",
                             "device", "back_room", "shelf", "category", "supplier",
-                            "supplier_link", "order", "order_line")}
+                            "supplier_link", "order", "order_line", "cpu", "unit",
+                            "unit_in_game")}
     floor["session_uid"] = "d" * 32
     adapter = current_app.url_map.bind("localhost")
     out = {}

@@ -83,7 +83,7 @@
           {%- if lv.item.photo_filename %}<img class="count__thumb" src="{{ url_for('parts.photo', filename=lv.item.photo_filename) }}" alt="" loading="lazy">{% endif %}
           <label class="row__main" for="count-{{ lv.item_id }}">
             <span class="row__title">{{ lv.item.name }}</span>
-            <span class="row__meta" id="count-meta-{{ lv.item_id }}">{{ lv.quantity }} on record{% if lv.counted %} · counted {{ lv.counted.strftime("%Y-%m-%d") }}{% endif %}</span>
+            <span class="row__meta" id="count-meta-{{ lv.item_id }}">{{ lv.quantity }} on record{% if lv.counted %} · counted {{ lv.counted.strftime("%Y-%m-%d") }}{% endif %}{% if lv.item.serialized %} · tracked one by one: <a href="{{ url_for('inventory.inventory_detail', item_id=lv.item_id) }}#units-title">check the serials</a>{% endif %}</span>
           </label>
           <input class="count__box" id="count-{{ lv.item_id }}" name="count-{{ lv.item_id }}" inputmode="numeric" pattern="[0-9]*" maxlength="7" autocomplete="off" aria-describedby="count-meta-{{ lv.item_id }}">
         </li>
