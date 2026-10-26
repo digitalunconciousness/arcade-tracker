@@ -23,6 +23,7 @@ from app.models.maintenance import MaintenanceRecord, WorkLog
 from app.models.parts import (
     ItemSupplier,
     PartCategory,
+    PartReservation,
     PriceChange,
     PurchaseOrder,
     PurchaseOrderLine,
@@ -30,6 +31,7 @@ from app.models.parts import (
     StockCount,
     StockCountLine,
     Supplier,
+    TaskPart,
     UnitEvent,
 )
 from app.models.rail import RailSession, RailSessionTag, Reading
@@ -59,6 +61,8 @@ __all__ = [
     "UnitEvent",
     "StockCount",
     "StockCountLine",
+    "PartReservation",
+    "TaskPart",
     "LowStockAlert",
     "MaintenanceInventoryUsage",
     "InventoryRequest",

@@ -49,6 +49,7 @@ class Dashboard:
     value_week: float = 0.0
     swaps: list = field(default_factory=list)                # rotation.Swap
     failed_alerts: int = 0
+    inventory: object = None                                 # inventory_due.InventoryDue
 
 
 def _down_since(games: list[Game]) -> dict[int, dt.date]:
@@ -140,6 +141,9 @@ def _for_role(d: Dashboard, user, open_orders: list[MaintenanceRecord]) -> Dashb
     if d.role == "readonly":
         return d
     d.down_since = _down_since(d.down_games)
+    from app.services.inventory_due import due
+
+    d.inventory = due(shopping=d.role != "operator")
     if d.role == "operator":
         d.mine = _mine(user, open_orders)
         theirs_first = sorted(open_orders, key=lambda o: o.id not in d.mine)    # stable

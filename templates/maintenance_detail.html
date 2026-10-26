@@ -125,6 +125,36 @@
     {%- endif %}
   </section>
 
+  {%- if r.reservations %}
+  <section class="stack" aria-labelledby="reserved-title">
+    <h2 id="reserved-title">Parts reserved</h2>
+    <p class="dim">Set aside for this order, still on the shelf. Use them when they go in, or
+       release them; closing the order releases what's left.</p>
+    <ul class="rows">
+      {%- for res in r.reservations %}
+      <li class="row">
+        <span class="row__main">
+          <a class="row__title" href="{{ url_for('inventory.inventory_detail', item_id=res.item_id) }}">{{ res.item.name }} × {{ res.quantity }}</a>
+          <span class="row__meta">{{ res.place.path if res.place else "wherever it is" }}{% if res.user %} · by {{ res.user.username }}{% endif %}</span>
+        </span>
+        {%- if current_user.has_role("operator") %}
+        <span class="row__end cluster">
+          <form class="inline-form" method="post" action="{{ url_for('reservations.act', record_id=r.id, res_id=res.id, action='use') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn--sm btn--primary" type="submit">Use</button>
+          </form>
+          <form class="inline-form" method="post" action="{{ url_for('reservations.act', record_id=r.id, res_id=res.id, action='release') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn--sm" type="submit">Release</button>
+          </form>
+        </span>
+        {%- endif %}
+      </li>
+      {%- endfor %}
+    </ul>
+  </section>
+  {%- endif %}
+
   {%- if r.inventory_usage %}
   <section aria-labelledby="parts-title">
     <h2 id="parts-title">Parts used</h2>

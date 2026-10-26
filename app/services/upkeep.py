@@ -165,5 +165,25 @@ def raise_due(games: list[Game] | None = None, today: dt.date | None = None
             raised.append(order)
         except IntegrityError:
             continue                     # another request raised it first
+    _reserve_task_parts(raised)
     db.session.commit()       # also when nothing was raised: don't leave the read open
     return raised
+
+
+def _reserve_task_parts(orders: list[MaintenanceRecord]) -> None:
+    """Set aside each new order's task parts (inventory step 6): what's free of each, and a
+    note on the order for what isn't."""
+    from app.models import MaintenanceTask
+    from app.services.reservations import reserve
+
+    for order in orders:
+        task = db.session.get(MaintenanceTask, order.pm_task_id)
+        short = []
+        for tp in (task.parts if task else []):
+            res = reserve(order, tp.item, tp.quantity, None, partial=True)
+            got = res.quantity if res else 0
+            if got < tp.quantity:
+                short.append(f"{tp.item.name} ({tp.quantity - got} short)")
+        if short:
+            order.issue_description += ("\n\nNot enough in stock to reserve: "
+                                        + ", ".join(short) + ".")

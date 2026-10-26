@@ -195,6 +195,43 @@
   </section>
   {%- endif %}
 
+  {#- Inventory step 6: the parts that fit it (operators), and what it has used (managers,
+      like the work order history and its costs). -#}
+  {%- if current_user.has_role("operator") and g.compatible_items %}
+  <section aria-labelledby="fits-title">
+    <h2 id="fits-title">Parts that fit it</h2>
+    <ul class="rows">
+      {%- for item in g.compatible_items|sort(attribute="name") %}
+      {%- set held = item.reservations|sum(attribute="quantity") %}
+      <li><a class="row" href="{{ url_for('inventory.inventory_detail', item_id=item.id) }}">
+        {%- set meta = [item.part_number, (held ~ " reserved") if held else none]|select|join(" · ") %}
+        <span class="row__main"><span class="row__title">{{ item.name }}</span>
+          {%- if meta %}<span class="row__meta">{{ meta }}</span>{% endif %}</span>
+        <span class="row__end">{{ ui.chip("fault" if item.stock_quantity == 0 else ("warn" if item.is_low_stock() else "ok"), item.stock_quantity ~ " in stock") }}</span>
+      </a></li>
+      {%- endfor %}
+    </ul>
+  </section>
+  {%- endif %}
+
+  {%- if current_user.has_role("manager") and page.parts_used %}
+  <section aria-labelledby="partsused-title">
+    <h2 id="partsused-title">Parts it has used · ${{ "%.2f"|format(page.parts_cost) }}</h2>
+    <div class="table-wrap">
+      <table class="table table--stack">
+        <thead><tr><th>Part</th><th class="num">How many</th><th class="num">Cost</th></tr></thead>
+        <tbody>
+          {%- for item, qty, cost in page.parts_used %}
+          <tr><td data-label="Part"><a href="{{ url_for('inventory.inventory_detail', item_id=item.id) }}">{{ item.name }}</a></td>
+            <td data-label="How many" class="num">{{ qty }}</td>
+            <td data-label="Cost" class="num">${{ "%.2f"|format(cost) }}</td></tr>
+          {%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {%- endif %}
+
   {%- set installed = g.serial_units|selectattr("state", "equalto", "in_machine")|list %}
   {%- if installed %}
   <section aria-labelledby="units-title">

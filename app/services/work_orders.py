@@ -117,18 +117,32 @@ class PartsResult:
     warnings: list[str] = field(default_factory=list)
 
 
-def use_parts(record: MaintenanceRecord, rows: list[tuple[int, int]], user_id: int,
+def use_parts(record: MaintenanceRecord, rows: list[tuple], user_id: int,
               reason: str) -> PartsResult:
-    """Take parts out of stock for *record*. Rows short on stock are skipped with a warning.
+    """Take parts out of stock for *record*. Rows are (item_id, quantity) or (item_id,
+    quantity, place_id): from that place (inventory step 6), else from wherever the part is.
+    Rows short on stock are skipped with a warning.
 
     Adds the parts' cost to the record's cost. Stages everything; the caller commits.
     """
+    from app.models import StockPlace
+
     result = PartsResult()
-    for item_id, quantity in rows:
+    for row in rows:
+        item_id, quantity = row[0], row[1]
+        place = db.session.get(StockPlace, row[2]) if len(row) > 2 and row[2] else None
         item = db.session.get(InventoryItem, item_id)
         if item is None or quantity <= 0:
             continue
-        if item.stock_quantity < quantity:
+        if place is not None:
+            stock_places.reconcile(item)
+            level = stock_places.level_of(item, place)
+            have = level.quantity if level else 0
+            if have < quantity:
+                result.warnings.append(f"Not enough {item.name} in {place.path}. "
+                                       f"There: {have}, Requested: {quantity}")
+                continue
+        elif item.stock_quantity < quantity:
             result.warnings.append(f"Insufficient stock for {item.name}. "
                                    f"Available: {item.stock_quantity}, Requested: {quantity}")
             continue
@@ -136,8 +150,10 @@ def use_parts(record: MaintenanceRecord, rows: list[tuple[int, int]], user_id: i
             maintenance_id=record.id, item_id=item.id, quantity_used=quantity,
             unit_price_at_time=item.unit_price, total_cost=quantity * item.unit_price)
         db.session.add(usage)
-        # From wherever the part is, until a work order can pick a place (inventory step 6).
-        stock_places.take_anywhere(item, quantity, user_id, reason, kind="used")
+        if place is not None:
+            stock_places.take(item, quantity, user_id, place, reason, kind="used")
+        else:
+            stock_places.take_anywhere(item, quantity, user_id, reason, kind="used")
         result.cost += usage.total_cost
         result.used += 1
     if result.cost:

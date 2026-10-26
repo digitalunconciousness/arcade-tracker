@@ -27,7 +27,7 @@
         {%- if manager %}<a class="btn btn--sm" href="{{ url_for('upkeep.edit', task_id=task.id) }}">Edit</a>{% endif %}
       </div>
     </div>
-    <p class="dim">{{ task.rule }} · {{ task.scope }}</p>
+    <p class="dim">{{ task.rule }} · {{ task.scope }}{% if task.parts %} · needs {% for tp in task.parts %}{{ tp.item.name }} × {{ tp.quantity }}{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}</p>
     {%- if task.instructions %}<p>{{ task.instructions }}</p>{% endif %}
     {%- set rows = by_task.get(task.id, []) %}
     {%- if not task.active %}

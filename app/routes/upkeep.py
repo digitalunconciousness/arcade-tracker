@@ -61,6 +61,7 @@ def _parse(form) -> tuple[dict, dict[str, str]]:
         errors["every_plays"] = "Give a number of plays, a number of days, or both."
     if v["applies_to"] not in APPLIES_TO:
         errors["applies_to"] = "Pick what it applies to."
+    v["parts"] = _parse_parts(form, errors)
     v["game_id"] = None
     if v["applies_to"] == "machine":
         try:
@@ -74,25 +75,63 @@ def _parse(form) -> tuple[dict, dict[str, str]]:
     return v, errors
 
 
+PART_ROWS = 4
+
+
+def _parse_parts(form, errors) -> list[tuple[int, int]]:
+    """The parts the task needs each time (inventory step 6): (item_id, quantity) rows."""
+    from app.models import InventoryItem
+
+    rows, seen = [], set()
+    for i in range(PART_ROWS):
+        raw_item = form.get(f"part_item_{i}", "")
+        raw_qty = (form.get(f"part_qty_{i}") or "1").strip()
+        if not raw_item.isdigit():
+            continue
+        if not raw_qty.isdigit() or not 1 <= int(raw_qty) <= 999:
+            errors["parts"] = f"Part row {i + 1}: a quantity from 1 to 999."
+            continue
+        item_id = int(raw_item)
+        if db.session.get(InventoryItem, item_id) is None or item_id in seen:
+            continue
+        seen.add(item_id)
+        rows.append((item_id, int(raw_qty)))
+    return rows
+
+
+def _save_parts(task, rows):
+    from app.models import TaskPart
+
+    task.parts = [TaskPart(item_id=item_id, quantity=qty) for item_id, qty in rows]
+
+
 def _form(task: MaintenanceTask | None):
+    from app.models import InventoryItem
+
     games = Game.query.filter(Game.status != "Retired").order_by(Game.name).all()
+    items = InventoryItem.query.order_by(InventoryItem.name).all()
     if request.method == "GET":
         values = ({"name": task.name, "instructions": task.instructions or "",
                    "every_plays": task.every_plays or "", "every_days": task.every_days or "",
                    "applies_to": task.applies_to, "game_id": task.game_id,
-                   "active": task.active} if task else
-                  {"applies_to": "all", "active": True})
+                   "active": task.active,
+                   "parts": [(tp.item_id, tp.quantity) for tp in task.parts]} if task else
+                  {"applies_to": "all", "active": True, "parts": []})
         return render_template("upkeep_form.html", task=task, values=values, errors={},
-                               games=games, applies=APPLIES_TO)
+                               games=games, applies=APPLIES_TO, items=items,
+                               part_rows=PART_ROWS)
     v, errors = _parse(request.form)
     if errors:
         return render_template("upkeep_form.html", task=task, values=v, errors=errors,
-                               games=games, applies=APPLIES_TO), 400
+                               games=games, applies=APPLIES_TO, items=items,
+                               part_rows=PART_ROWS), 400
     if task is None:
         task = MaintenanceTask(created_by_id=current_user.id)
         db.session.add(task)
+    part_rows = v.pop("parts")
     for key, value in v.items():
         setattr(task, key, value)
+    _save_parts(task, part_rows)
     db.session.commit()
     flash(f'Saved "{task.name}": {task.rule.lower()}, {task.scope.lower()}.', "success")
     return redirect(url_for("upkeep.overview"))

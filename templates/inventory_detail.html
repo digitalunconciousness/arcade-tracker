@@ -40,6 +40,21 @@
   </section>
   {%- endif %}
 
+  {%- if item.reservations %}
+  <section class="card stack" aria-labelledby="held-title">
+    <h2 id="held-title">Reserved: {{ item.reservations|sum(attribute="quantity") }}</h2>
+    <p class="dim">Still on the shelf, but set aside for these work orders, so {{ item.stock_quantity - item.reservations|sum(attribute="quantity") }} are free.</p>
+    <ul class="rows">
+      {%- for res in item.reservations %}
+      <li><a class="row" href="{{ url_for('maintenance.maintenance_detail', record_id=res.order_id) }}">
+        <span class="row__main"><span class="row__title">Work order #{{ res.order_id }} · {{ res.quantity }}</span>
+          <span class="row__meta">{{ res.order.game.name if res.order.game else (res.order.location_description or "General") }}{% if res.place %} · from {{ res.place.path }}{% endif %}</span></span>
+      </a></li>
+      {%- endfor %}
+    </ul>
+  </section>
+  {%- endif %}
+
   <section class="stack" aria-labelledby="where-title">
     <h2 id="where-title">Where it is</h2>
     {%- if held %}
