@@ -6,6 +6,7 @@
 {% block page_head %}
 {% call ui.page_head(item.name, sub=item.part_number, back=url_for("inventory.inventory_list"), back_label="Parts") %}
   <a class="btn btn--sm" href="{{ url_for('inventory.request_inventory', item_id=item.id) }}">Request more</a>
+  {%- if item.code %}<a class="btn btn--sm" href="{{ url_for('stock_labels.sheet', ids='i' ~ item.id) }}">Label</a>{% endif %}
   {%- if current_user.has_role("manager") %}
   <a class="btn btn--sm" href="{{ url_for('inventory.edit_inventory_item', item_id=item.id) }}">Edit</a>
   {%- endif %}

@@ -54,6 +54,11 @@ PAGES = [
      "text/html"),
     ("/inventory/places/<int:place_id>", lambda f: f"/inventory/places/{f['shelf']}",
      "operator", 200, "Drive Belt", "text/html"),
+    ("/inventory/labels", lambda f: "/inventory/labels", "operator", 200, "Shelf A",
+     "text/html"),
+    ("/inventory/labels/sheet",
+     lambda f: f"/inventory/labels/sheet?ids=p{f['shelf']},i{f['belt']}", "operator", 200,
+     "/p/", "text/html"),
     ("/inventory/places/<int:place_id>/count",
      lambda f: f"/inventory/places/{f['shelf']}/count", "operator", 200, "Drive Belt",
      "text/html"),
@@ -143,6 +148,8 @@ PAGES = [
 # GET routes deliberately outside this matrix, with where they are covered instead.
 ELSEWHERE = {
     "/g/<code>": "test_qr_path.py: a redirect, pinned on its own",
+    "/p/<code>": "tests/test_stock_labels.py: a place's label, a redirect",
+    "/i/<code>": "tests/test_stock_labels.py: a part's label, a redirect",
     "/download_backup/<filename>": "test_routes_post.py: needs a backup file on disk",
     "/machine-images/<path:filename>": "test_machine_page.py: needs an uploaded image",
     "/login": "test_routes_post.py",

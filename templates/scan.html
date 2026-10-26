@@ -3,7 +3,7 @@
 {% block title %}Scan{% endblock %}
 
 {% block page_head %}
-{{ ui.page_head("Scan a machine", sub="Scan a cabinet label with the camera or a USB scanner, or type its ID") }}
+{{ ui.page_head("Scan a label", sub="A machine, shelf or part label, with the camera or a USB scanner, or type its ID") }}
 {% endblock %}
 
 {% block content %}
@@ -24,12 +24,13 @@
 </section>
 
 {#- No script needed: the form submits to /scan?code=, which sends a bare ID or a whole label
-    URL to /g/<id>, the address every printed label opens. -#}
+    URL to /g/<id>, the address every machine label opens (or to /p/ or /i/ for a place's or a
+    part's label). -#}
 <form class="form scan" method="get" action="{{ url_for('games.scan') }}" role="search">
   <div class="field">
-    <label for="code">Machine ID or label</label>
+    <label for="code">ID or label</label>
     <input id="code" name="code" class="scan__box" autocomplete="off" autocapitalize="none" spellcheck="false" autofocus placeholder="Scan or type, then Enter" data-keep-focus>
-    <span class="field__help">A USB scanner types the label and presses Enter for you. The labels open <code>/g/&lt;id&gt;</code>.</span>
+    <span class="field__help">A USB scanner types the label and presses Enter for you. Machine labels open <code>/g/&lt;id&gt;</code>; place and part labels, <code>/p/</code> and <code>/i/</code>.</span>
   </div>
   <div class="form__actions"><button class="btn btn--primary" type="submit">Go</button></div>
 </form>

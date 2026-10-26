@@ -672,7 +672,8 @@
    "places.detail(place_id=shelf)",
    "places.overview()",
    "rails.floor()",
-   "reports.reports()"
+   "reports.reports()",
+   "stock_labels.sheet()"
   ],
   "manager": [
    "auth.logout()",
@@ -689,7 +690,8 @@
    "places.detail(place_id=shelf)",
    "places.overview()",
    "rails.floor()",
-   "reports.reports()"
+   "reports.reports()",
+   "stock_labels.sheet()"
   ],
   "operator": [
    "auth.logout()",
@@ -704,7 +706,8 @@
    "maintenance.maintenance_orders()",
    "places.detail(place_id=shelf)",
    "places.overview()",
-   "rails.floor()"
+   "rails.floor()",
+   "stock_labels.sheet()"
   ]
  },
  "/inventory/<int:item_id>/adjust_stock": {
@@ -797,6 +800,88 @@
    "reports.reports()"
   ]
  },
+ "/inventory/labels": {
+  "admin": [
+   "admin.manage_users()",
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "places.overview()",
+   "rails.floor()",
+   "reports.reports()",
+   "stock_labels.sheet()"
+  ],
+  "manager": [
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "places.overview()",
+   "rails.floor()",
+   "reports.reports()",
+   "stock_labels.sheet()"
+  ],
+  "operator": [
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "places.overview()",
+   "rails.floor()",
+   "stock_labels.sheet()"
+  ]
+ },
+ "/inventory/labels/sheet": {
+  "admin": [
+   "admin.manage_users()",
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "rails.floor()",
+   "reports.reports()",
+   "stock_labels.pick()",
+   "stock_labels.sheet()"
+  ],
+  "manager": [
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "rails.floor()",
+   "reports.reports()",
+   "stock_labels.pick()",
+   "stock_labels.sheet()"
+  ],
+  "operator": [
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "rails.floor()",
+   "stock_labels.pick()",
+   "stock_labels.sheet()"
+  ]
+ },
  "/inventory/low_stock_alerts": {
   "admin": [
    "admin.manage_users()",
@@ -842,7 +927,8 @@
    "places.detail(place_id=back_room)",
    "places.detail(place_id=shelf)",
    "rails.floor()",
-   "reports.reports()"
+   "reports.reports()",
+   "stock_labels.pick()"
   ],
   "manager": [
    "auth.logout()",
@@ -856,7 +942,8 @@
    "places.detail(place_id=back_room)",
    "places.detail(place_id=shelf)",
    "rails.floor()",
-   "reports.reports()"
+   "reports.reports()",
+   "stock_labels.pick()"
   ],
   "operator": [
    "auth.logout()",
@@ -869,7 +956,8 @@
    "places.create()",
    "places.detail(place_id=back_room)",
    "places.detail(place_id=shelf)",
-   "rails.floor()"
+   "rails.floor()",
+   "stock_labels.pick()"
   ]
  },
  "/inventory/places/<int:place_id>": {
@@ -889,7 +977,8 @@
    "places.edit(place_id=shelf)",
    "places.overview()",
    "rails.floor()",
-   "reports.reports()"
+   "reports.reports()",
+   "stock_labels.sheet()"
   ],
   "manager": [
    "auth.logout()",
@@ -906,7 +995,8 @@
    "places.edit(place_id=shelf)",
    "places.overview()",
    "rails.floor()",
-   "reports.reports()"
+   "reports.reports()",
+   "stock_labels.sheet()"
   ],
   "operator": [
    "auth.logout()",
@@ -922,7 +1012,8 @@
    "places.detail(place_id=back_room)",
    "places.edit(place_id=shelf)",
    "places.overview()",
-   "rails.floor()"
+   "rails.floor()",
+   "stock_labels.sheet()"
   ]
  },
  "/inventory/places/<int:place_id>/count": {
