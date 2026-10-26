@@ -27,7 +27,8 @@
     <dl class="kv">
       {%- if order.supplier.phone %}<dt>Phone</dt><dd>{{ order.supplier.phone }}</dd>{% endif %}
       {%- if order.supplier.website %}<dt>Website</dt><dd>{{ order.supplier.website }}</dd>{% endif %}
-      {%- if order.supplier.account_number %}<dt>Our account</dt><dd>{{ order.supplier.account_number }}</dd>{% endif %}
+      {#- Managers and up only (owner's decision, 2026-10-26). -#}
+      {%- if manager and order.supplier.account_number %}<dt>Our account</dt><dd>{{ order.supplier.account_number }}</dd>{% endif %}
       <dt>Started</dt><dd>{{ order.created.strftime("%Y-%m-%d") }}{% if order.created_by %} by {{ order.created_by.username }}{% endif %}</dd>
       {%- if order.sent %}<dt>Sent</dt><dd>{{ order.sent.strftime("%Y-%m-%d") }}</dd>{% endif %}
       {%- if order.expected %}<dt>Expected</dt><dd>{{ order.expected.strftime("%Y-%m-%d") }}</dd>{% endif %}
