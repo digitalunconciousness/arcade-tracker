@@ -14,10 +14,11 @@ from app.models import Game, PlayRecord
 
 
 def update_monthly_rankings_if_due(today: date | None = None) -> bool:
-    """Count last month's top earners once per calendar month. Returns True if it ran.
+    """Count last month's most-played machines once per calendar month. Returns True if it ran.
 
-    Only floor machines with a working counter are ranked, on PlayRecord revenue over the
-    previous calendar month. Idempotent: a second call in the same month does nothing.
+    Only floor machines with a working counter are ranked, on plays over the previous calendar
+    month (by token value until the 2026-10-26 wording pass: popularity is plays). Idempotent:
+    a second call in the same month does nothing.
     """
     today = today or date.today()
     current_month_start = today.replace(day=1)
@@ -28,8 +29,8 @@ def update_monthly_rankings_if_due(today: date | None = None) -> bool:
     if last and last >= current_month_start:
         return False
 
-    revenue = dict(
-        db.session.query(PlayRecord.game_id, db.func.sum(PlayRecord.revenue))
+    plays = dict(
+        db.session.query(PlayRecord.game_id, db.func.sum(PlayRecord.plays_count))
         .join(Game)
         .filter(
             PlayRecord.date_recorded >= prev_month_start,
@@ -40,7 +41,7 @@ def update_monthly_rankings_if_due(today: date | None = None) -> bool:
         .group_by(PlayRecord.game_id)
         .all()
     )
-    ranked = sorted(revenue.items(), key=lambda kv: kv[1] or 0.0, reverse=True)
+    ranked = sorted(plays.items(), key=lambda kv: kv[1] or 0, reverse=True)
     top5 = {gid for gid, _ in ranked[:5]}
     top10 = {gid for gid, _ in ranked[:10]}
 

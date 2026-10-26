@@ -201,7 +201,7 @@ def record_plays(game_id):
                                values=request.form, errors=errors), 400
     record = record_reading(game, reading, last)
     db.session.commit()
-    flash(f'Recorded {record.plays_count:,} plays (${record.revenue:.2f}) for "{game.name}". '
+    flash(f'Recorded {record.plays_count:,} plays (${record.revenue:.2f} in tokens) for "{game.name}". '
           f"Meter: {record.coin_count:,}.", "success")
     _raise_maintenance(game)
     return redirect(url_for("games.game_detail", game_id=game.id))

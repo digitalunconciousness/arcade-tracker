@@ -25,6 +25,7 @@ class MachinePage:
     rail_last: RailSession | None
     rail_count: int
     daily_revenue: float | None
+    daily_plays: float | None
     manual_url: str
     moves: list = field(default_factory=list)      # GameEvent, newest first
     # The last order closed as Fixed: how it was fixed last time, and by whom (usability round).
@@ -72,10 +73,11 @@ def machine_page(game: Game, today: date | None = None) -> MachinePage:
     )
     rail_count = RailSession.query.filter_by(game_id=game.id).count()
 
-    daily = None
+    daily = daily_plays = None
     if game.date_added:
         days = ((today or date.today()) - game.date_added.date()).days or 1
         daily = (game.total_revenue or 0.0) / days
+        daily_plays = (game.total_plays or 0) / days
 
     return MachinePage(
         game=game,
@@ -87,6 +89,7 @@ def machine_page(game: Game, today: date | None = None) -> MachinePage:
         rail_last=rail_last,
         rail_count=rail_count,
         daily_revenue=daily,
+        daily_plays=daily_plays,
         manual_url=klov_url(game.name),
         moves=timeline(game.id, limit=RECENT_MOVES),
         last_fixed=max((o for o in closed if o.status == "Fixed"),

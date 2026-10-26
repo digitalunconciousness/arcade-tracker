@@ -3,7 +3,7 @@
 {% block title %}Graphs{% endblock %}
 
 {% block page_head %}
-{{ ui.page_head("Graphs", sub="Revenue counts floor machines with a working counter", back=url_for("reports.reports"), back_label="Reports") }}
+{{ ui.page_head("Graphs", sub="Plays count floor machines with a working counter; token value is plays times the token price", back=url_for("reports.reports"), back_label="Reports") }}
 {% endblock %}
 
 {#- One chart panel: a heading, the canvas, and its data. Says so in words when there is none. -#}
@@ -25,12 +25,12 @@
     {{ ui.readout("Machines", total_games, "in every location") }}
     {{ ui.readout("On the floor", floor_games|length, "with a working counter") }}
     {{ ui.readout("Plays", "{:,}".format(total_plays), "floor, all time") }}
-    {{ ui.readout("Revenue", "${:,.2f}".format(total_revenue), "floor, all time") }}
+    {{ ui.readout("Token value", "${:,.2f}".format(total_revenue), "floor, all time") }}
   </dl>
 
   <div class="grid grid--pair">
-    {{ panel("daily", "Revenue by day, last 30 days", "line", daily_chart, "Revenue", money=true, empty="No readings in the last 30 days") }}
-    {{ panel("top", "Best earners, per day", "bar", top_chart, "Revenue per day", money=true, horizontal=true, empty="No floor machines to rank yet") }}
+    {{ panel("daily", "Plays by day, last 30 days", "line", daily_chart, "Plays", empty="No readings in the last 30 days") }}
+    {{ panel("top", "Most played, per working day", "bar", top_chart, "Plays per working day", horizontal=true, empty="No floor machines to rank yet") }}
     {{ panel("status", "Machine status", "doughnut", status_chart, "Machines") }}
     {{ panel("location", "Where the machines are", "doughnut", location_chart, "Machines") }}
   </div>

@@ -69,7 +69,7 @@
     <thead><tr>
       {%- if manager %}<th><span class="visually-hidden">Select</span></th>{% endif %}
       <th>Machine</th><th>Status</th><th>Location</th><th class="num">Plays</th>
-      {%- if manager %}<th class="num">Revenue</th>{% endif %}
+      {%- if manager %}<th class="num">Token value</th>{% endif %}
     </tr></thead>
     <tbody>
       {%- for g in m.games %}
@@ -81,7 +81,7 @@
         <td class="machines__status" data-label="Status"><div class="cluster">{{ ui.status(g.status) }}{% if g.id in m.open_order_ids %}<span class="chip is-fault">Open order</span>{% endif %}</div></td>
         <td class="machines__meta" data-label="Location">{{ g.location }}{% if g.location == "Floor" and g.floor_position %} · {{ g.floor_position }}{% endif %}</td>
         <td class="machines__meta num" data-label="Plays">{{ "{:,}".format(g.total_plays or 0) }}</td>
-        {%- if manager %}<td class="machines__meta num" data-label="Revenue">${{ "{:,.2f}".format(g.total_revenue or 0) }}</td>{% endif %}
+        {%- if manager %}<td class="machines__meta num" data-label="Token value">${{ "{:,.2f}".format(g.total_revenue or 0) }}</td>{% endif %}
       </tr>
       {%- endfor %}
     </tbody>

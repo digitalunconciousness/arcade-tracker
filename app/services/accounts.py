@@ -11,7 +11,7 @@ ROLES = ("readonly", "operator", "manager", "admin")
 ROLE_TEXT = {
     "readonly": "Read only: sees machines, work orders and rail history",
     "operator": "Operator: reports and works on orders, records plays, uses parts",
-    "manager": "Manager: also reports, revenue, part orders, coin-door labels",
+    "manager": "Manager: also reports, plays and token value, part orders, coin-door labels",
     "admin": "Admin: also users, storage and backups",
 }
 

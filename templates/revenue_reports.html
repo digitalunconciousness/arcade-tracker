@@ -3,10 +3,10 @@
 {% set periods = [(7, "Last 7 days"), (30, "Last 30 days"), (60, "Last 60 days"), (90, "Last 90 days"),
                   (180, "Last 6 months"), (365, "Last year"), (9999, "All time")] %}
 {% set period = (periods|selectattr(0, "equalto", days_filter)|map(attribute=1)|first) or ("Last " ~ days_filter ~ " days") %}
-{% block title %}Revenue{% endblock %}
+{% block title %}Plays and token value{% endblock %}
 
 {% block page_head %}
-{% call ui.page_head("Revenue", sub=period ~ " · " ~ scope ~ " · working counters only", back=url_for("reports.reports"), back_label="Reports") %}
+{% call ui.page_head("Plays and token value", sub=period ~ " · " ~ scope ~ " · working counters only", back=url_for("reports.reports"), back_label="Reports") %}
   <a class="btn btn--sm" href="{{ url_for('reports.export_revenue_report', days=days_filter, location=location_filter) }}">Export PDF</a>
 {% endcall %}
 {% endblock %}
@@ -33,32 +33,32 @@
   </form>
 
   <dl class="readouts">
-    {{ ui.readout("Revenue", "${:,.2f}".format(total_revenue), period) }}
     {{ ui.readout("Plays", "{:,}".format(total_plays), period) }}
-    {{ ui.readout("Per day", "${:,.2f}".format(avg_daily_revenue), "averaged over " ~ days_filter ~ " days") }}
+    {{ ui.readout("Plays per day", "{:,.1f}".format(avg_daily_plays), "averaged over " ~ days_filter ~ " days") }}
+    {{ ui.readout("Token value", "${:,.2f}".format(total_revenue), "plays × token price; ${:,.2f}/day".format(avg_daily_revenue)) }}
     {{ ui.readout("Machines", revenue_games|length, "with readings in this period") }}
   </dl>
 
   {%- if all_records %}
   <section class="stack" aria-labelledby="daily-title">
-    <h2 id="daily-title">Revenue by day</h2>
-    <div class="chart chart--tall"><canvas data-chart="line" data-source="daily-data" data-money data-label="Revenue" role="img" aria-label="Revenue by day, {{ period|lower }}"></canvas></div>
+    <h2 id="daily-title">Plays by day</h2>
+    <div class="chart chart--tall"><canvas data-chart="line" data-source="daily-data" data-label="Plays" role="img" aria-label="Plays by day, {{ period|lower }}"></canvas></div>
     <script type="application/json" id="daily-data">{{ daily_chart|tojson }}</script>
   </section>
 
   <section class="stack" aria-labelledby="top-title">
-    <h2 id="top-title">Top machines</h2>
+    <h2 id="top-title">Most played</h2>
     <div class="table-wrap">
       <table class="table table--stack">
-        <thead><tr><th class="num">#</th><th>Machine</th><th class="num">Revenue</th><th class="num">Plays</th><th class="num">Per play</th><th>Location</th></tr></thead>
+        <thead><tr><th class="num">#</th><th>Machine</th><th class="num">Plays</th><th class="num">Token value</th><th class="num">Token price</th><th>Location</th></tr></thead>
         <tbody>
           {%- for row in top_games %}
           <tr>
             <td data-label="Rank" class="num">{{ loop.index }}</td>
             <td data-label="Machine"><a href="{{ url_for('games.game_detail', game_id=row.game.id) }}">{{ row.game.name }}</a></td>
-            <td data-label="Revenue" class="num">${{ "{:,.2f}".format(row.revenue) }}</td>
             <td data-label="Plays" class="num">{{ "{:,}".format(row.plays) }}</td>
-            <td data-label="Per play" class="num">${{ "%.2f"|format(row.revenue / row.plays if row.plays > 0 else 0) }}</td>
+            <td data-label="Token value" class="num">${{ "{:,.2f}".format(row.revenue) }}</td>
+            <td data-label="Token price" class="num">${{ "%.2f"|format(row.revenue / row.plays if row.plays > 0 else 0) }}</td>
             <td data-label="Location">{{ row.game.location }}</td>
           </tr>
           {%- endfor %}
@@ -72,14 +72,14 @@
     <p class="dim">{{ all_records|length }} reading{{ "" if all_records|length == 1 else "s" }} since {{ start_date.strftime('%Y-%m-%d') }}{% if all_records|length > 20 %}; the newest 20 are shown, and the PDF has them all{% endif %}.</p>
     <div class="table-wrap">
       <table class="table table--stack">
-        <thead><tr><th>Date</th><th>Machine</th><th class="num">Plays</th><th class="num">Revenue</th><th>Location</th></tr></thead>
+        <thead><tr><th>Date</th><th>Machine</th><th class="num">Plays</th><th class="num">Token value</th><th>Location</th></tr></thead>
         <tbody>
           {%- for record in all_records[:20] %}
           <tr>
             <td data-label="Date">{{ record.date_recorded.strftime('%Y-%m-%d') }}</td>
             <td data-label="Machine"><a href="{{ url_for('games.game_detail', game_id=record.game.id) }}">{{ record.game.name }}</a></td>
             <td data-label="Plays" class="num">{{ "{:,}".format(record.plays_count) }}</td>
-            <td data-label="Revenue" class="num">${{ "{:,.2f}".format(record.revenue) }}</td>
+            <td data-label="Token value" class="num">${{ "{:,.2f}".format(record.revenue) }}</td>
             <td data-label="Location">{{ record.game.location }}</td>
           </tr>
           {%- endfor %}
@@ -88,7 +88,7 @@
     </div>
   </section>
   {%- else %}
-  {{ ui.empty("No revenue in this period",
+  {{ ui.empty("No plays recorded in this period",
               "Nothing was recorded for " ~ scope ~ " in the " ~ period|lower ~ ". Only machines with a working coin counter count.",
               url_for("reports.revenue_reports", days=days_filter, location="all") if location_filter != "all" else none,
               "Try every location") }}

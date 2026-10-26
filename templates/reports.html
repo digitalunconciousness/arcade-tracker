@@ -23,7 +23,7 @@
 {% macro performer_list(rows) -%}
 <ol class="rank">
   {%- for p in rows %}
-  <li><a href="{{ url_for('games.game_detail', game_id=p.game.id) }}">{{ p.game.name }}</a> <span class="dim num">${{ "{:,.2f}".format(p.daily_revenue) }}/day</span></li>
+  <li><a href="{{ url_for('games.game_detail', game_id=p.game.id) }}">{{ p.game.name }}</a> <span class="num">{{ "%.1f"|format(p.plays_per_day) }}</span> <span class="dim">plays/day · ${{ "%.2f"|format(p.value_per_day) }}</span></li>
   {%- endfor %}
 </ol>
 {%- endmacro %}
@@ -32,8 +32,8 @@
 <div class="stack">
 
   <dl class="readouts">
-    {{ ui.readout("Revenue, 30 days", "${:,.2f}".format(total_revenue_30days)) }}
-    {{ ui.readout("Per day", "${:,.2f}".format(total_revenue_30days / daily_revenue|length) if daily_revenue else "$0.00", "averaged over days with readings") }}
+    {{ ui.readout("Plays, 30 days", "{:,}".format(total_plays_30days), "${:,.2f}".format(total_value_30days) ~ " in tokens") }}
+    {{ ui.readout("Plays per day", "{:,.0f}".format(total_plays_30days / daily_plays|length) if daily_plays else "0", "averaged over days with readings") }}
     {{ ui.readout("Floor machines", floor_games_count, "with a working counter") }}
     {{ ui.readout("Low stock", low_stock_items|length, tone="warn" if low_stock_items else none) }}
     {{ ui.readout("Open orders", open_maintenance|length, tone="fault" if open_maintenance else none) }}
@@ -41,7 +41,7 @@
 
   <div class="grid grid--pair">
     <section class="card stack" aria-labelledby="revenue-title">
-      <h2 id="revenue-title">Revenue</h2>
+      <h2 id="revenue-title">Plays and token value</h2>
       <form class="form" method="get" action="{{ url_for('reports.revenue_reports') }}">
         {{ period_select("revenue-days") }}
         <div class="form__actions">
@@ -74,13 +74,13 @@
 
   <div class="grid grid--pair">
     <section class="card stack" aria-labelledby="best-title">
-      <h2 id="best-title">Best earners</h2>
-      <p class="dim">Floor machines by revenue per day since they were added.</p>
+      <h2 id="best-title">Most played</h2>
+      <p class="dim">Floor machines by plays per working day, last {{ window_days }} days. Token value second.</p>
       {%- if top_5_games %}{{ performer_list(top_5_games) }}{% else %}{{ ui.empty("No floor machines to rank yet") }}{% endif %}
     </section>
     <section class="card stack" aria-labelledby="worst-title">
-      <h2 id="worst-title">Lowest earners</h2>
-      <p class="dim">Candidates to replace or move.</p>
+      <h2 id="worst-title">Least played</h2>
+      <p class="dim">Candidates to swap out. <a href="{{ url_for('rotation.overview') }}">Rotation planner</a></p>
       {%- if bottom_3_games %}{{ performer_list(bottom_3_games) }}{% else %}{{ ui.empty("No floor machines to rank yet") }}{% endif %}
     </section>
   </div>
@@ -126,9 +126,9 @@
   </div>
 
   <section class="stack" aria-labelledby="trend-title">
-    <h2 id="trend-title">Revenue by day, last 30 days</h2>
+    <h2 id="trend-title">Plays by day, last 30 days</h2>
     {%- if daily_chart.values %}
-    <div class="chart chart--tall"><canvas data-chart="line" data-source="daily-data" data-money data-label="Revenue" role="img" aria-label="Revenue by day over the last 30 days"></canvas></div>
+    <div class="chart chart--tall"><canvas data-chart="line" data-source="daily-data" data-label="Plays" role="img" aria-label="Plays by day over the last 30 days"></canvas></div>
     <script type="application/json" id="daily-data">{{ daily_chart|tojson }}</script>
     {%- else %}
     {{ ui.empty("No readings in the last 30 days") }}
@@ -138,21 +138,21 @@
   {%- if top_performers %}
   <section class="stack" aria-labelledby="ranking-title">
     <h2 id="ranking-title">Floor ranking</h2>
-    <div class="chart chart--tall"><canvas data-chart="bar" data-horizontal data-source="games-data" data-money data-label="Total revenue" role="img" aria-label="Total revenue of the ten best floor machines"></canvas></div>
+    <div class="chart chart--tall"><canvas data-chart="bar" data-horizontal data-source="games-data" data-label="Plays per working day" role="img" aria-label="Plays per working day of the ten most played floor machines"></canvas></div>
     <script type="application/json" id="games-data">{{ games_chart|tojson }}</script>
 
     <div class="grid grid--pair">
       <div class="table-wrap">
         <table class="table">
-          <caption>Best 10, per day</caption>
-          <thead><tr><th class="num">#</th><th>Machine</th><th class="num">Per day</th><th class="num">Total</th><th class="num">Top 5 / 10</th></tr></thead>
+          <caption>Most played 10</caption>
+          <thead><tr><th class="num">#</th><th>Machine</th><th class="num">Plays/day</th><th class="num">Token value/day</th><th class="num">Top 5 / 10</th></tr></thead>
           <tbody>
             {%- for p in top_performers %}
             <tr>
               <td class="num">{{ loop.index }}</td>
               <td><a href="{{ url_for('games.game_detail', game_id=p.game.id) }}">{{ p.game.name }}</a></td>
-              <td class="num">${{ "{:,.2f}".format(p.daily_revenue) }}</td>
-              <td class="num">${{ "{:,.2f}".format(p.total_revenue) }}</td>
+              <td class="num">{{ "%.1f"|format(p.plays_per_day) }}</td>
+              <td class="num">${{ "%.2f"|format(p.value_per_day) }}</td>
               <td class="num">{{ p.game.times_in_top_5 or 0 }} / {{ p.game.times_in_top_10 or 0 }}</td>
             </tr>
             {%- endfor %}
@@ -161,16 +161,16 @@
       </div>
       <div class="table-wrap">
         <table class="table">
-          <caption>Lowest 10, per day</caption>
-          <thead><tr><th class="num">#</th><th>Machine</th><th class="num">Per day</th><th class="num">Total</th><th>Advice</th></tr></thead>
+          <caption>Least played 10</caption>
+          <thead><tr><th class="num">#</th><th>Machine</th><th class="num">Plays/day</th><th class="num">Token value/day</th><th>Advice</th></tr></thead>
           <tbody>
             {%- for p in worst_performers %}
             <tr>
               <td class="num">{{ loop.index }}</td>
               <td><a href="{{ url_for('games.game_detail', game_id=p.game.id) }}">{{ p.game.name }}</a></td>
-              <td class="num">${{ "{:,.2f}".format(p.daily_revenue) }}</td>
-              <td class="num">${{ "{:,.2f}".format(p.total_revenue) }}</td>
-              <td>{{ ui.chip("fault", "Replace") if loop.index <= 3 else ui.chip("warn", "Consider replacing") }}</td>
+              <td class="num">{{ "%.1f"|format(p.plays_per_day) }}</td>
+              <td class="num">${{ "%.2f"|format(p.value_per_day) }}</td>
+              <td>{{ ui.chip("fault", "Swap out") if loop.index <= 3 else ui.chip("warn", "Consider swapping") }}</td>
             </tr>
             {%- endfor %}
           </tbody>

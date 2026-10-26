@@ -125,9 +125,9 @@
     </div>
     <dl class="readouts">
       {{ ui.readout("Total plays", "{:,}".format(g.total_plays or 0)) }}
+      {%- if page.daily_plays is not none %}{{ ui.readout("Plays per day", "{:,.1f}".format(page.daily_plays), "since " ~ g.date_added.strftime("%Y-%m-%d")) }}{% endif %}
       {%- if current_user.has_role("manager") %}
-      {{ ui.readout("Total revenue", "${:,.2f}".format(g.total_revenue or 0)) }}
-      {%- if page.daily_revenue is not none %}{{ ui.readout("Per day", "${:,.2f}".format(page.daily_revenue), "since " ~ g.date_added.strftime("%Y-%m-%d")) }}{% endif %}
+      {{ ui.readout("Token value", "${:,.2f}".format(g.total_revenue or 0), ("${:,.2f}/day".format(page.daily_revenue) if page.daily_revenue is not none else none)) }}
       {{ ui.readout("Top 5 / top 10", (g.times_in_top_5 or 0) ~ " / " ~ (g.times_in_top_10 or 0), "months ranked") }}
       {%- endif %}
     </dl>
@@ -137,7 +137,7 @@
       <table class="table table--stack">
         <thead><tr>
           <th>Date</th><th class="num">Meter</th><th class="num">Plays</th>
-          {%- if current_user.has_role("manager") %}<th class="num">Revenue</th>{% endif %}
+          {%- if current_user.has_role("manager") %}<th class="num">Token value</th>{% endif %}
           <th>Notes</th>
           {%- if current_user.has_role("manager") %}<th><span class="visually-hidden">Actions</span></th>{% endif %}
         </tr></thead>
@@ -147,10 +147,10 @@
             <td data-label="Date">{{ r.date_recorded.strftime("%Y-%m-%d") }}</td>
             <td data-label="Meter" class="num">{{ "{:,}".format(r.coin_count) }}</td>
             <td data-label="Plays" class="num">{{ r.plays_count }}</td>
-            {%- if current_user.has_role("manager") %}<td data-label="Revenue" class="num">${{ "%.2f"|format(r.revenue) }}</td>{% endif %}
+            {%- if current_user.has_role("manager") %}<td data-label="Token value" class="num">${{ "%.2f"|format(r.revenue) }}</td>{% endif %}
             <td data-label="Notes">{{ r.notes or "—" }}</td>
             {%- if current_user.has_role("manager") %}
-            <td data-label="">{{ ui.danger_form(url_for("games.delete_play_record", record_id=r.id), "Delete", "Delete this play record? Its plays and revenue come off the machine's totals.") }}</td>
+            <td data-label="">{{ ui.danger_form(url_for("games.delete_play_record", record_id=r.id), "Delete", "Delete this play record? Its plays and token value come off the machine's totals.") }}</td>
             {%- endif %}
           </tr>
           {%- endfor %}
@@ -203,7 +203,7 @@
     <dl class="kv">
       <dt>Barcode</dt><dd><code>{{ g.barcode or "—" }}</code></dd>
       <dt>Added</dt><dd>{{ g.date_added.strftime("%Y-%m-%d") if g.date_added else "—" }}</dd>
-      {%- if current_user.has_role("manager") %}<dt>Price per play</dt><dd>${{ "%.2f"|format(g.coins_per_play or 0) }}</dd>{% endif %}
+      {%- if current_user.has_role("manager") %}<dt>Token price per play</dt><dd>${{ "%.2f"|format(g.coins_per_play or 0) }}</dd>{% endif %}
       {%- if g.counter_notes %}<dt>Counter notes</dt><dd>{{ g.counter_notes }}</dd>{% endif %}
       {%- if g.notes %}<dt>Notes</dt><dd>{{ g.notes }}</dd>{% endif %}
     </dl>
