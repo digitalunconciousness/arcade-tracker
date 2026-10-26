@@ -261,7 +261,7 @@ def send_test(channel: AlertChannel) -> list[tuple[str, str | None]]:
     results = []
     for target in channel.targets:
         alert = Alert(channel=channel, target=target, event="test",
-                      title=f"Test from Arcade Tracker: {channel.name}",
+                      title=f"Test from Cabcrawl: {channel.name}",
                       body="If you can read this, the channel works.", path="/")
         db.session.add(alert)
         ok = send(alert)

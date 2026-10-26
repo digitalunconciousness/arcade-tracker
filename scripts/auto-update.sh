@@ -53,7 +53,7 @@ log "Waiting for application to be healthy..."
 sleep 15
 
 # Check if container is running
-if docker ps | grep -q arcade-tracker; then
+if docker ps | grep -q cabcrawl; then
     log "✅ Update successful! Container is running."
     
     # Check if application responds

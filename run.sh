@@ -12,5 +12,5 @@ source venv/bin/activate
 echo "Installing dependencies..."
 pip install -r requirements.txt
 
-echo "Starting Arcade Tracker..."
+echo "Starting Cabcrawl..."
 python run.py

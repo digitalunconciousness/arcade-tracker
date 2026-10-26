@@ -1,4 +1,4 @@
-/* Arcade Tracker service worker.
+/* Cabcrawl service worker.
  *
  * Served from /static/, so its scope is /static/: it never sees an app page, only the
  * assets those pages load. It exists so the home-screen app has its icons and stylesheets

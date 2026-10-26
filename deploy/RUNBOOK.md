@@ -8,6 +8,13 @@ box some other way as a non-root user, prefix each one yourself.
 The repository is at `/opt/arcade-tracker`; the virtualenv it uses is deliberately
 *outside* that directory.
 
+**The name.** The app is called Cabcrawl since October 2026 (it was Arcade Tracker). Only what
+people read changed. On the server everything keeps its old name, on purpose, and nothing here
+needs renaming: `arcade-tracker.service` and the alert timer, `/opt/arcade-tracker`, the
+virtualenv and backup paths, the database and its role, the cookie and environment variable
+names, the hostname and tunnel, and every URL (printed QR labels use `/g/<barcode>`). Renaming
+any of them would be a migration of its own, not part of the rename.
+
 ## Routine deploy
 
 ```bash

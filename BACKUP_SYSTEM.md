@@ -1,6 +1,6 @@
 # Database Backup & Migration System
 
-This document describes the comprehensive backup and migration system for Arcade Tracker.
+This document describes the comprehensive backup and migration system for Cabcrawl.
 
 ## Overview
 
@@ -260,4 +260,4 @@ If automated backups aren't running:
 4. Restart the application
 5. Re-enter any data added since backup
 
-This backup system ensures your Arcade Tracker data is safe and recoverable!
+This backup system ensures your Cabcrawl data is safe and recoverable!

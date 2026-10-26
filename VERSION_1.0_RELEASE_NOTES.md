@@ -1,4 +1,4 @@
-# Arcade Tracker Version 1.0 Release Notes
+# Cabcrawl Version 1.0 Release Notes
 
 ## 🎉 Major Release - Production Ready
 

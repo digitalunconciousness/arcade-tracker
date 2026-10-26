@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Setup automatic daily backups for Arcade Tracker database
+# Setup automatic daily backups for Cabcrawl database
 # This script configures a cron job to backup the database daily at 2 AM
 #
 
@@ -19,7 +19,7 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-echo -e "${BLUE}🔧 Setting up automated database backups for Arcade Tracker${NC}"
+echo -e "${BLUE}🔧 Setting up automated database backups for Cabcrawl${NC}"
 
 # Check if script exists
 if [ ! -f "$BACKUP_SCRIPT" ]; then

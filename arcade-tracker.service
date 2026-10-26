@@ -2,7 +2,7 @@
 # Installed at /etc/systemd/system/arcade-tracker.service.
 # The copy that used to be in this repo named a user and a home directory that
 # the deployment never had; this one matches what actually runs.
-Description=Arcade Tracker
+Description=Cabcrawl
 Documentation=https://github.com/digitalunconciousness/arcade-tracker
 After=network-online.target
 Wants=network-online.target

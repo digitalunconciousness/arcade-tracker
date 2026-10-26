@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Convert Arcade Tracker documentation to PDF"""
+"""Convert Cabcrawl documentation to PDF"""
 
 from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors

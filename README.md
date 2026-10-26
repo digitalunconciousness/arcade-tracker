@@ -1,6 +1,10 @@
-# 🎮 Arcade Tracker v1.0
+# Cabcrawl runs the arcade floor: machines, work orders, parts and the coin meters.
 
-A comprehensive arcade management system for tracking games, play statistics, revenue, and maintenance with advanced work logging capabilities and real-time skeeball integration.
+**CABCRAWL** · GATBOX tests the board. Cabcrawl runs the floor.
+
+Cabcrawl is a web app for the people who keep an arcade running: where every machine is, what's
+broken and who's fixing it, which parts are on the shelf, and what each cabinet earns. It was
+called Arcade Tracker until October 2026.
 
 ## 🌟 Features
 
@@ -112,7 +116,7 @@ python app.py
 
 ## 🎳 Skeeball Integration
 
-Arcade Tracker includes a complete Raspberry Pi-based skeeball scoring system with automatic scoring, real-time revenue tracking, and scalable multi-lane architecture.
+Cabcrawl includes a complete Raspberry Pi-based skeeball scoring system with automatic scoring, real-time revenue tracking, and scalable multi-lane architecture.
 
 ### 🌟 Key Features
 
@@ -131,12 +135,12 @@ Arcade Tracker includes a complete Raspberry Pi-based skeeball scoring system wi
 - **Ball Timeout**: Configurable timeout between balls (prevents stuck games)
 - **Coin Integration**: Start games via coin acceptor or manual trigger
 - **Persistent State**: Game state survives power loss and restarts
-- **Revenue Reconciliation**: Daily automated revenue sync with Arcade Tracker database
+- **Revenue Reconciliation**: Daily automated revenue sync with Cabcrawl database
 
 #### Multi-Lane Architecture
 - **Single Lane Mode**: Raspberry Pi 4 connected directly to one machine
 - **Multi-Lane Mode**: Unlimited scalability
-  - Pi 4 acts as coordinator running Arcade Tracker
+  - Pi 4 acts as coordinator running Cabcrawl
   - One Raspberry Pi Pico per skeeball lane
   - USB serial communication between Pi 4 and Picos
   - Independent lane operation (isolated failures)
@@ -191,7 +195,7 @@ LED Power Relay:  GPIO 26 (output)
 ### 🚀 Quick Start Guide
 
 #### 1. Installation
-The skeeball system is integrated into Arcade Tracker. Dependencies are installed automatically:
+The skeeball system is integrated into Cabcrawl. Dependencies are installed automatically:
 ```bash
 source venv/bin/activate
 pip install -r requirements.txt
@@ -199,7 +203,7 @@ pip install -r requirements.txt
 
 #### 2. Development Testing (No Hardware Required)
 ```bash
-# Start Arcade Tracker
+# Start Cabcrawl
 python app.py
 
 # Navigate to simulator
@@ -232,7 +236,7 @@ See `DEPLOYMENT_CHECKLIST.md` for comprehensive deployment instructions includin
 #### Automatic Revenue Tracking
 - **Per-Game Revenue**: Each coin insertion tracked with timestamp
 - **Daily Reconciliation**: Automated daily sync at midnight
-- **Database Integration**: Revenue stored in Arcade Tracker's play_records table
+- **Database Integration**: Revenue stored in Cabcrawl's play_records table
 - **Statistics Dashboard**: Real-time revenue analytics per lane
 - **CSV Export**: Revenue data exportable with all other game data
 
@@ -254,7 +258,7 @@ Hardware (GPIO sensors) → skeeball_main.py → skeeball_state.json
 1. Player inserts coin → Revenue logged to lane controller
 2. Game completes → Final score and revenue stored
 3. Daily scheduler (midnight) → Sync all lane revenue to database
-4. Arcade Tracker reports → Include skeeball revenue in analytics
+4. Cabcrawl reports → Include skeeball revenue in analytics
 
 ### 🔧 Configuration
 
@@ -278,7 +282,7 @@ Comprehensive documentation included:
 All skeeball features protected by:
 - **Flask-Login**: Authentication required for all endpoints
 - **CSRF Protection**: All forms secured via Flask-WTF
-- **Role-Based Access**: Same permission model as main Arcade Tracker
+- **Role-Based Access**: Same permission model as main Cabcrawl
 - **API Authentication**: All API endpoints require valid session
 
 ### 🎯 Use Cases
@@ -487,7 +491,7 @@ This will add the new WorkLog table for timestamped work entries.
 
 Copyright (C) 2025-2026 digitalunconciousness.
 
-Arcade Tracker is free software: you can redistribute it and/or modify it under the terms of the
+Cabcrawl is free software: you can redistribute it and/or modify it under the terms of the
 GNU Affero General Public License as published by the Free Software Foundation, version 3
 (see [`LICENSE`](LICENSE)). It comes with no warranty.
 

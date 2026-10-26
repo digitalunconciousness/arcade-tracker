@@ -1,5 +1,5 @@
 #!/usr/bin/bash
-# Daily Backup Script for Arcade Tracker
+# Daily Backup Script for Cabcrawl
 # This script backs up the database and removes backups older than 30 days
 
 set -euo pipefail

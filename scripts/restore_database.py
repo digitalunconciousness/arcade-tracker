@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Database restore script for Arcade Tracker
+Database restore script for Cabcrawl
 Restores database from backup files with validation
 """
 
@@ -234,7 +234,7 @@ def interactive_restore():
     return success
 
 def main():
-    parser = argparse.ArgumentParser(description='Database restore utility for Arcade Tracker')
+    parser = argparse.ArgumentParser(description='Database restore utility for Cabcrawl')
     parser.add_argument('--backup-file', '-f', help='Specific backup file to restore')
     parser.add_argument('--list', '-l', action='store_true', help='List available backups')
     parser.add_argument('--interactive', '-i', action='store_true', help='Interactive restore mode')
@@ -275,7 +275,7 @@ def main():
         # Default to interactive mode
         if interactive_restore():
             print("\n🎉 Database restore completed successfully!")
-            print("You can now restart your Arcade Tracker application.")
+            print("You can now restart your Cabcrawl application.")
         else:
             print("\n❌ Restore process failed or was cancelled")
 

@@ -1,4 +1,4 @@
-# Arcade Tracker: feature inventory
+# Cabcrawl: feature inventory
 
 Generated from the code on branch `claude/ui-overhaul-8slo91`, not from the old docs. The route list is
 `app.url_map` from `create_app()` (102 routes plus `/static`), and roles, templates and side effects come
@@ -120,7 +120,7 @@ posts to the configured ntfy server and Discord; nothing else in the app reaches
 | B2 | `/branding/logo`, `/branding/print-logo`, `/branding/background` | GET | **public** | — | — | The files, for the sign-in page and coin-door form too. An SVG is served with `sandbox` so it can't run script. |
 
 The logo replaces the wordmark in the header and goes on the sign-in page, the coin-door form,
-labels and PDFs (PDFs can't draw SVG: they show the name). "Runs on Arcade Tracker" and the
+labels and PDFs (PDFs can't draw SVG: they show the name). "Runs on Cabcrawl" and the
 source link stay in the footer (AGPL). An uploaded SVG is cleaned to drawing elements only;
 a DOCTYPE or entities are refused.
 

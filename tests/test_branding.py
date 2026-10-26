@@ -60,7 +60,7 @@ def admin(client, floor):
 
 def test_without_branding_it_is_arcade_tracker(client, floor):
     html = client.get("/login").get_data(as_text=True)
-    assert "ARCADE<b>//</b>TRACKER" in html and "<title>Sign in · Arcade Tracker</title>" in html
+    assert ">CABCRAWL</a>" in html and "<title>Sign in · Cabcrawl</title>" in html
     assert "auth__logo" not in html and "auth__bg" not in html
     assert client.get("/branding/logo").status_code == 404
 
@@ -74,8 +74,8 @@ def test_the_name_goes_in_the_tab_the_header_and_the_coin_door_form(admin, floor
     save(admin, arcade_name="  Comet   Arcade ")
     html = admin.get("/").get_data(as_text=True)
     assert "<title>Dashboard · Comet Arcade</title>" in html
-    assert ">Comet Arcade</a>" in html and "ARCADE<b>//</b>TRACKER" not in html
-    assert "Runs on Arcade Tracker" in html, "the AGPL credit stays"
+    assert ">Comet Arcade</a>" in html and ">CABCRAWL</a>" not in html
+    assert "Runs on Cabcrawl" in html, "the AGPL credit stays"
     game = db.session.get(Game, floor["raider"])
     token = game.mint_report_token()
     db.session.commit()
@@ -157,7 +157,7 @@ def test_removing_the_logo_brings_the_wordmark_back(admin, app):
 
     save(admin, logo=(png(), "logo.png"))
     save(admin, remove_logo="1")
-    assert "ARCADE<b>//</b>TRACKER" in admin.get("/").get_data(as_text=True)
+    assert ">CABCRAWL</a>" in admin.get("/").get_data(as_text=True)
     with app.test_request_context():
         assert not os.path.exists(os.path.join(folder(), "logo.png"))
     assert admin.get("/branding/logo").status_code == 404

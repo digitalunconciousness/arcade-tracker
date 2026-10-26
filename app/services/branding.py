@@ -1,8 +1,8 @@
 """The arcade's own name, logo and sign-in background (owner's request, 2026-10-26).
 
-Set by an admin on the Branding page. The logo replaces the ARCADE//TRACKER wordmark in the
+Set by an admin on the Branding page. The logo replaces the CABCRAWL wordmark in the
 header, and appears on the sign-in page, the coin-door form, printed labels and PDFs; the name
-goes in the browser tab and beside the logo where there is room. "Arcade Tracker" and the
+goes in the browser tab and beside the logo where there is room. "Cabcrawl" and the
 source link stay in the footer, as the AGPL asks.
 
 Files live in ``uploads/branding/``; their names and a version (for cache-busting) are kept in
