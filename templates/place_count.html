@@ -80,6 +80,7 @@
       <ul class="rows">
         {%- for lv in rows %}
         <li class="row count__row">
+          {%- if lv.item.photo_filename %}<img class="count__thumb" src="{{ url_for('parts.photo', filename=lv.item.photo_filename) }}" alt="" loading="lazy">{% endif %}
           <label class="row__main" for="count-{{ lv.item_id }}">
             <span class="row__title">{{ lv.item.name }}</span>
             <span class="row__meta" id="count-meta-{{ lv.item_id }}">{{ lv.quantity }} on record{% if lv.counted %} · counted {{ lv.counted.strftime("%Y-%m-%d") }}{% endif %}</span>

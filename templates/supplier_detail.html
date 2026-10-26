@@ -1,0 +1,62 @@
+{% extends "layout.html" %}
+{% import "ui.html" as ui %}
+{% set manager = current_user.has_role("manager") %}
+{% block title %}{{ supplier.name }}{% endblock %}
+
+{% block page_head %}
+{{ ui.page_head(supplier.name, sub="Supplier" ~ (" · archived" if supplier.archived else ""), back=url_for("parts.suppliers"), back_label="Suppliers") }}
+{% endblock %}
+
+{% block content %}
+<div class="stack">
+  <section class="card" aria-labelledby="contact-title">
+    <h2 id="contact-title">Contact</h2>
+    <dl class="kv">
+      <dt>Website</dt><dd>{% if supplier.website %}<a href="{{ supplier.website }}" rel="noopener noreferrer" target="_blank">{{ supplier.website }}</a>{% else %}—{% endif %}</dd>
+      <dt>Phone</dt><dd>{% if supplier.phone %}<a href="tel:{{ supplier.phone }}">{{ supplier.phone }}</a>{% else %}—{% endif %}</dd>
+      <dt>Account</dt><dd>{{ supplier.account_number or "—" }}</dd>
+    </dl>
+    {%- if supplier.notes %}<h3>Notes</h3><p class="prose">{{ supplier.notes }}</p>{% endif %}
+  </section>
+
+  <section class="stack" aria-labelledby="parts-title">
+    <h2 id="parts-title">Parts from {{ supplier.name }}</h2>
+    {%- if links %}
+    <ul class="rows">
+      {%- for lk in links %}
+      <li><a class="row" href="{{ url_for('inventory.inventory_detail', item_id=lk.item.id) }}">
+        <span class="row__main">
+          <span class="row__title">{{ lk.item.name }}</span>
+          <span class="row__meta">{{ [lk.supplier_part_number, ("$%.2f"|format(lk.price) ~ (" per pack of " ~ lk.pack_size if lk.pack_size else " " ~ ui.per_unit(lk.item.unit))) if lk.price is not none else none]|select|join(" · ") }}</span>
+        </span>
+        {%- if lk.preferred %}<span class="row__end">{{ ui.chip("ok", "Preferred") }}</span>{% endif %}
+      </a></li>
+      {%- endfor %}
+    </ul>
+    {%- else %}
+    {{ ui.empty("No parts listed", "Add this supplier on a part's page.") }}
+    {%- endif %}
+  </section>
+
+  {%- if manager %}
+  <details class="card">
+    <summary class="btn btn--sm btn--ghost">Edit {{ supplier.name }}</summary>
+    <form class="form stack mt-3" method="post" action="{{ url_for('parts.supplier_edit', supplier_id=supplier.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="field"><label for="s-name">Name</label><input id="s-name" name="name" required maxlength="200" value="{{ supplier.name }}"></div>
+      <div class="field-row">
+        <div class="field"><label for="s-web">Website</label><input id="s-web" name="website" maxlength="300" inputmode="url" value="{{ supplier.website or '' }}"></div>
+        <div class="field"><label for="s-phone">Phone</label><input id="s-phone" name="phone" maxlength="50" inputmode="tel" value="{{ supplier.phone or '' }}"></div>
+        <div class="field"><label for="s-acct">Account number</label><input id="s-acct" name="account_number" maxlength="100" value="{{ supplier.account_number or '' }}"></div>
+      </div>
+      <div class="field"><label for="s-notes">Notes</label><textarea id="s-notes" name="notes" rows="3" maxlength="2000">{{ supplier.notes or "" }}</textarea></div>
+      <div class="form__actions"><button class="btn btn--primary" type="submit">Save</button></div>
+    </form>
+    <form class="inline-form mt-3" method="post" action="{{ url_for('parts.supplier_archive', supplier_id=supplier.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn btn--sm" type="submit">{{ "Restore" if supplier.archived else "Archive" }}</button>
+    </form>
+  </details>
+  {%- endif %}
+</div>
+{% endblock %}

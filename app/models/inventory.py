@@ -51,11 +51,21 @@ class InventoryItem(db.Model):
     )
     last_restocked: datetime | None = db.Column(db.DateTime, nullable=True)
     notes: str | None = db.Column(db.Text, nullable=True)
+    # Step 2: what kind of part, what one of it is, how it's bought, and a photo.
+    category_id: int | None = db.Column(
+        db.Integer, db.ForeignKey("part_category.id", ondelete="SET NULL",
+                                  name="fk_inventory_item_category_id"),
+        nullable=True, index=True,
+    )
+    unit: str = db.Column(db.String(20), nullable=False, default="each", server_default="each")
+    pack_size: int | None = db.Column(db.Integer, nullable=True)
+    photo_filename: str | None = db.Column(db.String(255), nullable=True)
     # The part's label (/i/<code>). Printed labels encode it, so it never changes.
     code: str | None = db.Column(db.String(16), nullable=True, unique=True, index=True,
                                  default=lambda: _new_code())
 
     # Relationships
+    category = db.relationship("PartCategory", backref="items")
     compatible_games = db.relationship(
         "Game", secondary=item_game_compatibility, backref="compatible_items"
     )

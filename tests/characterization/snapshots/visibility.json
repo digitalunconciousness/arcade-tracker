@@ -614,6 +614,8 @@
    "inventory.low_stock_alerts()",
    "inventory.request_inventory()",
    "maintenance.maintenance_orders()",
+   "parts.categories()",
+   "parts.suppliers()",
    "places.overview()",
    "rails.floor()",
    "reports.reports()"
@@ -633,6 +635,8 @@
    "inventory.low_stock_alerts()",
    "inventory.request_inventory()",
    "maintenance.maintenance_orders()",
+   "parts.categories()",
+   "parts.suppliers()",
    "places.overview()",
    "rails.floor()",
    "reports.reports()"
@@ -650,6 +654,7 @@
    "inventory.inventory_requests_list()",
    "inventory.request_inventory()",
    "maintenance.maintenance_orders()",
+   "parts.suppliers()",
    "places.overview()",
    "rails.floor()"
   ]
@@ -669,6 +674,11 @@
    "inventory.inventory_request_detail(request_id=request)",
    "inventory.request_inventory()",
    "maintenance.maintenance_orders()",
+   "parts.link_edit(item_id=belt, link_id=supplier_link)",
+   "parts.link_new(item_id=belt)",
+   "parts.link_remove(item_id=belt, link_id=supplier_link)",
+   "parts.photo_upload(item_id=belt)",
+   "parts.supplier_detail(supplier_id=supplier)",
    "places.detail(place_id=shelf)",
    "places.overview()",
    "rails.floor()",
@@ -687,6 +697,11 @@
    "inventory.inventory_request_detail(request_id=request)",
    "inventory.request_inventory()",
    "maintenance.maintenance_orders()",
+   "parts.link_edit(item_id=belt, link_id=supplier_link)",
+   "parts.link_new(item_id=belt)",
+   "parts.link_remove(item_id=belt, link_id=supplier_link)",
+   "parts.photo_upload(item_id=belt)",
+   "parts.supplier_detail(supplier_id=supplier)",
    "places.detail(place_id=shelf)",
    "places.overview()",
    "rails.floor()",
@@ -704,6 +719,8 @@
    "inventory.inventory_request_detail(request_id=request)",
    "inventory.request_inventory()",
    "maintenance.maintenance_orders()",
+   "parts.photo_upload(item_id=belt)",
+   "parts.supplier_detail(supplier_id=supplier)",
    "places.detail(place_id=shelf)",
    "places.overview()",
    "rails.floor()",
@@ -796,6 +813,37 @@
    "games.scan()",
    "inventory.inventory_list()",
    "maintenance.maintenance_orders()",
+   "rails.floor()",
+   "reports.reports()"
+  ]
+ },
+ "/inventory/categories": {
+  "admin": [
+   "admin.manage_users()",
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "parts.category_delete(category_id=category)",
+   "parts.category_edit(category_id=category)",
+   "parts.category_new()",
+   "rails.floor()",
+   "reports.reports()"
+  ],
+  "manager": [
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "parts.category_delete(category_id=category)",
+   "parts.category_edit(category_id=category)",
+   "parts.category_new()",
    "rails.floor()",
    "reports.reports()"
   ]
@@ -1191,6 +1239,91 @@
    "inventory.inventory_list()",
    "inventory.inventory_requests_list()",
    "maintenance.maintenance_orders()",
+   "rails.floor()"
+  ]
+ },
+ "/inventory/suppliers": {
+  "admin": [
+   "admin.manage_users()",
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "parts.supplier_detail(supplier_id=supplier)",
+   "parts.supplier_new()",
+   "rails.floor()",
+   "reports.reports()"
+  ],
+  "manager": [
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "parts.supplier_detail(supplier_id=supplier)",
+   "parts.supplier_new()",
+   "rails.floor()",
+   "reports.reports()"
+  ],
+  "operator": [
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "parts.supplier_detail(supplier_id=supplier)",
+   "rails.floor()"
+  ]
+ },
+ "/inventory/suppliers/<int:supplier_id>": {
+  "admin": [
+   "admin.manage_users()",
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_detail(item_id=belt)",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "parts.supplier_archive(supplier_id=supplier)",
+   "parts.supplier_edit(supplier_id=supplier)",
+   "parts.suppliers()",
+   "rails.floor()",
+   "reports.reports()"
+  ],
+  "manager": [
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_detail(item_id=belt)",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "parts.supplier_archive(supplier_id=supplier)",
+   "parts.supplier_edit(supplier_id=supplier)",
+   "parts.suppliers()",
+   "rails.floor()",
+   "reports.reports()"
+  ],
+  "operator": [
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_detail(item_id=belt)",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "parts.suppliers()",
    "rails.floor()"
   ]
  },

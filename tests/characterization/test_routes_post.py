@@ -55,6 +55,18 @@ POSTS = [
     (lambda f: f"/inventory/places/{f['shelf']}/delete", "manager"),
     (lambda f: f"/inventory/places/{f['shelf']}/count", "operator"),
     (lambda f: f"/inventory/places/{f['shelf']}/count/add", "operator"),
+    (lambda f: "/inventory/categories/new", "manager"),
+    (lambda f: f"/inventory/categories/{f['category']}/edit", "manager"),
+    (lambda f: f"/inventory/categories/{f['category']}/delete", "manager"),
+    (lambda f: "/inventory/suppliers/new", "manager"),
+    (lambda f: f"/inventory/suppliers/{f['supplier']}/edit", "manager"),
+    (lambda f: f"/inventory/suppliers/{f['supplier']}/archive", "manager"),
+    (lambda f: f"/inventory/{f['belt']}/suppliers/new", "manager"),
+    (lambda f: f"/inventory/{f['belt']}/suppliers/{f['supplier_link']}/edit", "manager"),
+    (lambda f: f"/inventory/{f['belt']}/suppliers/{f['supplier_link']}/prefer", "manager"),
+    (lambda f: f"/inventory/{f['belt']}/suppliers/{f['supplier_link']}/remove", "manager"),
+    (lambda f: f"/inventory/{f['belt']}/photo", "operator"),
+    (lambda f: f"/inventory/{f['belt']}/photo/delete", "operator"),
     (lambda f: "/maintenance/tasks/new", "manager"),
     (lambda f: f"/maintenance/tasks/{f['task']}/edit", "manager"),
     (lambda f: f"/maintenance/tasks/{f['task']}/delete", "manager"),
@@ -497,7 +509,7 @@ class TestInventory:
 
         login(client, "manager")
         resp = client.post("/inventory/add", data={
-            "name": "Trackball 2in", "category": "electronics", "stock_quantity": "3",
+            "name": "Trackball 2in", "stock_quantity": "3",
             "minimum_stock": "1", "unit_price": "25", "compatible_games": [floor["raider"]]})
         assert resp.headers["Location"] == "/inventory/"
         item = InventoryItem.query.filter_by(name="Trackball 2in").one()
@@ -509,7 +521,7 @@ class TestInventory:
 
         login(client, "manager")
         client.post(f"/inventory/{floor['belt']}/edit", data={
-            "name": "Drive Belt", "category": "mechanical", "stock_quantity": "4",
+            "name": "Drive Belt", "stock_quantity": "4",
             "minimum_stock": "2", "unit_price": "4"})
         assert fresh(InventoryItem, floor["belt"]).stock_quantity == 4
         assert StockHistory.query.filter_by(item_id=floor["belt"],

@@ -20,6 +20,7 @@ from app.models.inventory import (
     item_game_compatibility,
 )
 from app.models.maintenance import MaintenanceRecord, WorkLog
+from app.models.parts import ItemSupplier, PartCategory, PriceChange, Supplier
 from app.models.rail import RailSession, RailSessionTag, Reading
 from app.models.stock import StockLevel, StockPlace
 from app.models.upkeep import MaintenanceTask
@@ -37,6 +38,10 @@ __all__ = [
     "StockHistory",
     "StockPlace",
     "StockLevel",
+    "PartCategory",
+    "Supplier",
+    "ItemSupplier",
+    "PriceChange",
     "LowStockAlert",
     "MaintenanceInventoryUsage",
     "InventoryRequest",

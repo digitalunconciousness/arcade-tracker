@@ -22,9 +22,23 @@
     {{ ui.field(form.name, autocomplete="off") }}
     <div class="field-row">
       {{ ui.field(form.part_number, autocomplete="off") }}
-      {{ ui.field(form.supplier) }}
+      {{ ui.field(form.category, help=("Managers edit the list under Parts › Categories." if current_user.has_role("manager") else none)) }}
     </div>
     {{ ui.field(form.description, rows=3) }}
+  </fieldset>
+
+  <fieldset class="stack">
+    <legend>Units and buying</legend>
+    <div class="field-row">
+      {{ ui.field(form.unit, list="unit-names", autocomplete="off", placeholder="each",
+                  help="What one of it is. Stock and counts are always in these.") }}
+      {{ ui.field(form.pack_size, min=1, inputmode="numeric", placeholder="1",
+                  help="If it only comes in boxes or rolls, how many units are in one.") }}
+    </div>
+    <datalist id="unit-names">{% for u in units %}<option value="{{ u }}">{% endfor %}</datalist>
+    {{ ui.field(form.supplier, list="supplier-names", autocomplete="off",
+                help="A name not on the list is added to it. More suppliers, with their prices and part numbers, go on the part's page.") }}
+    <datalist id="supplier-names">{% for name in supplier_names %}<option value="{{ name }}">{% endfor %}</datalist>
   </fieldset>
 
   <fieldset class="stack">
@@ -33,7 +47,8 @@
       {{ ui.field(form.stock_quantity, min=0, inputmode="numeric",
                   help=("Changing it here is logged as a count. To record a delivery or a repair, use “Change the stock” on the part's page." if item else none)) }}
       {{ ui.field(form.minimum_stock, min=0, inputmode="numeric", help="At or below this, the part shows as low and raises an alert.") }}
-      {{ ui.field(form.unit_price, min=0, step="0.01", inputmode="decimal") }}
+      {{ ui.field(form.unit_price, min=0, step="0.01", inputmode="decimal",
+                  help="What a work order is charged for one. Every change is logged.") }}
     </div>
   </fieldset>
 

@@ -80,11 +80,14 @@ def test_an_item_can_be_added_and_counted_down_to_zero(client, floor):
 
 
 def test_the_item_form_has_no_unsaved_fields(client, floor):
-    """F-33: category, location and image were shown and never saved."""
+    """F-33: category, location and image were shown and never saved. Location is now the
+    places (step 1) and the photo has its own upload; category came back in inventory step 2,
+    saved, as a pick from the category list."""
     login(client, "manager")
     html = page(client, "/inventory/add")
-    for name in ("category", "location", "image"):
+    for name in ("location", "image"):
         assert f'name="{name}"' not in html
+    assert re.search(r'<select[^>]* name="category"', html)
 
 
 @pytest.mark.parametrize(("kind", "after"), [("damaged", 8), ("returned", 8)])

@@ -62,9 +62,23 @@ def _stock_context(item):
             "default_place": held[0].place_id if held else None}
 
 
+def _form_lists():
+    """The suggestions the part form offers for its unit and supplier boxes."""
+    from app.models import Supplier
+    from app.models.parts import UNITS
+
+    names = [n for (n,) in db.session.query(Supplier.name).filter(Supplier.archived.is_(False))
+             .order_by(db.func.lower(Supplier.name)).all()]
+    return {"units": UNITS, "supplier_names": names}
+
+
 def _machine_choices(form):
+    """The machine and category pickers on the part form (named for the first)."""
+    from app.services.parts import categories
+
     form.compatible_games.choices = [
         (g.id, g.name) for g in Game.query.order_by(Game.name.asc()).all()]
+    form.category.choices = [(0, "No category")] + [(c.id, c.name) for c in categories()]
 
 
 # --- items ---------------------------------------------------------------------------------
@@ -73,11 +87,16 @@ def _machine_choices(form):
 @login_required
 @requires_role("operator")
 def inventory_list():
+    from app.services.parts import categories
+
     search = request.args.get("search", "").strip()
     low_only = bool(request.args.get("low_stock"))
+    raw = request.args.get("category", "")
+    category = int(raw) if raw.isdigit() else None
     return render_template("inventory_list.html",
-                           data=inv.list_items(current_user, search, low_only),
-                           search=search, low_only=low_only)
+                           data=inv.list_items(current_user, search, low_only, category),
+                           search=search, low_only=low_only, category=category,
+                           categories=categories())
 
 
 @inventory_bp.route("/add", methods=["GET", "POST"])
@@ -93,7 +112,8 @@ def add_inventory_item():
         flash(f'Added "{item.name}".', "success")
         return redirect(url_for("inventory.inventory_list"))
     status = 400 if request.method == "POST" else 200
-    return render_template("inventory_form.html", form=form, item=None), status
+    return render_template("inventory_form.html", form=form, item=None,
+                           **_form_lists()), status
 
 
 @inventory_bp.route("/<int:item_id>")
@@ -106,6 +126,7 @@ def inventory_detail(item_id):
                            history=inv.item_history(item), active_alert=active_alert,
                            adjust_form=StockAdjustmentForm(), adjustments=inv.ADJUSTMENTS,
                            requests=sorted(item.requests, key=lambda r: r.id, reverse=True)[:5],
+                           supplier_names=_form_lists()["supplier_names"],
                            **_stock_context(item))
 
 
@@ -118,13 +139,15 @@ def edit_inventory_item(item_id):
     _machine_choices(form)
     if request.method == "GET":
         form.compatible_games.data = [g.id for g in item.compatible_games]
+        form.category.data = item.category_id or 0
     if form.validate_on_submit():
         inv.save_item(item, form, current_user.id)
         db.session.commit()
         flash(f'Saved "{item.name}".', "success")
         return redirect(url_for("inventory.inventory_detail", item_id=item.id))
     status = 400 if request.method == "POST" else 200
-    return render_template("inventory_form.html", form=form, item=item), status
+    return render_template("inventory_form.html", form=form, item=item,
+                           **_form_lists()), status
 
 
 @inventory_bp.route("/<int:item_id>/adjust_stock", methods=["GET", "POST"])

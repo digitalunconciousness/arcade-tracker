@@ -1,0 +1,75 @@
+{#- A part's suppliers, on its page: who sells it, their part number, price and pack, and
+    which one is preferred. Managers add, change and remove them. Included, so it shares the
+    page's context (item, ui). -#}
+{%- set manager = current_user.has_role("manager") %}
+{%- set links = item.suppliers|sort(attribute="preferred", reverse=true) %}
+<section class="stack" aria-labelledby="suppliers-title">
+  <h2 id="suppliers-title">Suppliers</h2>
+  {%- if links %}
+  <ul class="rows">
+    {%- for lk in links %}
+    <li class="row">
+      <span class="row__main">
+        <a class="row__title" href="{{ url_for('parts.supplier_detail', supplier_id=lk.supplier_id) }}">{{ lk.supplier.name }}</a>
+        <span class="row__meta">
+          {{- [lk.supplier_part_number,
+               ("$%.2f"|format(lk.price) ~ (" per pack of " ~ lk.pack_size ~ " ($%.2f %s)"|format(lk.unit_cost, ui.per_unit(item.unit)) if lk.pack_size else " " ~ ui.per_unit(item.unit))) if lk.price is not none else "no price yet"]|select|join(" · ") }}
+          {%- if lk.url %} · <a href="{{ lk.url }}" rel="noopener noreferrer" target="_blank">order page</a>{% endif %}</span>
+        {%- if manager %}
+        <details>
+          <summary class="btn btn--sm btn--ghost">Change</summary>
+          <form class="form stack mt-3" method="post" action="{{ url_for('parts.link_edit', item_id=item.id, link_id=lk.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="field-row">
+              <div class="field"><label for="lk-pn-{{ lk.id }}">Their part number</label><input id="lk-pn-{{ lk.id }}" name="supplier_part_number" maxlength="100" value="{{ lk.supplier_part_number or '' }}"></div>
+              <div class="field"><label for="lk-price-{{ lk.id }}">Price ($)</label><input id="lk-price-{{ lk.id }}" name="price" inputmode="decimal" value="{{ '%.2f'|format(lk.price) if lk.price is not none else '' }}"></div>
+              <div class="field"><label for="lk-pack-{{ lk.id }}">Per pack of</label><input id="lk-pack-{{ lk.id }}" name="pack_size" inputmode="numeric" placeholder="1" value="{{ lk.pack_size or '' }}"></div>
+            </div>
+            <div class="field"><label for="lk-url-{{ lk.id }}">Order page</label><input id="lk-url-{{ lk.id }}" name="url" maxlength="500" inputmode="url" value="{{ lk.url or '' }}"></div>
+            <div class="form__actions"><button class="btn btn--sm btn--primary" type="submit">Save</button></div>
+          </form>
+          <p class="cluster mt-3">
+            {%- if not lk.preferred %}
+            <form class="inline-form" method="post" action="{{ url_for('parts.link_prefer', item_id=item.id, link_id=lk.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn--sm" type="submit">Make preferred</button>
+            </form>
+            {%- endif %}
+            {{ ui.danger_form(url_for("parts.link_remove", item_id=item.id, link_id=lk.id), "Remove", "Remove " ~ lk.supplier.name ~ " from this part? Its price history stays.") }}
+          </p>
+        </details>
+        {%- endif %}
+      </span>
+      {%- if lk.preferred %}<span class="row__end">{{ ui.chip("ok", "Preferred") }}</span>{% endif %}
+    </li>
+    {%- endfor %}
+  </ul>
+  {%- else %}
+  {{ ui.empty("No suppliers listed", "A manager can add who sells it, with their part number and price." if not manager else none) }}
+  {%- endif %}
+
+  {%- if manager %}
+  <details class="card">
+    <summary class="btn btn--sm btn--ghost">Add a supplier for this part</summary>
+    <form class="form stack mt-3" method="post" action="{{ url_for('parts.link_new', item_id=item.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="field">
+        <label for="lk-new-supplier">Supplier</label>
+        <input id="lk-new-supplier" name="supplier" required maxlength="200" list="supplier-names" autocomplete="off" placeholder="Pick one, or type a new name">
+        <datalist id="supplier-names">{% for name in supplier_names %}<option value="{{ name }}">{% endfor %}</datalist>
+      </div>
+      <div class="field-row">
+        <div class="field"><label for="lk-new-pn">Their part number</label><input id="lk-new-pn" name="supplier_part_number" maxlength="100"></div>
+        <div class="field"><label for="lk-new-price">Price ($)</label><input id="lk-new-price" name="price" inputmode="decimal"></div>
+        <div class="field"><label for="lk-new-pack">Per pack of</label><input id="lk-new-pack" name="pack_size" inputmode="numeric" placeholder="1"></div>
+      </div>
+      <div class="field"><label for="lk-new-url">Order page</label><input id="lk-new-url" name="url" maxlength="500" inputmode="url"></div>
+      <div class="field field--check">
+        <input id="lk-new-pref" name="preferred" type="checkbox" value="1">
+        <label for="lk-new-pref">Make it the preferred supplier</label>
+      </div>
+      <div class="form__actions"><button class="btn btn--primary" type="submit">Add supplier</button></div>
+    </form>
+  </details>
+  {%- endif %}
+</section>

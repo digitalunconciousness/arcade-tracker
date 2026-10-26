@@ -1454,8 +1454,25 @@ body:has(.auth__bg) .app-footer {
   font-size: var(--fs-lg);
   text-align: right;
 }
+.count__thumb {
+  flex: 0 0 48px;
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: var(--r-sm);
+}
 .count__qty {
   flex: 0 1 10rem;
+}
+
+/* A part's photo (inventory step 2) */
+.part__photo {
+  display: block;
+  max-width: min(100%, 360px);
+  max-height: 280px;
+  object-fit: contain;
+  border-radius: var(--r);
+  background: var(--surface-inset);
 }
 
 /* Scan page: one big box a USB scanner types into */

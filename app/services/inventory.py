@@ -49,8 +49,14 @@ class ItemList:
     recent_requests: list[InventoryRequest]
 
 
-def list_items(user, search: str = "", low_only: bool = False) -> ItemList:
+def list_items(user, search: str = "", low_only: bool = False,
+               category_id: int | None = None) -> ItemList:
+    """The parts list. *category_id* 0 means "no category"; None means every category."""
     query = InventoryItem.query
+    if category_id == 0:
+        query = query.filter(InventoryItem.category_id.is_(None))
+    elif category_id is not None:
+        query = query.filter(InventoryItem.category_id == category_id)
     if search:
         like = f"%{search}%"
         query = query.filter(InventoryItem.name.ilike(like)
@@ -110,9 +116,13 @@ def save_item(item: InventoryItem, form, user_id: int) -> None:
     item.name = form.name.data.strip()
     item.part_number = form.part_number.data or None
     item.description = form.description.data or None
-    item.unit_price = float(form.unit_price.data or 0)
+    from app.services import parts
+
+    parts.set_item_price(item, float(form.unit_price.data or 0) or None, user_id)
     item.minimum_stock = form.minimum_stock.data
-    item.supplier = form.supplier.data or None
+    item.category_id = form.category.data or None
+    item.unit = parts.clean_unit(form.unit.data)
+    item.pack_size = parts.clean_pack(form.pack_size.data)
     item.notes = form.notes.data or None
     item.compatible_games = (Game.query.filter(Game.id.in_(form.compatible_games.data)).all()
                              if form.compatible_games.data else [])
@@ -123,6 +133,10 @@ def save_item(item: InventoryItem, form, user_id: int) -> None:
         item.stock_quantity = 0
         db.session.add(item)
         db.session.flush()
+        parts.first_price(item, user_id)
+    # The supplier box names the preferred supplier; a new name joins the supplier list.
+    parts.set_preferred(item, parts.supplier_for(form.supplier.data))
+    if is_new:
         if after:
             stock_places.add(item, after, user_id, reason="Initial stock")
         return

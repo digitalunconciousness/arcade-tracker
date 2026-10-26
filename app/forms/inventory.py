@@ -34,7 +34,11 @@ class InventoryItemForm(FlaskForm):
     minimum_stock = IntegerField("Reorder at", validators=[InputRequired(), NumberRange(min=0)])
     unit_price = DecimalField("Unit price ($)", places=2,
                               validators=[Optional(), NumberRange(min=0)])
-    supplier = StringField("Supplier", validators=[Optional(), Length(max=200)])
+    supplier = StringField("Preferred supplier", validators=[Optional(), Length(max=200)])
+    category = SelectField("Category", coerce=int, default=0, validators=[Optional()])
+    unit = StringField("Unit", validators=[Optional(), Length(max=20)])
+    pack_size = IntegerField("Bought in packs of",
+                             validators=[Optional(), NumberRange(min=1, max=100_000)])
     compatible_games = SelectMultipleField("Fits these machines", coerce=int,
                                            validators=[Optional()])
     notes = TextAreaField("Notes", validators=[Optional()])
