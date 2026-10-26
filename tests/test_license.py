@@ -16,7 +16,7 @@ def test_the_licence_is_the_unmodified_agpl_v3():
 
 def test_every_page_links_to_its_source(client):
     html = client.get("/login").get_data(as_text=True)
-    assert 'href="https://github.com/digitalunconciousness/arcade-tracker"' in html
+    assert 'href="https://github.com/digitalunconciousness/cabcrawl"' in html
     assert "AGPL-3.0" in html
 
 

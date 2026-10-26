@@ -22,7 +22,7 @@ from urllib.parse import urlsplit
 
 PLACEHOLDER_SECRET = "your-secret-key-change-this-for-production"   # .env.example's value
 LOG_LEVELS = ("DEBUG", "INFO", "WARNING", "ERROR")
-DEFAULT_SOURCE = "https://github.com/digitalunconciousness/arcade-tracker"
+DEFAULT_SOURCE = "https://github.com/digitalunconciousness/cabcrawl"
 TRUE, FALSE = ("1", "true", "yes", "on"), ("", "0", "false", "no", "off")
 
 

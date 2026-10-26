@@ -32,7 +32,7 @@ This repository has two main branches to accommodate different deployment scenar
 
 ### Installation:
 ```bash
-git clone https://github.com/digitalunconciousness/arcade-tracker.git
+git clone https://github.com/digitalunconciousness/cabcrawl.git
 cd arcade-tracker
 pip install -r requirements.txt
 python app.py
@@ -72,7 +72,7 @@ python app.py
 
 ### Installation:
 ```bash
-git clone -b no-skeeball https://github.com/digitalunconciousness/arcade-tracker.git
+git clone -b no-skeeball https://github.com/digitalunconciousness/cabcrawl.git
 cd arcade-tracker
 pip install -r requirements.txt
 python app.py
@@ -174,4 +174,4 @@ For issues specific to:
 ---
 
 **Last Updated:** November 11, 2025  
-**Repository:** https://github.com/digitalunconciousness/arcade-tracker
+**Repository:** https://github.com/digitalunconciousness/cabcrawl

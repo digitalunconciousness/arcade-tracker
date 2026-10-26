@@ -25,7 +25,7 @@ The deployment uses:
 1. **Update the git repository URL** in `deploy-to-proxmox.sh`:
    ```bash
    # Edit line 8
-   REPO_URL="https://github.com/YOUR_USERNAME/arcade-tracker.git"
+   REPO_URL="https://github.com/YOUR_USERNAME/cabcrawl.git"
    ```
 
 2. **Make script executable and run**:
@@ -67,7 +67,7 @@ The deployment uses:
 
 4. **Clone repository**:
    ```bash
-   git clone https://github.com/YOUR_USERNAME/arcade-tracker.git /opt/arcade-tracker
+   git clone https://github.com/YOUR_USERNAME/cabcrawl.git /opt/arcade-tracker
    cd /opt/arcade-tracker
    ```
 

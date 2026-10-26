@@ -2,7 +2,7 @@
 # Installed at /etc/systemd/system/arcade-tracker-alerts.service, started every minute by
 # arcade-tracker-alerts.timer. Delivers alerts (feature step 6): scripts/send_alerts.py.
 Description=Cabcrawl: send alerts
-Documentation=https://github.com/digitalunconciousness/arcade-tracker
+Documentation=https://github.com/digitalunconciousness/cabcrawl
 After=network-online.target
 Wants=network-online.target
 

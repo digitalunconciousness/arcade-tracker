@@ -3,7 +3,7 @@
 # The copy that used to be in this repo named a user and a home directory that
 # the deployment never had; this one matches what actually runs.
 Description=Cabcrawl
-Documentation=https://github.com/digitalunconciousness/arcade-tracker
+Documentation=https://github.com/digitalunconciousness/cabcrawl
 After=network-online.target
 Wants=network-online.target
 

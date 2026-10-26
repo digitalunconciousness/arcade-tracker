@@ -15,6 +15,13 @@ virtualenv and backup paths, the database and its role, the cookie and environme
 names, the hostname and tunnel, and every URL (printed QR labels use `/g/<barcode>`). Renaming
 any of them would be a migration of its own, not part of the rename.
 
+The GitHub repository is `digitalunconciousness/cabcrawl` now. GitHub forwards the old address,
+but point the server's checkout at the new one once:
+
+```bash
+git -C /opt/arcade-tracker remote set-url origin https://github.com/digitalunconciousness/cabcrawl.git
+```
+
 ## Routine deploy
 
 ```bash
