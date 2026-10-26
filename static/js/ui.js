@@ -8,6 +8,7 @@
  *   - select-all checkboxes (data-select-all="name", or a data-group) with a live count;
  *   - <form data-confirm="Question?" data-confirm-action="Delete">: a styled confirm dialog
  *     before submitting, falling back to window.confirm where <dialog> is missing;
+ *   - every form: a second submit while the first is on its way is dropped;
  *   - <button data-print>: opens the print dialog (label sheets);
  *   - <input data-keep-focus>: the scan box takes focus back after a click elsewhere, so
  *     every scan lands in it;
@@ -160,5 +161,33 @@
       if (form.requestSubmit) form.requestSubmit(submitter || undefined);
       else form.submit();
     }
+
+    // --- one submit at a time --------------------------------------------------------------
+    // A second tap while the first is still on its way is dropped (security review,
+    // 2026-10-26): on a slow phone it received a delivery twice. Registered after the confirm
+    // handler, so a form waiting on its dialog isn't counted as sent. The buttons aren't
+    // disabled, which would drop the clicked button's name and value from the post; the mark
+    // clears after a few seconds, and when the browser shows the page again from its cache.
+    document.addEventListener("submit", function (e) {
+      if (e.defaultPrevented) return;
+      var form = e.target;
+      if (form.dataset.sent === "1") {
+        e.preventDefault();
+        return;
+      }
+      form.dataset.sent = "1";
+      form.setAttribute("aria-busy", "true");
+      window.setTimeout(function () {
+        delete form.dataset.sent;
+        form.removeAttribute("aria-busy");
+      }, 4000);
+    });
+    window.addEventListener("pageshow", function (e) {
+      if (!e.persisted) return;
+      document.querySelectorAll("form[data-sent]").forEach(function (form) {
+        delete form.dataset.sent;
+        form.removeAttribute("aria-busy");
+      });
+    });
   });
 })();
