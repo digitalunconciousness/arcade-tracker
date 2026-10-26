@@ -53,6 +53,8 @@ POSTS = [
     (lambda f: f"/inventory/places/{f['shelf']}/edit", "operator"),
     (lambda f: f"/inventory/places/{f['shelf']}/archive", "manager"),
     (lambda f: f"/inventory/places/{f['shelf']}/delete", "manager"),
+    (lambda f: f"/inventory/places/{f['shelf']}/count", "operator"),
+    (lambda f: f"/inventory/places/{f['shelf']}/count/add", "operator"),
     (lambda f: "/maintenance/tasks/new", "manager"),
     (lambda f: f"/maintenance/tasks/{f['task']}/edit", "manager"),
     (lambda f: f"/maintenance/tasks/{f['task']}/delete", "manager"),

@@ -274,3 +274,52 @@ def place_holds_stock(place: StockPlace) -> bool:
     ids = [place.id] + [p.id for p in place.descendants()]
     return StockLevel.query.filter(StockLevel.place_id.in_(ids),
                                    StockLevel.quantity > 0).first() is not None
+
+
+# --- count mode ---------------------------------------------------------------------------
+
+MAX_PART_NAME = 200
+
+
+def find_part(text: str | None) -> InventoryItem | None:
+    """The part a count-mode entry names: a label code (or a whole label URL), a part number,
+    or the exact name, ignoring case. None if nothing matches."""
+    text = " ".join((text or "").split())
+    if not text:
+        return None
+    code = text.rstrip("/").rsplit("/", 1)[-1].lower()
+    found = InventoryItem.query.filter(InventoryItem.code == code).first()
+    if found is None:
+        found = InventoryItem.query.filter(
+            db.func.lower(InventoryItem.part_number) == text.lower()).first()
+    if found is None:
+        found = InventoryItem.query.filter(
+            db.func.lower(InventoryItem.name) == text.lower()).first()
+    return found
+
+
+def new_part(name: str | None) -> InventoryItem:
+    """A part made on the spot while counting: just a name. Its minimum is 0, so it raises no
+    low-stock alert until someone sets one; price and details come later."""
+    name = " ".join((name or "").split())
+    if not name:
+        raise StockError("Type the part's name.")
+    if len(name) > MAX_PART_NAME:
+        raise StockError(f"Keep the name to {MAX_PART_NAME} characters.")
+    item = InventoryItem(name=name, stock_quantity=0, minimum_stock=0, unit_price=0.0)
+    db.session.add(item)
+    db.session.flush()
+    return item
+
+
+def parse_count(raw: str | None) -> int | None:
+    """A count box: blank is "not counted", a whole number 0 or more is a count."""
+    raw = (raw or "").strip()
+    if raw == "":
+        return None
+    if not raw.isdigit():
+        raise StockError(f"“{raw}” isn't a whole number.")
+    value = int(raw)
+    if value > 1_000_000:
+        raise StockError("That's more than a million; check the number.")
+    return value

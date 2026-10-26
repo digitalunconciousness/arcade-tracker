@@ -4,6 +4,10 @@
  * When a code is read it goes into that same box and the form is submitted, so the server
  * does the resolving exactly as for a typed code: /scan?code= sends it to /g/<id>.
  *
+ * The panel says which box (data-camera-input, default "code") and what then happens
+ * (data-camera-then: "submit", the default, or the id of a field to focus, as count mode
+ * does so the count can be typed).
+ *
  * Decoding: the browser's own BarcodeDetector where it has one (Chrome on Android), else the
  * bundled jsQR (static/js/vendor), loaded the first time it is needed. Browsers only give a
  * page the camera over https, so on a plain-http address the button explains that instead.
@@ -13,8 +17,9 @@
 
   var panel = document.querySelector("[data-camera]");
   if (!panel) return;
-  var form = document.querySelector("form.scan");
-  var box = document.getElementById("code");
+  var box = document.getElementById(panel.dataset.cameraInput || "code");
+  var form = box.form;
+  var then = panel.dataset.cameraThen || "submit";
   var start = panel.querySelector("[data-camera-start]");
   var stop = panel.querySelector("[data-camera-stop]");
   var view = panel.querySelector(".scan-camera__view");
@@ -94,7 +99,12 @@
         finish();
         say("Read " + text);
         box.value = text;
-        form.requestSubmit ? form.requestSubmit() : form.submit();
+        if (then === "submit") {
+          form.requestSubmit ? form.requestSubmit() : form.submit();
+        } else {
+          var next = document.getElementById(then);
+          if (next) next.focus();
+        }
         return;
       }
       timer = window.setTimeout(tick, EVERY_MS);

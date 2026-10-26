@@ -1443,6 +1443,21 @@ body:has(.auth__bg) .app-footer {
   flex: 1 1 16rem;
 }
 
+/* Count mode (/inventory/places/<id>/count): a box per part, thumb-sized */
+.count__row {
+  gap: var(--sp-3);
+}
+.count__box {
+  flex: 0 0 5.5rem;
+  width: 5.5rem;
+  min-height: 48px;
+  font-size: var(--fs-lg);
+  text-align: right;
+}
+.count__qty {
+  flex: 0 1 10rem;
+}
+
 /* Scan page: one big box a USB scanner types into */
 .scan__box {
   min-height: 56px;

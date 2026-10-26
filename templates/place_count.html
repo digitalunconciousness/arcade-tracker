@@ -1,0 +1,129 @@
+{% extends "layout.html" %}
+{% import "ui.html" as ui %}
+{% block title %}Count · {{ place.path }}{% endblock %}
+
+{% block page_head %}
+{{ ui.page_head("Count " ~ place.name, sub=place.parent.path if place.parent else "Count mode",
+    back=url_for("places.detail", place_id=place.id), back_label="Done counting") }}
+{% endblock %}
+
+{#- Count mode: a phone in one hand, the shelf in front of you. Parts already known here are
+    listed with a box each; anything else is added below by scanning its label or typing its
+    name. A blank box means "not counted", so a half-done count saves only what was done. -#}
+{% block content %}
+<div class="stack count">
+
+  <section class="card stack" aria-labelledby="add-title">
+    <h2 id="add-title">Count a part</h2>
+    <p class="dim">Scan its label, or type its name or part number. A part that isn't in the
+       tracker yet can be added with just a name.</p>
+
+    {%- if confirm %}
+    <form class="banner is-warn stack" method="post" action="{{ url_for('places.count_add', place_id=place.id) }}" role="alert">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="part" value="{{ confirm.part }}">
+      <input type="hidden" name="quantity" value="{{ confirm.quantity }}">
+      <input type="hidden" name="create" value="1">
+      <div class="banner__body">
+        <span class="banner__title">No part called “{{ confirm.part }}”</span>
+        <p>Add it as a new part, with {{ confirm.quantity }} here? Check the spelling first:
+           a typo becomes a second part.</p>
+        <p class="cluster">
+          <button class="btn btn--primary btn--sm" type="submit">Add new part</button>
+          <a class="btn btn--sm btn--ghost" href="{{ url_for('places.count', place_id=place.id) }}">Cancel</a>
+        </p>
+      </div>
+    </form>
+    {%- endif %}
+
+    <div class="scan-camera stack" data-camera data-camera-input="count-part" data-camera-then="count-qty" data-jsqr="{{ asset('js/vendor/jsQR.js') }}" hidden>
+      <div class="scan-camera__view" hidden>
+        <video muted playsinline aria-label="Camera preview"></video>
+        <span class="scan-camera__frame" aria-hidden="true"></span>
+      </div>
+      <p class="cluster">
+        <button class="btn" type="button" data-camera-start>Scan a label</button>
+        <button class="btn" type="button" data-camera-stop hidden>Stop camera</button>
+      </p>
+      <p class="dim" data-camera-status role="status" aria-live="polite"></p>
+    </div>
+
+    <form class="form stack" method="post" action="{{ url_for('places.count_add', place_id=place.id) }}" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      {%- if add_error %}
+      <p class="field__error" role="alert">{{ add_error }}</p>
+      {%- endif %}
+      <div class="field-row">
+        <div class="field">
+          <label for="count-part">Part</label>
+          <input id="count-part" name="part" list="part-names" autocomplete="off" autocapitalize="none" maxlength="200" value="{{ part or '' }}" placeholder="Label, name or part number">
+          <datalist id="part-names">
+            {%- for n in names %}<option value="{{ n }}">{% endfor %}
+          </datalist>
+        </div>
+        <div class="field count__qty">
+          <label for="count-qty">How many here</label>
+          <input id="count-qty" name="quantity" inputmode="numeric" pattern="[0-9]*" maxlength="7" value="{{ quantity or '' }}">
+        </div>
+      </div>
+      <div class="form__actions"><button class="btn btn--primary" type="submit">Count it</button></div>
+    </form>
+  </section>
+
+  <section class="stack" aria-labelledby="here-title">
+    <h2 id="here-title">Parts here</h2>
+    {%- if rows %}
+    <form class="stack" method="post" action="{{ url_for('places.save_counts', place_id=place.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <p class="dim">Type what you count. Leave a box blank if you haven't counted that part;
+         type 0 if there are none.</p>
+      <ul class="rows">
+        {%- for lv in rows %}
+        <li class="row count__row">
+          <label class="row__main" for="count-{{ lv.item_id }}">
+            <span class="row__title">{{ lv.item.name }}</span>
+            <span class="row__meta" id="count-meta-{{ lv.item_id }}">{{ lv.quantity }} on record{% if lv.counted %} · counted {{ lv.counted.strftime("%Y-%m-%d") }}{% endif %}</span>
+          </label>
+          <input class="count__box" id="count-{{ lv.item_id }}" name="count-{{ lv.item_id }}" inputmode="numeric" pattern="[0-9]*" maxlength="7" autocomplete="off" aria-describedby="count-meta-{{ lv.item_id }}">
+        </li>
+        {%- endfor %}
+      </ul>
+      <div class="form__actions"><button class="btn btn--primary" type="submit">Save counts</button></div>
+    </form>
+    {%- else %}
+    {{ ui.empty("Nothing counted here yet", "Count the first part above.") }}
+    {%- endif %}
+  </section>
+
+  {%- if children or can_nest %}
+  <section class="stack" aria-labelledby="inside-title">
+    <h2 id="inside-title">Inside {{ place.name }}</h2>
+    {%- if children %}
+    <ul class="rows">
+      {%- for c in children %}
+      <li><a class="row" href="{{ url_for('places.count', place_id=c.id) }}">
+        <span class="row__main"><span class="row__title">Count {{ c.name }}</span></span>
+      </a></li>
+      {%- endfor %}
+    </ul>
+    {%- endif %}
+    {%- if can_nest %}
+    <form class="form inline-add" method="post" action="{{ url_for('places.create') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="parent" value="{{ place.id }}">
+      <input type="hidden" name="back" value="count">
+      <div class="field">
+        <label for="inside-name">Add a shelf, drawer or bin inside {{ place.name }}</label>
+        <input id="inside-name" name="name" required maxlength="100" placeholder="Bin 3, Low drawer 2">
+      </div>
+      <div class="form__actions"><button class="btn" type="submit">Add and count it</button></div>
+    </form>
+    {%- endif %}
+  </section>
+  {%- endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ asset('js/scan.js') }}"></script>
+{% endblock %}
