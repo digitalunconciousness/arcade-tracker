@@ -14,7 +14,7 @@ The deployment uses:
 
 ## Prerequisites
 
-1. SSH access to Proxmox server: `root@192.168.0.59`
+1. SSH access to Proxmox server: `root@SERVER`
 2. Git repository URL for your project
 3. Local `.env` file configured
 
@@ -42,13 +42,13 @@ The deployment uses:
    - Set up auto-restart
 
 3. **Access your application**:
-   - URL: http://192.168.0.59:5000
+   - URL: http://SERVER:5000
 
 ### Option 2: Manual Deployment
 
 1. **SSH to Proxmox server**:
    ```bash
-   ssh root@192.168.0.59
+   ssh root@SERVER
    ```
 
 2. **Install Docker** (if not already installed):
@@ -76,8 +76,8 @@ The deployment uses:
 6. **Copy your database** (if migrating existing data):
    ```bash
    # From your local machine:
-   scp arcade.db root@192.168.0.59:/opt/arcade-tracker/
-   scp -r uploads/* root@192.168.0.59:/opt/arcade-tracker/uploads/
+   scp arcade.db root@SERVER:/opt/arcade-tracker/
+   scp -r uploads/* root@SERVER:/opt/arcade-tracker/uploads/
    ```
 
 7. **Build and start**:
@@ -113,7 +113,7 @@ For more control or if Watchtower doesn't fit your needs:
 
 2. **Setup cron job on Proxmox server**:
    ```bash
-   ssh root@192.168.0.59
+   ssh root@SERVER
    cd /opt/arcade-tracker
    bash scripts/setup-auto-update-cron.sh
    ```
@@ -147,47 +147,47 @@ All critical data is stored in mounted volumes (on the host filesystem):
 
 ### View Logs
 ```bash
-ssh root@192.168.0.59 'cd /opt/arcade-tracker && docker-compose logs -f'
+ssh root@SERVER 'cd /opt/arcade-tracker && docker-compose logs -f'
 ```
 
 ### Restart Application
 ```bash
-ssh root@192.168.0.59 'cd /opt/arcade-tracker && docker-compose restart'
+ssh root@SERVER 'cd /opt/arcade-tracker && docker-compose restart'
 ```
 
 ### Stop Application
 ```bash
-ssh root@192.168.0.59 'cd /opt/arcade-tracker && docker-compose down'
+ssh root@SERVER 'cd /opt/arcade-tracker && docker-compose down'
 ```
 
 ### Start Application
 ```bash
-ssh root@192.168.0.59 'cd /opt/arcade-tracker && docker-compose up -d'
+ssh root@SERVER 'cd /opt/arcade-tracker && docker-compose up -d'
 ```
 
 ### Rebuild After Major Changes
 ```bash
-ssh root@192.168.0.59 'cd /opt/arcade-tracker && docker-compose down && docker-compose build --no-cache && docker-compose up -d'
+ssh root@SERVER 'cd /opt/arcade-tracker && docker-compose down && docker-compose build --no-cache && docker-compose up -d'
 ```
 
 ### Manual Git Update
 ```bash
-ssh root@192.168.0.59 'cd /opt/arcade-tracker && git pull && docker-compose up -d --build'
+ssh root@SERVER 'cd /opt/arcade-tracker && git pull && docker-compose up -d --build'
 ```
 
 ### Backup Database
 ```bash
-ssh root@192.168.0.59 'cd /opt/arcade-tracker && docker-compose exec arcade-tracker python scripts/backup_database.py backup'
+ssh root@SERVER 'cd /opt/arcade-tracker && docker-compose exec cabcrawl python scripts/backup_database.py backup'
 ```
 
 ### Access Container Shell
 ```bash
-ssh root@192.168.0.59 'cd /opt/arcade-tracker && docker-compose exec arcade-tracker bash'
+ssh root@SERVER 'cd /opt/arcade-tracker && docker-compose exec cabcrawl bash'
 ```
 
 ### Check Container Status
 ```bash
-ssh root@192.168.0.59 'docker ps -a | grep arcade'
+ssh root@SERVER 'docker ps -a | grep arcade'
 ```
 
 ## Updating Your Application
@@ -203,14 +203,14 @@ ssh root@192.168.0.59 'docker ps -a | grep arcade'
    git push origin main
    ```
 4. **Wait for auto-update** (5-15 minutes depending on config)
-5. **Verify** at http://192.168.0.59:5000
+5. **Verify** at http://SERVER:5000
 
 ### Manual Update Process
 
 If you prefer manual control:
 
 ```bash
-ssh root@192.168.0.59
+ssh root@SERVER
 cd /opt/arcade-tracker
 git pull
 docker-compose up -d --build
@@ -221,49 +221,49 @@ docker-compose up -d --build
 ### Container won't start
 ```bash
 # Check logs
-ssh root@192.168.0.59 'cd /opt/arcade-tracker && docker-compose logs'
+ssh root@SERVER 'cd /opt/arcade-tracker && docker-compose logs'
 
 # Check if port is already in use
-ssh root@192.168.0.59 'netstat -tulpn | grep 5000'
+ssh root@SERVER 'netstat -tulpn | grep 5000'
 ```
 
 ### Database issues
 ```bash
 # Check database file permissions
-ssh root@192.168.0.59 'ls -la /opt/arcade-tracker/*.db'
+ssh root@SERVER 'ls -la /opt/arcade-tracker/*.db'
 
 # Restore from backup
-ssh root@192.168.0.59 'cd /opt/arcade-tracker && python scripts/restore_database.py --interactive'
+ssh root@SERVER 'cd /opt/arcade-tracker && python scripts/restore_database.py --interactive'
 ```
 
 ### Auto-update not working (Watchtower)
 ```bash
 # Check Watchtower logs
-ssh root@192.168.0.59 'docker logs arcade-watchtower'
+ssh root@SERVER 'docker logs arcade-watchtower'
 
 # Force update check
-ssh root@192.168.0.59 'docker restart arcade-watchtower'
+ssh root@SERVER 'docker restart arcade-watchtower'
 ```
 
 ### Auto-update not working (Cron)
 ```bash
 # Check cron is running
-ssh root@192.168.0.59 'systemctl status cron'
+ssh root@SERVER 'systemctl status cron'
 
 # Check logs
-ssh root@192.168.0.59 'tail -f /opt/arcade-tracker/logs/auto-update.log'
+ssh root@SERVER 'tail -f /opt/arcade-tracker/logs/auto-update.log'
 
 # Manually run update script
-ssh root@192.168.0.59 '/opt/arcade-tracker/scripts/auto-update.sh'
+ssh root@SERVER '/opt/arcade-tracker/scripts/auto-update.sh'
 ```
 
 ### Out of disk space
 ```bash
 # Clean up old Docker images
-ssh root@192.168.0.59 'docker system prune -a'
+ssh root@SERVER 'docker system prune -a'
 
 # Clean up old backups
-ssh root@192.168.0.59 'cd /opt/arcade-tracker && python scripts/backup_database.py cleanup'
+ssh root@SERVER 'cd /opt/arcade-tracker && python scripts/backup_database.py cleanup'
 ```
 
 ## Security Considerations
@@ -293,7 +293,7 @@ For production workloads:
 1. **Use PostgreSQL instead of SQLite** (edit DATABASE_URL in .env)
 2. **Add Redis for caching** (add service to docker-compose.yml)
 3. **Use Gunicorn** instead of Flask dev server (update Dockerfile CMD)
-4. **Scale with multiple workers**: `docker-compose up --scale arcade-tracker=3`
+4. **Scale with multiple workers**: `docker-compose up --scale cabcrawl=3`
 
 ## Monitoring
 
@@ -301,10 +301,10 @@ Set up basic monitoring:
 
 ```bash
 # Watch resource usage
-ssh root@192.168.0.59 'docker stats arcade-tracker'
+ssh root@SERVER 'docker stats cabcrawl'
 
 # Monitor uptime
-ssh root@192.168.0.59 'docker ps | grep arcade-tracker'
+ssh root@SERVER 'docker ps | grep cabcrawl'
 ```
 
 For production, consider:
@@ -322,7 +322,7 @@ Automated backups are configured but verify:
 
 ```bash
 # Sync backups to local machine
-scp root@192.168.0.59:/opt/arcade-tracker/backups/*.db ./local-backups/
+scp root@SERVER:/opt/arcade-tracker/backups/*.db ./local-backups/
 ```
 
 ## Support

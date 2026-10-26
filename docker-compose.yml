@@ -1,7 +1,8 @@
 services:
-  arcade-tracker:
+  cabcrawl:
     build: .
-    container_name: arcade-tracker
+    image: cabcrawl
+    container_name: cabcrawl
     restart: unless-stopped
     ports:
       - "5000:5000"
@@ -57,7 +58,7 @@ services:
   #     - ./nginx.conf:/etc/nginx/nginx.conf:ro
   #     - ./ssl:/etc/nginx/ssl:ro
   #   depends_on:
-  #     - arcade-tracker
+  #     - cabcrawl
   #   networks:
   #     - arcade-net
 
