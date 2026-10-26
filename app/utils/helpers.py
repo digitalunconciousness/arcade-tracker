@@ -275,3 +275,18 @@ def import_games_from_roster(data: dict) -> dict:
                 result["errors"].append(f"{entry.get('name', '?')}: {exc}")
 
     return result
+
+
+# Characters a spreadsheet reads as the start of a formula (OWASP's list). Tab and carriage
+# return count too: some spreadsheets skip them and then see the "=".
+FORMULA_START = ("=", "+", "-", "@", "\t", "\r")
+
+
+def csv_safe(value):
+    """A value for a CSV cell that can't run as a formula when the file opens in a
+    spreadsheet (security review, 2026-10-26): text starting like a formula gets a leading
+    apostrophe, which spreadsheets show as plain text. Numbers, and every other value,
+    are left exactly as they are."""
+    if isinstance(value, str) and value.startswith(FORMULA_START):
+        return "'" + value
+    return value

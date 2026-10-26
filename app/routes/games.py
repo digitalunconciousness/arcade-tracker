@@ -397,7 +397,9 @@ def export_selected_games():
         "Total Plays", "Total Revenue", "Daily Revenue", "Days Active",
     ])
     writer.writeheader()
-    writer.writerows(data)
+    from app.utils.helpers import csv_safe
+
+    writer.writerows({k: csv_safe(v) for k, v in row.items()} for row in data)
     output.seek(0)
 
     response = make_response(output.getvalue())
