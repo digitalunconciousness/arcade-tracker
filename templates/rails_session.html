@@ -87,20 +87,57 @@
     {%- endif %}
   </section>
 
-  {%- if orders %}
-  <section class="stack" aria-labelledby="orders-title">
-    <h2 id="orders-title">Work orders from this session</h2>
-    <ul class="rows">
-      {%- for o in orders %}
+  {#- The orders this reading belongs to: the one it prompted, and any it was attached to since. -#}
+  {%- macro order_row(o, meta) %}
       <li class="row">
         <span class="row__main">
           <a class="row__title" href="{{ url_for('maintenance.maintenance_detail', record_id=o.id) }}">{{ o.issue_description|truncate(80) }}</a>
-          <span class="row__meta">#{{ o.id }}{% if o.date_reported %} · {{ o.date_reported.strftime('%Y-%m-%d') }}{% endif %}</span>
+          <span class="row__meta">#{{ o.id }}{% if o.date_reported %} · {{ o.date_reported.strftime('%Y-%m-%d') }}{% endif %} · {{ meta }}</span>
         </span>
         <span class="row__end">{{ ui.status(o.status) }}</span>
       </li>
-      {%- endfor %}
+  {%- endmacro %}
+  {%- set operator = current_user.has_role("operator") %}
+  {%- if orders or attached or (game and operator) %}
+  <section class="stack" aria-labelledby="orders-title">
+    <h2 id="orders-title">Work orders</h2>
+    {%- if orders or attached %}
+    <ul class="rows">
+      {%- for o in orders %}{{ order_row(o, "opened from this reading") }}{% endfor %}
+      {%- for o in attached %}{{ order_row(o, "reading attached") }}{% endfor %}
     </ul>
+    {%- else %}
+    <p class="dim">This reading is not on any work order yet.</p>
+    {%- endif %}
+
+    {%- if game and operator %}
+    <div class="grid grid--pair">
+      {%- if open_orders %}
+      <form class="card form stack" method="post" action="{{ url_for('rails.attach', uid=s.uid) }}" aria-labelledby="attach-title">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <h3 id="attach-title">Add to an open order</h3>
+        <div class="field">
+          <label for="attach-order">Order</label>
+          <select id="attach-order" name="order" required>
+            {%- for o in open_orders %}
+            <option value="{{ o.id }}">#{{ o.id }} · {{ o.issue_description|truncate(60) }}</option>
+            {%- endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label for="attach-note">Note <span class="dim">(optional)</span></label>
+          <input id="attach-note" name="note" maxlength="2000" placeholder="After replacing the bridge rectifier">
+        </div>
+        <div class="form__actions"><button class="btn btn--primary" type="submit">Add to order</button></div>
+      </form>
+      {%- endif %}
+      <div class="card stack">
+        <h3>Open a work order</h3>
+        <p class="dim">{{ "A new order for " ~ game.name ~ ", linked to this reading as what prompted it." }}</p>
+        <p><a class="btn" href="{{ url_for('maintenance.game_maintenance', game_id=game.id, rail_session=s.uid) }}">Open a work order with this reading</a></p>
+      </div>
+    </div>
+    {%- endif %}
   </section>
   {%- endif %}
 

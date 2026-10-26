@@ -90,7 +90,7 @@ def _inventory_choices():
         (i.id, f"{i.name} ({i.stock_quantity} in stock)") for i in items]
 
 
-def _create_order(form, game=None, machine_down=None):
+def _create_order(form, game=None, machine_down=None, rail_session=None):
     """Create an order from a MaintenanceWithInventoryForm, with any parts used. Commits.
     For a machine, ``machine_down`` says whether the fault takes it out of play, and its
     status follows (app/services/downtime.py)."""
@@ -108,6 +108,8 @@ def _create_order(form, game=None, machine_down=None):
         priority=priority if priority in PRIORITIES else "Medium",
         machine_down=machine_down if game else None,
         reported_by_id=current_user.id,
+        # A reading it was opened from (the rail session page's button): "prompted by".
+        rail_session_id=rail_session.id if rail_session else None,
     )
     if not game:
         record.work_order_type = request.form.get("work_order_type", "general")
@@ -128,6 +130,16 @@ def _create_order(form, game=None, machine_down=None):
     for warning in parts.warnings:
         flash(warning, "warning")
     return record, parts
+
+
+def _rail_session_for(game, uid):
+    """The rail reading a new order is opened from, if it is this machine's; else None."""
+    from app.models import RailSession
+
+    if not uid or not isinstance(uid, str):
+        return None
+    session = RailSession.query.filter_by(uid=uid).first()
+    return session if session is not None and session.game_id == game.id else None
 
 
 def _attach_photos(record) -> None:
@@ -166,8 +178,9 @@ def game_maintenance(game_id):
     down_error = None
     if request.method == "POST" and machine_down is None:
         down_error = "Say whether the machine can still be played."
+    rail_session = _rail_session_for(game, request.values.get("rail_session"))
     if form.validate_on_submit() and down_error is None:
-        record, parts = _create_order(form, game, machine_down)
+        record, parts = _create_order(form, game, machine_down, rail_session)
         flash(f'Maintenance record added for "{game.name}"', "success")
         _attach_photos(record)
         if parts.cost > 0:
@@ -177,7 +190,7 @@ def game_maintenance(game_id):
     status = 400 if request.method == "POST" else 200
     return render_template("maintenance_with_inventory.html", form=form, game=game,
                            priorities=PRIORITIES, machine_down=machine_down,
-                           down_error=down_error), status
+                           down_error=down_error, rail_session=rail_session), status
 
 
 @maintenance_bp.route("/maintenance/general", methods=["GET", "POST"])

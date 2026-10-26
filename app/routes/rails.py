@@ -19,14 +19,18 @@ Two things about the data shape drive most of the code below:
 
 from __future__ import annotations
 
-from datetime import timezone
+from datetime import UTC, datetime, timezone
 
-from flask import Blueprint, render_template
+from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import login_required
 from sqlalchemy.orm import load_only
 
 from app.extensions import db
-from app.models import Game, MaintenanceRecord, RailSession, Reading
+from app.models import Game, MaintenanceRecord, RailSession, RailSessionTag, Reading
+from app.services.work_orders import OPEN_STATUSES
+from app.utils.decorators import requires_role
+
+MAX_NOTE = 2000
 
 rails_bp = Blueprint("rails", __name__, url_prefix="/rails")
 
@@ -197,6 +201,15 @@ def session(uid):
         .order_by(MaintenanceRecord.date_reported.desc())
         .all()
     )
+    # Orders it was attached to afterwards (a tag, from the bench or from this page), and the
+    # machine's open orders it could still be attached to (owner's request, 2026-10-26).
+    attached = [t.order for t in sorted(s.order_tags, key=lambda t: t.id)]
+    linked = {o.id for o in orders} | {o.id for o in attached}
+    open_orders = [] if s.game_id is None else (
+        MaintenanceRecord.query.filter(MaintenanceRecord.game_id == s.game_id,
+                                       MaintenanceRecord.status.in_(OPEN_STATUSES),
+                                       MaintenanceRecord.id.notin_(linked or {0}))
+        .order_by(MaintenanceRecord.date_reported.desc()).all())
 
     return render_template(
         "rails_session.html",
@@ -209,4 +222,42 @@ def session(uid):
         table_limit=TABLE_LIMIT,
         ol_count=sum(1 for r in readings if r.ol),
         orders=orders,
+        attached=attached,
+        open_orders=open_orders,
     )
+
+
+@rails_bp.route("/session/<uid>/attach", methods=["POST"])
+@login_required
+@requires_role("operator")
+def attach(uid):
+    """Attach this reading to one of its machine's open orders, as GATBOX's session_tag does
+    from the bench. Shown on the order with the other traces; the order's own "prompted by"
+    session is left alone."""
+    s = RailSession.query.filter_by(uid=uid).first_or_404()
+    back = redirect(url_for("rails.session", uid=uid))
+    try:
+        order = db.session.get(MaintenanceRecord, int(request.form.get("order", "")))
+    except ValueError:
+        order = None
+    note = (request.form.get("note") or "").strip()
+    if order is None or s.game_id is None or order.game_id != s.game_id:
+        flash("Pick one of this machine's work orders.", "error")
+        return back
+    if order.status not in OPEN_STATUSES:
+        flash(f"Order #{order.id} is closed; open a new one with this reading instead.",
+              "error")
+        return back
+    if len(note) > MAX_NOTE:
+        flash(f"Keep the note to {MAX_NOTE} characters.", "error")
+        return back
+    if RailSessionTag.query.filter_by(maintenance_record_id=order.id,
+                                      rail_session_id=s.id).first():
+        flash(f"This reading is already on order #{order.id}.", "info")
+        return back
+    db.session.add(RailSessionTag(maintenance_record_id=order.id, rail_session_id=s.id,
+                                  note=note or None, source="web",
+                                  created=datetime.now(UTC).replace(tzinfo=None)))
+    db.session.commit()
+    flash(f"Attached to order #{order.id}.", "success")
+    return redirect(url_for("maintenance.maintenance_detail", record_id=order.id))

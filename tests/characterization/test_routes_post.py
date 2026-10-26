@@ -48,6 +48,7 @@ POSTS = [
     (lambda f: f"/round/{f['raider']}", "operator"),
     (lambda f: "/round/end", "operator"),
     (lambda f: "/rotation/swap", "manager"),
+    (lambda f: f"/rails/session/{f['session_uid']}/attach", "operator"),
     (lambda f: "/maintenance/tasks/new", "manager"),
     (lambda f: f"/maintenance/tasks/{f['task']}/edit", "manager"),
     (lambda f: f"/maintenance/tasks/{f['task']}/delete", "manager"),

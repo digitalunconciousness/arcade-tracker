@@ -15,6 +15,14 @@
 {% block content %}
 <form class="form form--wide" method="post" novalidate>
   {{ form.hidden_tag() }}
+  {%- if rail_session %}
+  <input type="hidden" name="rail_session" value="{{ rail_session.uid }}">
+  <div class="banner" role="note"><div class="banner__body">
+    <span class="banner__title">Linked to rail reading {{ rail_session.file }}</span>
+    <p>The order will show it as the reading that prompted it.
+       <a href="{{ url_for('rails.session', uid=rail_session.uid) }}">View the reading</a></p>
+  </div></div>
+  {%- endif %}
 
   {%- if not game %}
   <div class="field-row">

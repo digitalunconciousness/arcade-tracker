@@ -130,7 +130,7 @@ def test_the_queue_renders_with_a_legacy_order_in_it(signed_in, bench):
 # --- the other direction: a session page listing the orders that cite it -----------------
 
 def test_the_session_page_lists_the_orders_from_it(signed_in, bench):
-    """`rails_session.html` has had a "Work orders from this session" block since Phase 4,
+    """`rails_session.html` has had a work orders block since Phase 4,
     guarded by `{% if orders %}` -- and nothing could put an order on a session until Phase 6
     made it a button, so the block had never rendered. It named an endpoint that does not
     exist (`maintenance.view_maintenance`), so the first session page with an order attached
@@ -145,7 +145,7 @@ def test_the_session_page_lists_the_orders_from_it(signed_in, bench):
     response = signed_in.get(f"/rails/session/{uid}")
     assert response.status_code == 200, response.status_code
     body = response.get_data(as_text=True)
-    assert "Work orders from this session" in body
+    assert "opened from this reading" in body
     assert "Rail sags under load" in body
 
 
