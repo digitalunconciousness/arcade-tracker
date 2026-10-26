@@ -9,7 +9,6 @@
    "games.game_detail(game_id=courier)",
    "games.game_detail(game_id=raider)",
    "games.games_list()",
-   "games.record_plays(game_id=raider)",
    "games.scan()",
    "inventory.adjust_stock(item_id=fuse)",
    "inventory.inventory_detail(item_id=fuse)",
@@ -21,7 +20,8 @@
    "rails.floor()",
    "reports.export_report()",
    "reports.graphs()",
-   "reports.reports()"
+   "reports.reports()",
+   "rotation.overview()"
   ],
   "manager": [
    "auth.logout()",
@@ -31,7 +31,6 @@
    "games.game_detail(game_id=courier)",
    "games.game_detail(game_id=raider)",
    "games.games_list()",
-   "games.record_plays(game_id=raider)",
    "games.scan()",
    "inventory.adjust_stock(item_id=fuse)",
    "inventory.inventory_detail(item_id=fuse)",
@@ -43,7 +42,8 @@
    "rails.floor()",
    "reports.export_report()",
    "reports.graphs()",
-   "reports.reports()"
+   "reports.reports()",
+   "rotation.overview()"
   ],
   "operator": [
    "auth.logout()",
@@ -60,7 +60,8 @@
    "maintenance.maintenance_detail(record_id=general)",
    "maintenance.maintenance_detail(record_id=open_order)",
    "maintenance.maintenance_orders()",
-   "rails.floor()"
+   "rails.floor()",
+   "upkeep.overview()"
   ],
   "readonly": [
    "auth.logout()",

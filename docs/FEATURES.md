@@ -547,3 +547,11 @@ anything is changed.
     round flags, part requests shipped or received, the daily summary); outside opening hours
     alerts are held and sent together at opening, unless a channel always sends; a daily summary
     at opening.
+14. **Usability round:** the coin-door form asks for the reporter's name and requires it; only
+    signed-in staff upload photos (the coin-door form has no upload); work orders record who
+    reported and who fixed them, and the machine page shows how it was fixed last time; Record
+    plays, Report problem and Log work sit at the top of every machine page for operators and up,
+    and Log work opens the order when there is one; the report form asks for a photo first; each
+    role's home leads with what it acts on (readonly: what's down; operator: their orders,
+    downtime, maintenance due, stock; manager: plays this week, downtime, swaps, stock; admin:
+    the same, and alerts that failed).

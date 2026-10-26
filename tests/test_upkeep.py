@@ -16,6 +16,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "characterization"))
 from char_support import flashes, login
 from seed import seed_floor
 
+from app.models.upkeep import _utc_now
 from app.services.collection import local_today
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -34,8 +35,9 @@ def task(name="Clean the coin mech", *, plays=None, days=None, applies_to="all",
 
     t = MaintenanceTask(name=name, every_plays=plays, every_days=days, applies_to=applies_to,
                         game_id=game_id, active=active, instructions=instructions,
-                        created_at=dt.datetime.combine(TODAY - dt.timedelta(set_up_days_ago),
-                                                       dt.time(9)))
+                        # Backdated from now, not from a fixed hour: just after midnight a
+                        # 09:00 "today" would be in the future.
+                        created_at=_utc_now() - dt.timedelta(days=set_up_days_ago))
     db.session.add(t)
     db.session.commit()
     return t.id

@@ -155,6 +155,91 @@ def test_the_report_asks_for_a_photo_first_and_keeps_it(client, app, floor):
     assert os.path.exists(os.path.join(app.static_folder, "maintenance_photos", name))
 
 
+# --- a home screen per role --------------------------------------------------------------------
+
+def home(client, role):
+    login(client, role)
+    return client.get("/").get_data(as_text=True)
+
+
+def order_of(html, *titles):
+    return [html.index(t) for t in titles]
+
+
+def test_readonly_sees_whats_down_first(client, floor):
+    html = home(client, "readonly")
+    assert order_of(html, 'id="down-title"', 'id="floor-title"', 'id="orders-title"') == sorted(
+        order_of(html, 'id="down-title"', 'id="floor-title"', 'id="orders-title"'))
+    assert "Nothing down" in html and "Plays this week" not in html
+
+
+def test_an_operator_sees_their_orders_first_and_whats_due(client, floor):
+    from app.extensions import db
+    from app.models import MaintenanceRecord
+
+    # Theirs by name; the seeded joystick order is theirs too (they logged work on it), and
+    # the general order isn't.
+    db.session.add(MaintenanceRecord(game_id=floor["courier"], issue_description="Mine to do",
+                                     status="Open", technician="test-operator"))
+    db.session.add(MaintenanceRecord(game_id=floor["raider"], status="Open", source="pm",
+                                     issue_description="Preventive maintenance: Lube.\nmore"))
+    db.session.commit()
+    html = home(client, "operator")
+    orders = html[html.index('id="orders-title"'):html.index("</section>",
+                                                            html.index('id="orders-title"'))]
+    assert orders.index("Mine to do") < orders.index("Ceiling light flickers")
+    assert orders.index("Joystick drifts left") < orders.index("Ceiling light flickers")
+    assert orders.count(">Yours<") == 2
+    assert 'id="pm-title"' in html and "Preventive maintenance: Lube." in html
+    assert html.index('id="orders-title"') < html.index('id="down-title"') if (
+        'id="down-title"' in html) else True
+    assert "Plays this week" not in html and "Suggested swaps" not in html
+
+
+def test_work_logged_makes_an_order_yours(app, floor):
+    from app.extensions import db
+    from app.models import MaintenanceRecord, User, WorkLog
+    from app.services.dashboard import _mine
+
+    db.session.add(WorkLog(maintenance_id=floor["open_order"],
+                           user_id=floor["users"]["operator"], work_description="Looked"))
+    db.session.commit()
+    operator = User.query.filter_by(username="test-operator").one()
+    orders = MaintenanceRecord.query.filter_by(status="Open").all()
+    assert floor["open_order"] in _mine(operator, orders)
+
+
+def test_a_manager_sees_plays_this_week_downtime_and_swaps(client, floor):
+    from app.extensions import db
+    from app.models import Game, PlayRecord
+    from app.services.collection import local_today
+
+    db.session.add(PlayRecord(game_id=floor["raider"], coin_count=200, plays_count=60,
+                              revenue=30.0, date_recorded=local_today()))
+    db.session.get(Game, floor["courier"]).status = "Not_Working"
+    db.session.commit()
+    html = home(client, "manager")
+    # With the seeded reading of 5 days ago (40 plays): 100 this week, none the week before.
+    assert "Plays this week" in html and "+100 on last week" in html
+    assert "$50.00 in tokens" in html
+    assert "down since today" in html
+    assert 'id="swaps-title"' in html
+    assert html.index('id="down-title"') < html.index('id="swaps-title"')
+
+
+def test_an_admin_is_told_when_alerts_failed(client, floor):
+    from app.extensions import db
+    from app.models import Alert
+
+    db.session.add(Alert(channel_id=floor["channel"], target="ntfy", event="coin_door",
+                         title="x", body="", status="failed"))
+    db.session.commit()
+    html = home(client, "admin")
+    assert "1 alert not sent this week" in html
+    client.post("/logout")
+    assert "not sent this week" not in home(client, "manager")
+
+
 def test_the_migration_round_trips(app, floor):
     import sqlalchemy as sa
     from flask_migrate import downgrade, stamp, upgrade
