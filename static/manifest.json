@@ -1,6 +1,6 @@
 {
-  "name": "Arcade Tracker",
-  "short_name": "Arcade",
+  "name": "Cabcrawl",
+  "short_name": "Cabcrawl",
   "description": "Machines, work orders and parts for the arcade floor",
   "start_url": "/",
   "display": "standalone",

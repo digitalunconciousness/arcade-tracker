@@ -2,7 +2,7 @@
     and responsive.css were deleted in Step 4.8d.
 
     Blocks:
-      title        <title>, " · Arcade Tracker" is appended
+      title        <title>, " · Cabcrawl" is appended
       page_head    the heading row; most pages use the page_head() macro from ui.html
       content      the page
       scripts      page scripts (Chart.js is loaded only by pages that draw a chart)
@@ -26,7 +26,7 @@
   <meta name="csrf-token" content="{{ csrf_token() }}">
   {%- endif %}
   <meta name="theme-color" content="#150a28">
-  {%- set site_name = branding.name or "Arcade Tracker" %}
+  {%- set site_name = branding.name or "Cabcrawl" %}
   <meta name="apple-mobile-web-app-title" content="{{ site_name }}">
   <title>{% block title %}{% endblock %}{% if self.title() %} · {% endif %}{{ site_name }}</title>
   <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
@@ -48,7 +48,7 @@
     <a class="brand{% if branding.logo_url %} brand--logo{% endif %}" href="{{ url_for('dashboard.home') if current_user.is_authenticated else url_for('auth.login') }}">
       {%- if branding.logo_url %}<img class="brand__logo" src="{{ branding.logo_url }}" alt="{{ branding.name or 'Home' }}">
       {%- elif branding.name %}{{ branding.name }}
-      {%- else %}ARCADE<b>//</b>TRACKER{% endif %}</a>
+      {%- else %}CABCRAWL{% endif %}</a>
     {%- if current_user.is_authenticated %}
     <a class="btn btn--sm app-header__scan" href="{{ url_for('games.scan') }}">Scan</a>
     <button class="btn btn--sm menu-toggle" type="button" aria-expanded="false" aria-controls="app-nav">Menu</button>
@@ -114,7 +114,7 @@
 {#- AGPL-3.0 section 13: people using the site over the network can get its source. The public
     coin-door page (coin_door_report.html) stays without it: that page links nowhere, by design. -#}
 <footer class="app-footer">
-  {%- if branding.name or branding.logo_url %}Runs on Arcade Tracker · {% endif %}<a href="{{ config.SOURCE_URL }}" rel="noopener">Source code</a> · AGPL-3.0
+  {%- if branding.name or branding.logo_url %}Runs on Cabcrawl · {% endif %}<a href="{{ config.SOURCE_URL }}" rel="noopener">Source code</a> · AGPL-3.0
 </footer>
 
 <dialog class="dialog" id="confirm-dialog" aria-labelledby="confirm-title">

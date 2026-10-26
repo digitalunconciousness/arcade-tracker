@@ -82,5 +82,22 @@ def test_the_service_worker_is_versioned_and_network_first():
 
 def test_the_manifest_names_no_venue():
     manifest = json.load(open(os.path.join(ROOT, "static", "manifest.json")))
-    assert manifest["name"] == "Arcade Tracker"
+    assert manifest["name"] == "Cabcrawl"
     assert manifest["theme_color"] == "#150a28"
+
+
+def test_no_page_says_arcade_tracker():
+    """The app is Cabcrawl since October 2026 (Step 6.0). The old name stays out of every page
+    and the home-screen manifest; server names like arcade-tracker.service keep theirs."""
+    old = re.compile(r"arcade\s*(//|<b>//</b>)?\s*tracker", re.I)
+    found = []
+    for folder, _dirs, files in os.walk(os.path.join(ROOT, "templates")):
+        for name in files:
+            path = os.path.join(folder, name)
+            for number, line in enumerate(open(path, encoding="utf-8"), 1):
+                if old.search(line):
+                    found.append(f"{os.path.relpath(path, ROOT)}:{number}")
+    manifest = open(os.path.join(ROOT, "static", "manifest.json"), encoding="utf-8").read()
+    if old.search(manifest):
+        found.append("static/manifest.json")
+    assert found == []

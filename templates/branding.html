@@ -13,8 +13,8 @@
 
     <div class="field">
       <label for="arcade_name">Arcade name</label>
-      <input id="arcade_name" name="arcade_name" maxlength="60" value="{{ name }}" placeholder="Arcade Tracker">
-      <span class="field__help">In the browser tab and on the coin-door form, and in place of a logo where there isn't one. Blank goes back to Arcade Tracker.</span>
+      <input id="arcade_name" name="arcade_name" maxlength="60" value="{{ name }}" placeholder="Cabcrawl">
+      <span class="field__help">In the browser tab and on the coin-door form, and in place of a logo where there isn't one. Blank goes back to Cabcrawl.</span>
     </div>
 
     <fieldset class="stack">
@@ -26,7 +26,7 @@
       <div class="field">
         <label for="logo">{{ "Replace the logo" if branding.logo_url else "Upload a logo" }}</label>
         <input id="logo" name="logo" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml,.svg">
-        <span class="field__help">PNG, JPEG, WebP or SVG, up to 2 MB. A wide logo on a transparent background looks best. It replaces ARCADE//TRACKER in the header and goes on the sign-in page, the coin-door form, printed labels and PDFs. PDFs can't draw SVG; with an SVG logo they show the arcade name.</span>
+        <span class="field__help">PNG, JPEG, WebP or SVG, up to 2 MB. A wide logo on a transparent background looks best. It replaces CABCRAWL in the header and goes on the sign-in page, the coin-door form, printed labels and PDFs. PDFs can't draw SVG; with an SVG logo they show the arcade name.</span>
       </div>
     </fieldset>
 
