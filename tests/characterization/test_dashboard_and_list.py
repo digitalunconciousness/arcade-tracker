@@ -36,9 +36,12 @@ def test_low_stock_is_for_people_who_can_open_inventory(client, floor):
 
 
 def test_revenue_and_reports_stay_with_managers(client, floor):
-    assert "Total revenue" not in get(client, "operator", "/")
+    """Since the usability round (2026-10-25) a manager's home leads with plays this week,
+    token value second, and the rotation planner's swaps replace "Lowest earners"."""
+    body = get(client, "operator", "/")
+    assert "in tokens" not in body and "Suggested swaps" not in body
     body = get(client, "manager", "/")
-    assert "Total revenue" in body and "Lowest earners" in body
+    assert "Plays this week" in body and "in tokens" in body and "Suggested swaps" in body
 
 
 def test_a_machine_down_on_the_floor_is_called_out(client, floor):

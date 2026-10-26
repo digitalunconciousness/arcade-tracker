@@ -43,6 +43,64 @@ curl -s -o /dev/null -D - https://<public-hostname>/login | grep -i set-cookie
 Between steps 2 and 3 nothing breaks: the cookies are simply not `Secure` yet, as before.
 Nobody is signed out unless `SECRET_KEY` changes.
 
+## One-time: alerts (feature step 6)
+
+Alerts are written to the database as things happen; a systemd timer runs
+`scripts/send_alerts.py` every minute to deliver them. Deploy as usual first (it runs the
+migration), then install the timer:
+
+```bash
+cp /opt/arcade-tracker/deploy/arcade-tracker-alerts.service /etc/systemd/system/
+cp /opt/arcade-tracker/deploy/arcade-tracker-alerts.timer /etc/systemd/system/
+systemctl daemon-reload
+systemctl enable --now arcade-tracker-alerts.timer
+systemctl list-timers arcade-tracker-alerts.timer      # next run within a minute
+journalctl -u arcade-tracker-alerts -n 5               # "released=0 summaries=0 sent=0 failed=0"
+```
+
+Nothing is sent until an admin adds a channel (Admin, Alerts). Set the opening hours on the
+same page: without them alerts are never held and there is no daily summary.
+
+### The ntfy server (its own LXC)
+
+Staff phones need to reach it from anywhere, so give it its own hostname on the Cloudflare
+tunnel (e.g. `ntfy.<your-domain>`), like the tracker. In a new Debian LXC, as root, from
+ntfy's docs (repository moved to archive.ntfy.sh in September 2025):
+
+```bash
+mkdir -p /etc/apt/keyrings
+curl -L -o /etc/apt/keyrings/ntfy.gpg https://archive.ntfy.sh/apt/keyring.gpg
+apt install apt-transport-https
+echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/ntfy.gpg] https://archive.ntfy.sh/apt stable main" \
+    | tee /etc/apt/sources.list.d/ntfy.list
+apt update && apt install ntfy
+```
+
+`/etc/ntfy/server.yml`:
+
+```yaml
+base-url: "https://ntfy.<your-domain>"
+behind-proxy: true                      # the tunnel connects from loopback
+auth-file: "/var/lib/ntfy/user.db"
+auth-default-access: "deny-all"         # nobody reads or posts without an account
+# iPhones only get instant pushes through ntfy.sh: this server sends it the message id and
+# a hash of the topic address, never the message itself.
+upstream-base-url: "https://ntfy.sh"
+```
+
+```bash
+systemctl enable --now ntfy
+ntfy user add tracker                       # the tracker posts as this user
+ntfy access tracker "arcade-*" write-only
+ntfy token add tracker                      # paste the tk_... token into each channel
+ntfy user add staff                         # one shared login for the phones (or one each)
+ntfy access staff "arcade-*" read-only
+```
+
+Use topic names that start with `arcade-`, e.g. `https://ntfy.<your-domain>/arcade-techs` and
+`.../arcade-manager`. On each phone: install ntfy, add the server address with the staff
+login, subscribe to the topics that person wants. Then press **Send a test** on the channel.
+
 ## One-time cut-over
 
 Do this **once**, in this order.

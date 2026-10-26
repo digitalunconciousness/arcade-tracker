@@ -45,9 +45,11 @@ def create_app() -> Flask:
         app.logger.warning("%s", warning, extra={"fields": {"event": "CONFIG_WARNING"}})
     _create_directories(app)
     _init_extensions(app)
+    from app.services.alert_events import install as install_alerts
     from app.services.history import install as install_history
 
     install_history()
+    install_alerts()
     _register_blueprints(app)
     _register_context_processors(app)
     _register_error_handlers(app)
@@ -147,6 +149,7 @@ def _register_blueprints(app: Flask) -> None:
         ("app.routes.collection", "collection_bp"),
         ("app.routes.rotation", "rotation_bp"),
         ("app.routes.upkeep", "upkeep_bp"),
+        ("app.routes.alerts", "alerts_bp"),
         ("app.routes.maintenance", "maintenance_bp"),
         ("app.routes.inventory", "inventory_bp"),
         ("app.routes.reports", "reports_bp"),

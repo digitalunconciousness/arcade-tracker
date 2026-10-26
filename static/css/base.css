@@ -171,6 +171,22 @@ input[type="file"] {
   max-width: 100%;
   min-height: var(--tap);
 }
+/* The browser's grey button, dressed as one of ours: on a phone it is the camera button. */
+input[type="file"]::file-selector-button {
+  min-height: var(--tap);
+  margin-right: var(--sp-3);
+  padding: var(--sp-2) var(--sp-4);
+  border: 1px solid var(--border-control);
+  border-radius: var(--r);
+  background: var(--surface);
+  color: var(--text);
+  font: 600 var(--fs-md) / 1.1 var(--font-display);
+  letter-spacing: var(--track-display);
+  cursor: pointer;
+}
+input[type="file"]::file-selector-button:hover {
+  border-color: var(--text);
+}
 input:disabled,
 select:disabled,
 textarea:disabled {

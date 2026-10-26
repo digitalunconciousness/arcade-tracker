@@ -9,7 +9,6 @@
    "games.game_detail(game_id=courier)",
    "games.game_detail(game_id=raider)",
    "games.games_list()",
-   "games.record_plays(game_id=raider)",
    "games.scan()",
    "inventory.adjust_stock(item_id=fuse)",
    "inventory.inventory_detail(item_id=fuse)",
@@ -21,7 +20,8 @@
    "rails.floor()",
    "reports.export_report()",
    "reports.graphs()",
-   "reports.reports()"
+   "reports.reports()",
+   "rotation.overview()"
   ],
   "manager": [
    "auth.logout()",
@@ -31,7 +31,6 @@
    "games.game_detail(game_id=courier)",
    "games.game_detail(game_id=raider)",
    "games.games_list()",
-   "games.record_plays(game_id=raider)",
    "games.scan()",
    "inventory.adjust_stock(item_id=fuse)",
    "inventory.inventory_detail(item_id=fuse)",
@@ -43,7 +42,8 @@
    "rails.floor()",
    "reports.export_report()",
    "reports.graphs()",
-   "reports.reports()"
+   "reports.reports()",
+   "rotation.overview()"
   ],
   "operator": [
    "auth.logout()",
@@ -60,7 +60,8 @@
    "maintenance.maintenance_detail(record_id=general)",
    "maintenance.maintenance_detail(record_id=open_order)",
    "maintenance.maintenance_orders()",
-   "rails.floor()"
+   "rails.floor()",
+   "upkeep.overview()"
   ],
   "readonly": [
    "auth.logout()",
@@ -111,6 +112,55 @@
    "rails.floor()"
   ]
  },
+ "/admin/alerts/": {
+  "admin": [
+   "admin.manage_users()",
+   "alerts.edit(channel_id=channel)",
+   "alerts.hours()",
+   "alerts.new()",
+   "alerts.test(channel_id=channel)",
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "rails.floor()",
+   "reports.reports()"
+  ]
+ },
+ "/admin/alerts/<int:channel_id>/edit": {
+  "admin": [
+   "admin.manage_users()",
+   "alerts.delete(channel_id=channel)",
+   "alerts.overview()",
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "rails.floor()",
+   "reports.reports()"
+  ]
+ },
+ "/admin/alerts/new": {
+  "admin": [
+   "admin.manage_users()",
+   "alerts.overview()",
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "rails.floor()",
+   "reports.reports()"
+  ]
+ },
  "/admin/create_user": {
   "admin": [
    "admin.manage_users()",
@@ -146,6 +196,7 @@
    "admin.create_user()",
    "admin.manage_users()",
    "admin.storage_admin()",
+   "alerts.overview()",
    "auth.change_password()",
    "auth.logout()",
    "auth.profile()",
@@ -275,6 +326,7 @@
    "maintenance.maintenance_detail(record_id=closed_order)",
    "maintenance.maintenance_detail(record_id=open_order)",
    "maintenance.maintenance_orders()",
+   "maintenance.update_maintenance(record_id=open_order)",
    "rails.floor()",
    "rails.machine(slug=neon-raider)",
    "rails.session(uid=dddddddddddddddddddddddddddddddd)",
@@ -296,6 +348,7 @@
    "maintenance.maintenance_detail(record_id=closed_order)",
    "maintenance.maintenance_detail(record_id=open_order)",
    "maintenance.maintenance_orders()",
+   "maintenance.update_maintenance(record_id=open_order)",
    "rails.floor()",
    "rails.machine(slug=neon-raider)",
    "rails.session(uid=dddddddddddddddddddddddddddddddd)",
@@ -315,6 +368,7 @@
    "maintenance.maintenance_detail(record_id=closed_order)",
    "maintenance.maintenance_detail(record_id=open_order)",
    "maintenance.maintenance_orders()",
+   "maintenance.update_maintenance(record_id=open_order)",
    "rails.floor()",
    "rails.machine(slug=neon-raider)",
    "rails.session(uid=dddddddddddddddddddddddddddddddd)"

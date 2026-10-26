@@ -1,0 +1,79 @@
+{% extends "layout.html" %}
+{% import "ui.html" as ui %}
+{% block title %}{{ "Edit " ~ channel.name if channel else "New alert channel" }}{% endblock %}
+
+{% block page_head %}
+{{ ui.page_head(channel.name if channel else "New alert channel", sub="Who gets what, and where", back=url_for("alerts.overview"), back_label="Alerts") }}
+{% endblock %}
+
+{% macro err(key) -%}
+{%- if errors.get(key) %}<span class="field__error" id="{{ key }}-error">{{ errors[key] }}</span>{% endif -%}
+{%- endmacro %}
+{% macro invalid(key) -%}{% if errors.get(key) %} aria-invalid="true" aria-describedby="{{ key }}-error"{% endif %}{%- endmacro %}
+
+{% block content %}
+<div class="stack phone-width">
+  <form class="form" method="post" novalidate autocomplete="off">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {%- if errors %}
+    <div class="banners" role="alert"><div class="banner is-fault"><div class="banner__body"><span class="banner__title">Nothing was saved</span><p>Fix the fields marked below.</p></div></div></div>
+    {%- endif %}
+    <div class="field{% if errors.name %} is-invalid{% endif %}">
+      <label for="name">Channel name <span class="field__req" aria-hidden="true">*</span><span class="visually-hidden"> (required)</span></label>
+      <input id="name" name="name" maxlength="60" value="{{ values.get('name') or '' }}" placeholder="Techs"{{ invalid('name') }}>
+      {{ err("name") }}
+    </div>
+
+    <fieldset class="stack{% if errors.events %} is-invalid{% endif %}">
+      <legend>Send</legend>
+      {%- set chosen = (values.get('events') or '').split(',') %}
+      {%- for key, label in events.items() %}
+      <div class="field field--check">
+        <input id="ev-{{ key }}" type="checkbox" name="events" value="{{ key }}"{% if key in chosen %} checked{% endif %}>
+        <label for="ev-{{ key }}">{{ label }}</label>
+      </div>
+      {%- endfor %}
+      {{ err("events") }}
+    </fieldset>
+
+    <div class="field{% if errors.ntfy_url %} is-invalid{% endif %}">
+      <label for="ntfy_url">ntfy topic address</label>
+      <input id="ntfy_url" name="ntfy_url" type="url" inputmode="url" value="{{ values.get('ntfy_url') or '' }}" placeholder="http://ntfy.lan/arcade-techs"{{ invalid('ntfy_url') }}>
+      <span class="field__help">The arcade's ntfy server, then the topic. Staff subscribe to the same address in the ntfy app.</span>
+      {{ err("ntfy_url") }}
+    </div>
+    <div class="field">
+      <label for="ntfy_token">ntfy access token</label>
+      <input id="ntfy_token" name="ntfy_token" type="password" value="" placeholder="{{ 'Saved; leave blank to keep it' if channel and channel.ntfy_token else 'Only if the server asks for one' }}">
+      {%- if channel and channel.ntfy_token %}
+      <div class="field field--check"><input id="remove_ntfy_token" type="checkbox" name="remove_ntfy_token" value="1"><label for="remove_ntfy_token">Remove the saved token</label></div>
+      {%- endif %}
+    </div>
+    <div class="field{% if errors.discord_webhook %} is-invalid{% endif %}">
+      <label for="discord_webhook">Discord webhook address</label>
+      <input id="discord_webhook" name="discord_webhook" type="password" value="" placeholder="{{ 'Saved; leave blank to keep it' if channel and channel.discord_webhook else 'https://discord.com/api/webhooks/...' }}"{{ invalid('discord_webhook') }}>
+      <span class="field__help">In Discord: the channel's settings, Integrations, Webhooks, New webhook, Copy URL. Anyone with it can post there, so it is never shown again.</span>
+      {{ err("discord_webhook") }}
+      {%- if channel and channel.discord_webhook %}
+      <div class="field field--check"><input id="remove_discord_webhook" type="checkbox" name="remove_discord_webhook" value="1"><label for="remove_discord_webhook">Remove the saved webhook</label></div>
+      {%- endif %}
+    </div>
+
+    <div class="field field--check">
+      <input id="quiet" type="checkbox" name="quiet" value="1"{% if values.get('quiet') %} checked{% endif %}>
+      <label for="quiet">Hold alerts outside opening hours and send them at opening</label>
+    </div>
+    <div class="field field--check">
+      <input id="active" type="checkbox" name="active" value="1"{% if values.get('active') %} checked{% endif %}>
+      <label for="active">Active (untick to pause it)</label>
+    </div>
+    <div class="form__actions">
+      <button class="btn btn--primary" type="submit">Save</button>
+      <a class="btn btn--ghost" href="{{ url_for('alerts.overview') }}">Cancel</a>
+    </div>
+  </form>
+  {%- if channel %}
+  {{ ui.danger_form(url_for('alerts.delete', channel_id=channel.id), "Delete channel", "Delete the " ~ channel.name ~ " channel and its alert log?") }}
+  {%- endif %}
+</div>
+{% endblock %}

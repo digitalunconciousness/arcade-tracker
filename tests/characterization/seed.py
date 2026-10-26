@@ -21,7 +21,7 @@ def seed_floor() -> dict:
     from app.extensions import db
     from app.models import (
         Device, Game, InventoryItem, InventoryRequest, InventoryRequestHistory, LowStockAlert,
-        MaintenanceRecord, MaintenanceTask, PlayRecord, RailSession, Reading, StockHistory,
+        AlertChannel, MaintenanceRecord, MaintenanceTask, PlayRecord, RailSession, Reading, StockHistory,
         User, WorkLog,
     )
 
@@ -115,6 +115,10 @@ def seed_floor() -> dict:
     task = MaintenanceTask(name="Lube the trackball", every_days=365, applies_to="machine",
                            game_id=raider.id, created_by_id=users["manager"].id)
     db.session.add(task)
+    # Feature step 6. Paused, so no other test queues alerts by accident.
+    channel = AlertChannel(name="Techs", ntfy_url="http://ntfy.invalid/arcade-techs",
+                           events="coin_door,machine_down", active=False)
+    db.session.add(channel)
     db.session.commit()
 
     return {
@@ -123,4 +127,5 @@ def seed_floor() -> dict:
         "belt": belt.id, "fuse": fuse.id, "alert": alert.id,
         "open_order": open_order.id, "closed_order": closed_order.id, "general": general.id,
         "request": req.id, "session_uid": session.uid, "task": task.id,
+        "channel": channel.id,
     }

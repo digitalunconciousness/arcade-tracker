@@ -41,16 +41,21 @@
         keeps the form working if that ever changes. #}
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div class="field">
+      <label for="reported_by">Your name</label>
+      <input id="reported_by" name="reported_by" required maxlength="60" autocomplete="name"
+             value="{{ values.get('reported_by', '') }}" placeholder="So a tech knows who to ask">
+    </div>
+    <div class="field">
       <label for="issue_description">What is wrong?</label>
       <textarea id="issue_description" name="issue_description" rows="6" required maxlength="2000"
-                placeholder="What happens, and what you were doing when it happened."></textarea>
+                placeholder="What happens, and what you were doing when it happened.">{{ values.get('issue_description', '') }}</textarea>
     </div>
     <div class="form__actions">
       <button class="btn btn--primary btn--block" type="submit">Send it</button>
     </div>
   </form>
 
-  <p class="dim">No login needed: you opened the coin door, which is the point. Nobody is notified personally; this goes into the work queue.</p>
+  <p class="dim">No login needed: you opened the coin door, which is the point. This goes into the work queue. To add photos, sign in and add them to the work order.</p>
 </main>
 </body>
 </html>
