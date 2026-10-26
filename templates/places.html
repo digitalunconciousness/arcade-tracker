@@ -4,7 +4,9 @@
 {% block title %}Places{% endblock %}
 
 {% block page_head %}
-{{ ui.page_head("Places", sub="Rooms, shelves, drawers, bins and carts where parts are kept", back=url_for("inventory.inventory_list"), back_label="Parts") }}
+{% call ui.page_head("Places", sub="Rooms, shelves, drawers, bins and carts where parts are kept", back=url_for("inventory.inventory_list"), back_label="Parts") %}
+  <a class="btn btn--sm" href="{{ url_for('stock_labels.pick') }}">Labels</a>
+{% endcall %}
 {% endblock %}
 
 {% block content %}

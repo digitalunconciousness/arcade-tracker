@@ -22,7 +22,7 @@ def seed_floor() -> dict:
     from app.models import (
         Device, Game, InventoryItem, InventoryRequest, InventoryRequestHistory, LowStockAlert,
         AlertChannel, MaintenanceRecord, MaintenanceTask, PlayRecord, RailSession, Reading, StockHistory,
-        StockLevel, StockPlace,
+        StockLevel, StockPlace, PartCategory, Supplier, ItemSupplier,
         User, WorkLog,
     )
 
@@ -66,6 +66,23 @@ def seed_floor() -> dict:
     back_room = StockPlace(name="Back Room")
     shelf = StockPlace(name="Shelf A", parent=back_room)
     db.session.add_all([back_room, shelf, StockLevel(item=belt, place=shelf, quantity=10)])
+    # Part details (inventory step 2): the belt's category and its supplier.
+    belts = PartCategory(name="Belts & mechanical")
+    depot = Supplier(name="Parts Depot", phone="555-0100")
+    belt.category = belts
+    db.session.add_all([belts, depot, ItemSupplier(item=belt, supplier=depot, price=4.0,
+                                                   supplier_part_number="PD-BELT",
+                                                   preferred=True)])
+    # Purchasing (inventory step 3): orders on, and fuses ordered from the depot.
+    from app.models import PurchaseOrder, PurchaseOrderLine, Setting
+
+    Setting.put("purchase_orders", "on")
+    # A part of its own, so the parts the other tests delete aren't held by the order.
+    spring = InventoryItem(name="Coin Mech Spring", stock_quantity=0, minimum_stock=0,
+                           unit_price=0.3, part_number="SPR-1")
+    order = PurchaseOrder(supplier=depot, status="Sent", notes="Synthetic order")
+    db.session.add_all([spring, order, PurchaseOrderLine(order=order, item=spring,
+                                                         quantity=20, unit_price=0.3)])
     db.session.flush()
     alert = LowStockAlert(item_id=fuse.id, email_sent=False)
     db.session.add(alert)
@@ -135,4 +152,6 @@ def seed_floor() -> dict:
         "request": req.id, "session_uid": session.uid, "task": task.id,
         "channel": channel.id, "device": device.id,
         "back_room": back_room.id, "shelf": shelf.id,
+        "category": belts.id, "supplier": depot.id, "supplier_link": belt.suppliers[0].id,
+        "order": order.id, "order_line": order.lines[0].id,
     }

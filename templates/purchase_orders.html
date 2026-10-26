@@ -1,0 +1,51 @@
+{% extends "layout.html" %}
+{% import "ui.html" as ui %}
+{% set manager = current_user.has_role("manager") %}
+{% block title %}Purchase orders{% endblock %}
+
+{% block page_head %}
+{% call ui.page_head("Purchase orders", sub=("Open orders" if show != "all" else "Every order"), back=url_for("inventory.inventory_list"), back_label="Parts") %}
+  {%- if manager %}<a class="btn btn--sm" href="{{ url_for('purchasing.shopping') }}">Shopping list</a>{% endif %}
+{% endcall %}
+{% endblock %}
+
+{% block content %}
+<div class="stack">
+  {%- if not orders_on %}
+  <p class="dim">Purchase orders are off; a manager turns them on from the shopping list. Orders made while they were on are still here.</p>
+  {%- elif manager %}
+  <form class="filters" method="post" action="{{ url_for('purchasing.order_new') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="field">
+      <label for="po-supplier">New order to</label>
+      <select id="po-supplier" name="supplier" required>
+        <option value="">Pick a supplier…</option>
+        {%- for s in suppliers %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="filters__actions"><button class="btn" type="submit">Start an order</button></div>
+  </form>
+  {%- endif %}
+
+  <nav class="tabs" aria-label="Which orders">
+    <a href="{{ url_for('purchasing.orders') }}"{% if show != "all" %} aria-current="page"{% endif %}>Open</a>
+    <a href="{{ url_for('purchasing.orders', show='all') }}"{% if show == "all" %} aria-current="page"{% endif %}>All</a>
+  </nav>
+
+  {%- if orders %}
+  <ul class="rows">
+    {%- for o in orders %}
+    <li><a class="row" href="{{ url_for('purchasing.order', order_id=o.id) }}">
+      <span class="row__main">
+        <span class="row__title">#{{ o.id }} · {{ o.supplier.name }}</span>
+        <span class="row__meta">{{ o.lines|length }} line{{ "" if o.lines|length == 1 else "s" }}{% if o.total %} · ${{ "%.2f"|format(o.total) }}{% endif %} · {{ o.created.strftime("%Y-%m-%d") }}{% if o.expected %} · due {{ o.expected.strftime("%Y-%m-%d") }}{% endif %}</span>
+      </span>
+      <span class="row__end">{{ ui.chip({"Draft": "muted", "Sent": "info", "Partly received": "warn", "Received": "ok", "Cancelled": "muted"}[o.status], o.status) }}</span>
+    </a></li>
+    {%- endfor %}
+  </ul>
+  {%- else %}
+  {{ ui.empty("No open orders" if show != "all" else "No orders yet") }}
+  {%- endif %}
+</div>
+{% endblock %}

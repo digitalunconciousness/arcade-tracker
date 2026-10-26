@@ -7,10 +7,10 @@ through ``app.services.stock_places``.
 """
 
 from flask import Blueprint, flash, redirect, render_template, request, url_for
-from flask_login import login_required
+from flask_login import current_user, login_required
 
 from app.extensions import db
-from app.models import StockLevel, StockPlace
+from app.models import InventoryItem, StockLevel, StockPlace
 from app.models.stock import MAX_DEPTH
 from app.services import stock_places
 from app.services.stock_places import StockError
@@ -64,7 +64,7 @@ def overview():
 @login_required
 @requires_role("operator")
 def create():
-    back = request.form.get("back") == "place"
+    back = request.form.get("back") in ("place", "count")
     try:
         name = stock_places.clean_name(request.form.get("name"))
         parent = _parent_from_form()
@@ -79,9 +79,12 @@ def create():
         flash(str(exc), "error")
         parent_id = request.form.get("parent", "")
         if back and parent_id.isdigit():
-            return redirect(url_for("places.detail", place_id=int(parent_id)))
+            target = "places.count" if request.form.get("back") == "count" else "places.detail"
+            return redirect(url_for(target, place_id=int(parent_id)))
         return redirect(url_for("places.overview"))
     flash(f"Added {place.path}.", "success")
+    if request.form.get("back") == "count":
+        return redirect(url_for("places.count", place_id=place.id))
     if back and parent is not None:
         return redirect(url_for("places.detail", place_id=parent.id))
     return redirect(url_for("places.detail", place_id=place.id))
@@ -172,3 +175,103 @@ def delete(place_id):
     if parent is not None:
         return redirect(url_for("places.detail", place_id=parent.id))
     return redirect(url_for("places.overview"))
+
+
+# --- count mode (the first inventory, and every count after it) ----------------------------
+
+def _counting(place):
+    """The rows count mode offers: every part with a level here, even one counted at zero."""
+    rows = StockLevel.query.filter_by(place_id=place.id).all()
+    rows.sort(key=lambda lv: lv.item.name.lower())
+    return rows
+
+
+def _count_page(place, status=200, **extra):
+    from app.models.stock import MAX_DEPTH as depth
+
+    names = [n for (n,) in db.session.query(InventoryItem.name)
+             .order_by(InventoryItem.name).all()]
+    return render_template("place_count.html", place=place, rows=_counting(place),
+                           names=names, children=sorted(
+                               (c for c in place.children if not c.archived),
+                               key=lambda c: c.name.lower()),
+                           can_nest=len(place.lineage()) < depth and not place.is_unsorted,
+                           **extra), status
+
+
+@places_bp.route("/<int:place_id>/count")
+@login_required
+@requires_role("operator")
+def count(place_id):
+    """Stand in a place with a phone: each part here, a box for how many, and a way to add
+    the ones that aren't listed yet (scan, type, or make a new part)."""
+    place = db.get_or_404(StockPlace, place_id)
+    if place.archived:
+        flash("Restore this place before counting it.", "error")
+        return redirect(url_for("places.detail", place_id=place.id))
+    return _count_page(place)
+
+
+@places_bp.route("/<int:place_id>/count", methods=["POST"])
+@login_required
+@requires_role("operator")
+def save_counts(place_id):
+    """Every box with a number is that part's count here; blank boxes are left alone."""
+    place = db.get_or_404(StockPlace, place_id)
+    counted, changed = 0, 0
+    try:
+        if place.archived:
+            raise StockError("Restore this place before counting it.")
+        for level in _counting(place):
+            value = stock_places.parse_count(request.form.get(f"count-{level.item_id}"))
+            if value is None:
+                continue
+            counted += 1
+            if stock_places.count(level.item, value, current_user.id, place):
+                changed += 1
+        db.session.commit()
+    except StockError as exc:
+        db.session.rollback()
+        flash(f"Nothing was saved: {exc}", "error")
+        return redirect(url_for("places.count", place_id=place.id))
+    if counted:
+        flash(f"Counted {counted} part{'' if counted == 1 else 's'} in {place.path}"
+              f"{f'; {changed} changed' if changed else ', no changes'}.", "success")
+    else:
+        flash("Nothing to save: type a number in the box of each part you counted.", "info")
+    return redirect(url_for("places.count", place_id=place.id))
+
+
+@places_bp.route("/<int:place_id>/count/add", methods=["POST"])
+@login_required
+@requires_role("operator")
+def count_add(place_id):
+    """Count one part that isn't on this place's list yet. An unknown name is only made into
+    a new part once the person confirms it, so a typo doesn't become a part."""
+    place = db.get_or_404(StockPlace, place_id)
+    part = (request.form.get("part") or "").strip()
+    raw_qty = request.form.get("quantity")
+    try:
+        if place.archived:
+            raise StockError("Restore this place before counting it.")
+        quantity = stock_places.parse_count(raw_qty)
+        if quantity is None:
+            raise StockError("Type how many there are (0 is fine).")
+        item = stock_places.find_part(part)
+        if item is None:
+            if not part:
+                raise StockError("Scan the part's label, or type its name.")
+            if request.form.get("create") != "1":
+                return _count_page(place, 200, confirm={"part": part, "quantity": quantity})
+            item = stock_places.new_part(part)
+            made = True
+        else:
+            made = False
+        stock_places.count(item, quantity, current_user.id, place,
+                           "First counted here" if made else "")
+        db.session.commit()
+    except StockError as exc:
+        db.session.rollback()
+        return _count_page(place, 400, add_error=str(exc), part=part, quantity=raw_qty)
+    flash(f"{'New part: ' if made else ''}{item.name}, {quantity} in {place.name}.", "success")
+    return redirect(url_for("places.count", place_id=place.id))

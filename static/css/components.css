@@ -1034,6 +1034,28 @@ legend {
   a {
     color: #000;
   }
+  /* Panels and tables print as plain black on white (a purchase order, a report). */
+  .card,
+  .table-wrap,
+  .table,
+  .table th,
+  .table td,
+  .table tr {
+    background: #fff !important;
+    color: #000 !important;
+    border-color: #999 !important;
+    box-shadow: none !important;
+  }
+  .dim,
+  .kv dt,
+  .page-head__sub,
+  .table th {
+    color: #333 !important;
+  }
+  .app-footer,
+  .back-link {
+    display: none;
+  }
 }
 
 /* =========================================================================================
@@ -1441,6 +1463,38 @@ body:has(.auth__bg) .app-footer {
 }
 .inline-add .field {
   flex: 1 1 16rem;
+}
+
+/* Count mode (/inventory/places/<id>/count): a box per part, thumb-sized */
+.count__row {
+  gap: var(--sp-3);
+}
+.count__box {
+  flex: 0 0 5.5rem;
+  width: 5.5rem;
+  min-height: 48px;
+  font-size: var(--fs-lg);
+  text-align: right;
+}
+.count__thumb {
+  flex: 0 0 48px;
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: var(--r-sm);
+}
+.count__qty {
+  flex: 0 1 10rem;
+}
+
+/* A part's photo (inventory step 2) */
+.part__photo {
+  display: block;
+  max-width: min(100%, 360px);
+  max-height: 280px;
+  object-fit: contain;
+  border-radius: var(--r);
+  background: var(--surface-inset);
 }
 
 /* Scan page: one big box a USB scanner types into */

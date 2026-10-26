@@ -471,10 +471,31 @@ def scan():
     """
     raw = (request.args.get("code") or "").strip()
     if raw:
-        code = raw.rstrip("/").rsplit("/", 1)[-1]
+        parts = raw.rstrip("/").rsplit("/", 2)
+        code = parts[-1]
         if code:
+            # A place's or a part's label (/p/, /i/), and a bare code that is one of theirs
+            # and not a machine's; everything else goes to /g/ exactly as before.
+            kind = parts[-2] if len(parts) > 1 else ""
+            if kind == "p" or (not kind and _stock_code(code) == "p"):
+                return redirect(url_for("stock_labels.resolve_place", code=code))
+            if kind == "i" or (not kind and _stock_code(code) == "i"):
+                return redirect(url_for("stock_labels.resolve_part", code=code))
             return redirect(url_for("games.resolve_barcode", code=code))
     return render_template("scan.html")
+
+
+def _stock_code(code: str) -> str | None:
+    """"p" or "i" when a bare code is a place's or a part's and no machine's."""
+    from app.models import InventoryItem, StockPlace
+
+    if Game.query.filter_by(barcode=code).first() or code.isdigit():
+        return None
+    if StockPlace.query.filter_by(code=code.lower()).first():
+        return "p"
+    if InventoryItem.query.filter_by(code=code.lower()).first():
+        return "i"
+    return None
 
 
 @games_bp.route("/g/<code>")

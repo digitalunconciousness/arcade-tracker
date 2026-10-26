@@ -49,8 +49,14 @@ class ItemList:
     recent_requests: list[InventoryRequest]
 
 
-def list_items(user, search: str = "", low_only: bool = False) -> ItemList:
+def list_items(user, search: str = "", low_only: bool = False,
+               category_id: int | None = None) -> ItemList:
+    """The parts list. *category_id* 0 means "no category"; None means every category."""
     query = InventoryItem.query
+    if category_id == 0:
+        query = query.filter(InventoryItem.category_id.is_(None))
+    elif category_id is not None:
+        query = query.filter(InventoryItem.category_id == category_id)
     if search:
         like = f"%{search}%"
         query = query.filter(InventoryItem.name.ilike(like)
@@ -110,9 +116,14 @@ def save_item(item: InventoryItem, form, user_id: int) -> None:
     item.name = form.name.data.strip()
     item.part_number = form.part_number.data or None
     item.description = form.description.data or None
-    item.unit_price = float(form.unit_price.data or 0)
+    from app.services import parts
+
+    parts.set_item_price(item, float(form.unit_price.data or 0) or None, user_id)
     item.minimum_stock = form.minimum_stock.data
-    item.supplier = form.supplier.data or None
+    item.reorder_to = form.reorder_to.data or None
+    item.category_id = form.category.data or None
+    item.unit = parts.clean_unit(form.unit.data)
+    item.pack_size = parts.clean_pack(form.pack_size.data)
     item.notes = form.notes.data or None
     item.compatible_games = (Game.query.filter(Game.id.in_(form.compatible_games.data)).all()
                              if form.compatible_games.data else [])
@@ -123,6 +134,10 @@ def save_item(item: InventoryItem, form, user_id: int) -> None:
         item.stock_quantity = 0
         db.session.add(item)
         db.session.flush()
+        parts.first_price(item, user_id)
+    # The supplier box names the preferred supplier; a new name joins the supplier list.
+    parts.set_preferred(item, parts.supplier_for(form.supplier.data))
+    if is_new:
         if after:
             stock_places.add(item, after, user_id, reason="Initial stock")
         return
@@ -149,6 +164,9 @@ def delete_item(item: InventoryItem) -> str | None:
     if item.maintenance_usage:
         return (f'"{item.name}" was used in {len(item.maintenance_usage)} work order(s), '
                 "so it stays for their parts history. Set its stock to 0 instead.")
+    if item.order_lines:
+        return (f'"{item.name}" is on {len(item.order_lines)} purchase order line(s), so it '
+                "stays for their history. Set its stock to 0 instead.")
     for alert in item.alerts:
         db.session.delete(alert)
     for req in item.requests:
@@ -258,29 +276,34 @@ def update_request(req: InventoryRequest, form, user_id: int) -> list[tuple[str,
 
 
 def _receive(req: InventoryRequest, user_id: int) -> tuple[str, str]:
-    """Put a received request's quantity into stock (creating the item if it is new)."""
+    """Marked Received from the status list: put what hasn't arrived yet into stock, in the
+    place most of the part already is (creating the item if it is new). A delivery that comes
+    in pieces is received from the request's page instead (``purchasing.receive_request``)."""
+    from app.services import purchasing, stock_places
+
+    remaining = req.quantity_requested - (req.quantity_received or 0)
+    req.quantity_received = req.quantity_requested
     if req.item_id:
         item = db.session.get(InventoryItem, req.item_id)
         if item is None:
             return ("error", (f"Request #{req.id} is Received, but item #{req.item_id} no "
                               "longer exists, so no stock was added."))
-        from app.services import stock_places
-
-        stock_places.add(item, req.quantity_requested, user_id,
+        if remaining <= 0:
+            return ("success", f"Request #{req.id} received; everything had already arrived.")
+        stock_places.add(item, remaining, user_id, purchasing.default_place(item),
                          reason=f"Inventory request #{req.id} received")
-        return ("success", (f"Request #{req.id} received: {req.quantity_requested} added to "
+        return ("success", (f"Request #{req.id} received: {remaining} added to "
                             f'"{item.name}". In stock now: {item.stock_quantity}.'))
-    from app.services import stock_places
-
     item = InventoryItem(name=req.item_name, stock_quantity=0, unit_price=0.0,
                          minimum_stock=5)
     db.session.add(item)
     db.session.flush()
     req.item_id = item.id
-    stock_places.add(item, req.quantity_requested, user_id,
-                     reason=f"New item created from inventory request #{req.id}")
+    if remaining > 0:
+        stock_places.add(item, remaining, user_id,
+                         reason=f"New item created from inventory request #{req.id}")
     return ("success", (f'Request #{req.id} received: created "{item.name}" with '
-                        f"{req.quantity_requested} in stock. Add its price and details."))
+                        f"{max(remaining, 0)} in stock. Add its price and details."))
 
 
 # --- shipments (EasyPost) ------------------------------------------------------------------

@@ -1,6 +1,7 @@
 {#- The printable part of every label page. Included (it shares the page's context), never
-    extended. Needs: labels, kind ("public" or "coindoor"), fmt, formats, pages, ids,
-    example_url, address_problem, base_url_set. -#}
+    extended. Needs: labels, kind ("public", "coindoor" or "stock"), fmt, formats, pages, ids,
+    example_url, address_problem, base_url_set. A stock label (a place or a part) carries its
+    own name and lines instead of a game. -#}
 {% import "ui.html" as ui %}
 
 <div class="stack label-notes">
@@ -24,7 +25,7 @@
   {%- if labels %}
   <details>
     <summary>Addresses on this sheet ({{ labels|length }})</summary>
-    <ul class="dim">{% for label in labels %}<li>{{ label.game.name }}: <code>{{ label.url }}</code></li>{% endfor %}</ul>
+    <ul class="dim">{% for label in labels %}<li>{{ label.name if kind == "stock" else label.game.name }}: <code>{{ label.url }}</code></li>{% endfor %}</ul>
   </details>
   {%- endif %}
 </div>
@@ -34,6 +35,13 @@
   <div class="sheet sheet--{{ fmt.key }}">
     {%- for label in page %}
     <div class="label-card">
+      {%- if kind == "stock" %}
+      <img class="label-qr" src="{{ label.qr }}" alt="QR code for {{ label.name }}">
+      <div class="label-text">
+        <div class="label-name">{{ label.name }}</div>
+        {%- for line in label.lines %}<div class="label-meta">{{ line }}</div>{% endfor %}
+      </div>
+      {%- else %}
       <img class="label-qr" src="{{ label.qr }}" alt="QR code for {{ label.game.name }}">
       <div class="label-text">
         {%- set print_logo = branding.print_logo_url or branding.logo_url %}
@@ -47,6 +55,7 @@
         <div class="label-meta">{{ label.game.barcode }}</div>
         {%- endif %}
       </div>
+      {%- endif %}
     </div>
     {%- endfor %}
   </div>

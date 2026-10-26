@@ -89,3 +89,8 @@
   {%- if error %}<span class="field__error">{{ error }}</span>{% endif %}
 </fieldset>
 {%- endmacro %}
+
+{#- "each", or "per roll": how a price reads for a part's unit (inventory step 2). -#}
+{% macro per_unit(unit) -%}
+{{ "each" if (unit or "each") == "each" else "per " ~ unit }}
+{%- endmacro %}

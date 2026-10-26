@@ -1,0 +1,71 @@
+{% extends "layout.html" %}
+{% import "ui.html" as ui %}
+{% block title %}Shopping list{% endblock %}
+
+{% block page_head %}
+{% call ui.page_head("Shopping list", sub="Parts at or below their reorder level", back=url_for("inventory.inventory_list"), back_label="Parts") %}
+  {%- if orders_on %}<a class="btn btn--sm" href="{{ url_for('purchasing.orders') }}">Purchase orders{% if drafts %} <span class="tabs__count">{{ drafts }}</span>{% endif %}</a>{% endif %}
+{% endcall %}
+{% endblock %}
+
+{#- Each row's quantity starts at the suggestion: enough to get back to "order up to", less
+    what's already on order, in whole packs. Untick a row, or change its number, before
+    turning the list into requests (or purchase orders, where they're on). -#}
+{% block content %}
+<div class="stack">
+  {%- if groups %}
+  <form id="buy" class="stack" method="post" action="{{ url_for('purchasing.shopping_request') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {%- for g in groups %}
+    <section class="stack" aria-labelledby="g-{{ loop.index }}">
+      <h2 id="g-{{ loop.index }}">{% if g.supplier %}<a href="{{ url_for('parts.supplier_detail', supplier_id=g.supplier.id) }}">{{ g.supplier.name }}</a>{% else %}No supplier yet{% endif %}
+        {%- if g.total %} <span class="dim">· about ${{ "%.2f"|format(g.total) }}</span>{% endif %}</h2>
+      <ul class="rows">
+        {%- for r in g.rows %}
+        <li class="row count__row">
+          <span class="row__main">
+            <span class="field field--check">
+              <input id="pick-{{ r.item.id }}" type="checkbox" name="item" value="{{ r.item.id }}"{% if r.suggest %} checked{% endif %}>
+              <label class="row__title" for="pick-{{ r.item.id }}">{{ r.item.name }}</label>
+            </span>
+            <span class="row__meta">{{ r.item.stock_quantity }} in stock · reorder at {{ r.item.minimum_stock }}
+              {%- if r.on_order %} · {{ r.on_order }} on order{% endif %}
+              {%- if r.item.pack_size %} · packs of {{ r.item.pack_size }}{% endif %}
+              {%- if r.price %} · ${{ "%.2f"|format(r.price) }} {{ ui.per_unit(r.item.unit) }}{% endif %}
+              · <a href="{{ url_for('inventory.inventory_detail', item_id=r.item.id) }}">part</a></span>
+          </span>
+          <label class="visually-hidden" for="qty-{{ r.item.id }}">How many {{ r.item.name }} to buy</label>
+          <input class="count__box" id="qty-{{ r.item.id }}" name="qty-{{ r.item.id }}" inputmode="numeric" pattern="[0-9]*" maxlength="7" value="{{ r.suggest }}">
+        </li>
+        {%- endfor %}
+      </ul>
+    </section>
+    {%- endfor %}
+    <div class="form__actions">
+      <button class="btn btn--primary" type="submit">Make requests</button>
+      {%- if orders_on %}
+      <button class="btn" type="submit" formaction="{{ url_for('purchasing.shopping_order') }}">Put on purchase orders</button>
+      {%- endif %}
+    </div>
+    <p class="dim">Requests go on the requests list already approved. {% if orders_on %}Purchase orders collect on one draft per supplier until you send it.{% endif %}</p>
+  </form>
+  {%- else %}
+  {{ ui.empty("Nothing to buy", "Every part with a reorder level is above it.") }}
+  {%- endif %}
+
+  <details class="card">
+    <summary class="btn btn--sm btn--ghost">Purchase orders: {{ "on" if orders_on else "off" }}</summary>
+    <form class="form stack mt-3" method="post" action="{{ url_for('purchasing.shopping_settings') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <p class="dim">With purchase orders on, the shopping list can put parts on an order to each
+         supplier, which you send, print, and receive as deliveries arrive. Off, it makes
+         requests, as before. Either way, deliveries are received into a place.</p>
+      <div class="field field--check">
+        <input id="po-on" name="purchase_orders" type="checkbox" value="on"{% if orders_on %} checked{% endif %}>
+        <label for="po-on">Use purchase orders</label>
+      </div>
+      <div class="form__actions"><button class="btn btn--sm" type="submit">Save</button></div>
+    </form>
+  </details>
+</div>
+{% endblock %}

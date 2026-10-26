@@ -38,7 +38,8 @@ ROLES = [r for r in LEVEL if r != "anon"]
 ARG_TABLE = {"game_id": "game", "item_id": "item", "record_id": "order", "task_id": "task",
              "channel_id": "channel", "device_id": "device",
              "maintenance_id": "order", "request_id": "request", "alert_id": "alert",
-             "place_id": "place"}
+             "place_id": "place", "category_id": "category", "supplier_id": "supplier",
+             "link_id": "supplier_link", "order_id": "purchase_order", "line_id": "order_line"}
 # delete_play_record's record_id is a play record, not a work order.
 ENDPOINT_ARG_TABLE = {("games.delete_play_record", "record_id"): "play"}
 
@@ -56,6 +57,11 @@ def _names(floor: dict) -> dict:
         "channel": {floor["channel"]: "channel"},
         "device": {floor["device"]: "device"},
         "place": {floor["back_room"]: "back_room", floor["shelf"]: "shelf"},
+        "category": {floor["category"]: "category"},
+        "supplier": {floor["supplier"]: "supplier"},
+        "supplier_link": {floor["supplier_link"]: "supplier_link"},
+        "purchase_order": {floor["order"]: "purchase_order"},
+        "order_line": {floor["order_line"]: "order_line"},
         "play": {},
     }
 
@@ -156,7 +162,8 @@ def _minimum_roles() -> dict[str, str]:
 
     floor = {k: 1 for k in ("raider", "pinball", "courier", "belt", "fuse", "alert",
                             "open_order", "closed_order", "general", "request", "task", "channel",
-                            "device", "back_room", "shelf")}
+                            "device", "back_room", "shelf", "category", "supplier",
+                            "supplier_link", "order", "order_line")}
     floor["session_uid"] = "d" * 32
     adapter = current_app.url_map.bind("localhost")
     out = {}

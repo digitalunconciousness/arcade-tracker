@@ -65,6 +65,12 @@ INTRODUCED_BY = {
     ("inventory_item", "code"): "d9e0f1a2b3c4",
     ("stock_history", "place_id"): "d9e0f1a2b3c4",
     ("stock_history", "to_place_id"): "d9e0f1a2b3c4",
+    ("inventory_item", "category_id"): "e0f1a2b3c4d5",
+    ("inventory_item", "unit"): "e0f1a2b3c4d5",
+    ("inventory_item", "pack_size"): "e0f1a2b3c4d5",
+    ("inventory_item", "photo_filename"): "e0f1a2b3c4d5",
+    ("inventory_item", "reorder_to"): "f1a2b3c4d5e6",
+    ("inventory_request", "quantity_received"): "f1a2b3c4d5e6",
 }
 
 # Which migration created each table. Only tables a migration actually creates belong here:
@@ -87,6 +93,12 @@ TABLE_INTRODUCED_BY = {
     "device_machine": "c8d9e0f1a2b3",
     "stock_place": "d9e0f1a2b3c4",
     "stock_level": "d9e0f1a2b3c4",
+    "part_category": "e0f1a2b3c4d5",
+    "supplier": "e0f1a2b3c4d5",
+    "item_supplier": "e0f1a2b3c4d5",
+    "price_change": "e0f1a2b3c4d5",
+    "purchase_order": "f1a2b3c4d5e6",
+    "purchase_order_line": "f1a2b3c4d5e6",
 }
 
 # The revision that precedes each, i.e. what to stamp so `upgrade` will apply it.
@@ -110,6 +122,8 @@ PREDECESSOR = {
     "b6c7d8e9f0a1": "a5b6c7d8e9f0",
     "c8d9e0f1a2b3": "b6c7d8e9f0a1",
     "d9e0f1a2b3c4": "c8d9e0f1a2b3",
+    "e0f1a2b3c4d5": "d9e0f1a2b3c4",
+    "f1a2b3c4d5e6": "e0f1a2b3c4d5",
 }
 
 # Every index app/models/indexes.py declares came from this revision.
@@ -120,7 +134,8 @@ ORDER = ["5a026e6869ec", "ebead5244def", "3e5463d29981", "e7582856b8aa",
          "f1c2d3e4a5b6", "d4e5f6a7b8c9", "e6f7a8b9c0d1", "b1c2d3e4f5a6",
          "c7d8e9f0a1b2", "d1e2f3a4b5c6", "e3f4a5b6c7d8",
          "f4a5b6c7d8e9", "a5b6c7d8e9f0",
-         "b6c7d8e9f0a1", "c8d9e0f1a2b3", "d9e0f1a2b3c4"]
+         "b6c7d8e9f0a1", "c8d9e0f1a2b3", "d9e0f1a2b3c4",
+         "e0f1a2b3c4d5", "f1a2b3c4d5e6"]
 
 
 def check_encoding(db) -> dict | None:

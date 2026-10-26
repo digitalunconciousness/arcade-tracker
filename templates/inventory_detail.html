@@ -4,8 +4,9 @@
 {% block title %}{{ item.name }}{% endblock %}
 
 {% block page_head %}
-{% call ui.page_head(item.name, sub=item.part_number, back=url_for("inventory.inventory_list"), back_label="Parts") %}
+{% call ui.page_head(item.name, sub=[item.part_number, item.category.name if item.category else none]|select|join(" · ") or none, back=url_for("inventory.inventory_list"), back_label="Parts") %}
   <a class="btn btn--sm" href="{{ url_for('inventory.request_inventory', item_id=item.id) }}">Request more</a>
+  {%- if item.code %}<a class="btn btn--sm" href="{{ url_for('stock_labels.sheet', ids='i' ~ item.id) }}">Label</a>{% endif %}
   {%- if current_user.has_role("manager") %}
   <a class="btn btn--sm" href="{{ url_for('inventory.edit_inventory_item', item_id=item.id) }}">Edit</a>
   {%- endif %}
@@ -16,8 +17,12 @@
 {%- set low = item.is_low_stock() %}
 <div class="stack">
 
+  {%- if item.photo_filename %}
+  <img class="part__photo" src="{{ url_for('parts.photo', filename=item.photo_filename) }}" alt="{{ item.name }}">
+  {%- endif %}
+
   <dl class="readouts">
-    {{ ui.readout("In stock", item.stock_quantity, "reorder at " ~ item.minimum_stock, ("fault" if item.stock_quantity == 0 else "warn") if low else "ok") }}
+    {{ ui.readout("In stock", item.stock_quantity ~ ("" if (item.unit or "each") == "each" else " " ~ item.unit), "reorder at " ~ item.minimum_stock, ("fault" if item.stock_quantity == 0 else "warn") if low else "ok") }}
     {{ ui.readout("Unit price", "$%.2f"|format(item.unit_price or 0)) }}
     {{ ui.readout("Stock value", "$%.2f"|format(item.total_value())) }}
   </dl>
@@ -69,11 +74,31 @@
     {%- if item.description %}<p class="prose">{{ item.description }}</p>{% endif %}
     <dl class="kv">
       <dt>Part number</dt><dd>{{ item.part_number or "—" }}</dd>
-      <dt>Supplier</dt><dd>{{ item.supplier or "—" }}</dd>
+      <dt>Category</dt><dd>{% if item.category %}<a href="{{ url_for('inventory.inventory_list', category=item.category_id) }}">{{ item.category.name }}</a>{% else %}—{% endif %}</dd>
+      <dt>Unit</dt><dd>{{ item.unit or "each" }}{% if item.pack_size %} · bought in packs of {{ item.pack_size }}{% endif %}</dd>
+      <dt>Preferred supplier</dt><dd>{{ item.supplier or "—" }}</dd>
       <dt>Added</dt><dd>{{ item.date_added.strftime("%Y-%m-%d") if item.date_added else "—" }}</dd>
       <dt>Last restocked</dt><dd>{{ item.last_restocked.strftime("%Y-%m-%d") if item.last_restocked else "—" }}</dd>
     </dl>
     {%- if item.notes %}<h3>Notes</h3><p class="prose">{{ item.notes }}</p>{% endif %}
+  </section>
+
+  {% include "_part_suppliers.html" %}
+
+  <section class="card stack" aria-labelledby="photo-title">
+    <h2 id="photo-title">Photo</h2>
+    <p class="dim">One photo, so the part is easy to recognise on a shelf.</p>
+    <form class="form inline-add" method="post" action="{{ url_for('parts.photo_upload', item_id=item.id) }}" enctype="multipart/form-data">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="field">
+        <label for="part-photo">{{ "Replace the photo" if item.photo_filename else "Add a photo" }}</label>
+        <input id="part-photo" name="photo" type="file" accept="image/*" capture="environment">
+      </div>
+      <div class="form__actions"><button class="btn" type="submit">Upload</button></div>
+    </form>
+    {%- if item.photo_filename %}
+    {{ ui.danger_form(url_for("parts.photo_delete", item_id=item.id), "Remove photo", "Remove this part's photo?") }}
+    {%- endif %}
   </section>
 
   <section aria-labelledby="fits-title">
@@ -134,6 +159,31 @@
     </div>
     {%- else %}
     {{ ui.empty("No stock changes yet") }}
+    {%- endif %}
+  </section>
+
+  <section aria-labelledby="prices-title">
+    <h2 id="prices-title">Price history</h2>
+    {%- if item.price_changes %}
+    <div class="table-wrap">
+      <table class="table table--stack">
+        <thead><tr><th>When</th><th>Price</th><th class="num">Was</th><th class="num">Now</th><th>Why</th><th>By</th></tr></thead>
+        <tbody>
+          {%- for pc in item.price_changes[:20] %}
+          <tr>
+            <td data-label="When">{{ pc.changed.strftime("%Y-%m-%d") }}</td>
+            <td data-label="Price">{{ pc.supplier.name if pc.supplier else ("Supplier, since removed" if pc.reason == "Supplier price" else "Our unit price") }}</td>
+            <td data-label="Was" class="num">{{ "$%.2f"|format(pc.old_price) if pc.old_price is not none else "—" }}</td>
+            <td data-label="Now" class="num">{{ "$%.2f"|format(pc.new_price) if pc.new_price is not none else "—" }}</td>
+            <td data-label="Why">{{ pc.reason or "—" }}</td>
+            <td data-label="By">{{ pc.user.username if pc.user else "—" }}</td>
+          </tr>
+          {%- endfor %}
+        </tbody>
+      </table>
+    </div>
+    {%- else %}
+    {{ ui.empty("No price changes yet") }}
     {%- endif %}
   </section>
 

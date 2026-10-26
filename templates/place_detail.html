@@ -9,6 +9,8 @@
 {% call ui.page_head(place.name, sub=place.parent.path if place.parent else "Place",
     back=url_for("places.detail", place_id=place.parent.id) if place.parent else url_for("places.overview"),
     back_label=place.parent.name if place.parent else "Places") %}
+  {%- if not place.archived %}<a class="btn btn--sm btn--primary" href="{{ url_for('places.count', place_id=place.id) }}">Count this place</a>{% endif %}
+  <a class="btn btn--sm" href="{{ url_for('stock_labels.sheet', ids='p' ~ place.id) }}">Label</a>
   {%- if place.parent %}<a class="btn btn--sm btn--ghost" href="{{ url_for('places.overview') }}">All places</a>{% endif %}
 {% endcall %}
 {% endblock %}

@@ -1,0 +1,42 @@
+{% extends "layout.html" %}
+{% import "ui.html" as ui %}
+{% set manager = current_user.has_role("manager") %}
+{% block title %}Suppliers{% endblock %}
+
+{% block page_head %}
+{{ ui.page_head("Suppliers", sub="Who parts are bought from", back=url_for("inventory.inventory_list"), back_label="Parts") }}
+{% endblock %}
+
+{% block content %}
+<div class="stack">
+  {%- if manager %}
+  <form class="form inline-add card" method="post" action="{{ url_for('parts.supplier_new') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="field">
+      <label for="new-supplier">Add a supplier</label>
+      <input id="new-supplier" name="name" required maxlength="200" placeholder="Company name">
+    </div>
+    <div class="form__actions"><button class="btn btn--primary" type="submit">Add</button></div>
+  </form>
+  {%- endif %}
+
+  {%- if suppliers %}
+  <ul class="rows">
+    {%- for s in suppliers %}
+    <li><a class="row" href="{{ url_for('parts.supplier_detail', supplier_id=s.id) }}">
+      <span class="row__main">
+        <span class="row__title">{{ s.name }}</span>
+        <span class="row__meta">{{ [(s.parts|length) ~ " part" ~ ("" if s.parts|length == 1 else "s"), s.phone]|select|join(" · ") }}</span>
+      </span>
+      {%- if s.archived %}<span class="row__end">{{ ui.chip("muted", "Archived") }}</span>{% endif %}
+    </a></li>
+    {%- endfor %}
+  </ul>
+  {%- else %}
+  {{ ui.empty("No suppliers yet", "They're added here, or from a part's page or form when you name one.") }}
+  {%- endif %}
+  {%- if archived_count or show_archived %}
+  <p><a href="{{ url_for('parts.suppliers', archived=none if show_archived else '1') }}">{{ "Hide archived" if show_archived else "Show " ~ archived_count ~ " archived" }}</a></p>
+  {%- endif %}
+</div>
+{% endblock %}

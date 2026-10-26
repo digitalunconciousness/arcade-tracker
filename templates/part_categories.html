@@ -1,0 +1,47 @@
+{% extends "layout.html" %}
+{% import "ui.html" as ui %}
+{% block title %}Part categories{% endblock %}
+
+{% block page_head %}
+{{ ui.page_head("Part categories", sub="Kinds of part, for sorting and filtering the parts list", back=url_for("inventory.inventory_list"), back_label="Parts") }}
+{% endblock %}
+
+{% block content %}
+<div class="stack">
+  <form class="form inline-add card" method="post" action="{{ url_for('parts.category_new') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="field">
+      <label for="new-category">Add a category</label>
+      <input id="new-category" name="name" required maxlength="60" placeholder="Monitors & CRTs">
+    </div>
+    <div class="form__actions"><button class="btn btn--primary" type="submit">Add</button></div>
+  </form>
+
+  {%- if categories %}
+  <ul class="rows">
+    {%- for c in categories %}
+    <li class="row">
+      <span class="row__main">
+        <a class="row__title" href="{{ url_for('inventory.inventory_list', category=c.id) }}">{{ c.name }}</a>
+        <span class="row__meta">{{ c.items|length }} part{{ "" if c.items|length == 1 else "s" }}</span>
+        <details>
+          <summary class="btn btn--sm btn--ghost">Rename or delete</summary>
+          <form class="form inline-add mt-3" method="post" action="{{ url_for('parts.category_edit', category_id=c.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="field">
+              <label for="cat-{{ c.id }}">Name</label>
+              <input id="cat-{{ c.id }}" name="name" required maxlength="60" value="{{ c.name }}">
+            </div>
+            <div class="form__actions"><button class="btn btn--sm" type="submit">Rename</button></div>
+          </form>
+          <div class="mt-3">{{ ui.danger_form(url_for("parts.category_delete", category_id=c.id), "Delete", "Delete " ~ c.name ~ "? Its parts stay, with no category.") }}</div>
+        </details>
+      </span>
+    </li>
+    {%- endfor %}
+  </ul>
+  {%- else %}
+  {{ ui.empty("No categories", "Add the kinds of part you keep.") }}
+  {%- endif %}
+</div>
+{% endblock %}

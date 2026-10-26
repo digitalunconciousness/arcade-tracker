@@ -606,6 +606,7 @@
    "games.games_list()",
    "games.scan()",
    "inventory.add_inventory_item()",
+   "inventory.inventory_detail(item_id=?)",
    "inventory.inventory_detail(item_id=belt)",
    "inventory.inventory_detail(item_id=fuse)",
    "inventory.inventory_list()",
@@ -614,7 +615,11 @@
    "inventory.low_stock_alerts()",
    "inventory.request_inventory()",
    "maintenance.maintenance_orders()",
+   "parts.categories()",
+   "parts.suppliers()",
    "places.overview()",
+   "purchasing.orders()",
+   "purchasing.shopping()",
    "rails.floor()",
    "reports.reports()"
   ],
@@ -625,6 +630,7 @@
    "games.games_list()",
    "games.scan()",
    "inventory.add_inventory_item()",
+   "inventory.inventory_detail(item_id=?)",
    "inventory.inventory_detail(item_id=belt)",
    "inventory.inventory_detail(item_id=fuse)",
    "inventory.inventory_list()",
@@ -633,7 +639,11 @@
    "inventory.low_stock_alerts()",
    "inventory.request_inventory()",
    "maintenance.maintenance_orders()",
+   "parts.categories()",
+   "parts.suppliers()",
    "places.overview()",
+   "purchasing.orders()",
+   "purchasing.shopping()",
    "rails.floor()",
    "reports.reports()"
   ],
@@ -643,6 +653,7 @@
    "dashboard.home()",
    "games.games_list()",
    "games.scan()",
+   "inventory.inventory_detail(item_id=?)",
    "inventory.inventory_detail(item_id=belt)",
    "inventory.inventory_detail(item_id=fuse)",
    "inventory.inventory_list()",
@@ -650,7 +661,9 @@
    "inventory.inventory_requests_list()",
    "inventory.request_inventory()",
    "maintenance.maintenance_orders()",
+   "parts.suppliers()",
    "places.overview()",
+   "purchasing.orders()",
    "rails.floor()"
   ]
  },
@@ -669,10 +682,16 @@
    "inventory.inventory_request_detail(request_id=request)",
    "inventory.request_inventory()",
    "maintenance.maintenance_orders()",
+   "parts.link_edit(item_id=belt, link_id=supplier_link)",
+   "parts.link_new(item_id=belt)",
+   "parts.link_remove(item_id=belt, link_id=supplier_link)",
+   "parts.photo_upload(item_id=belt)",
+   "parts.supplier_detail(supplier_id=supplier)",
    "places.detail(place_id=shelf)",
    "places.overview()",
    "rails.floor()",
-   "reports.reports()"
+   "reports.reports()",
+   "stock_labels.sheet()"
   ],
   "manager": [
    "auth.logout()",
@@ -686,10 +705,16 @@
    "inventory.inventory_request_detail(request_id=request)",
    "inventory.request_inventory()",
    "maintenance.maintenance_orders()",
+   "parts.link_edit(item_id=belt, link_id=supplier_link)",
+   "parts.link_new(item_id=belt)",
+   "parts.link_remove(item_id=belt, link_id=supplier_link)",
+   "parts.photo_upload(item_id=belt)",
+   "parts.supplier_detail(supplier_id=supplier)",
    "places.detail(place_id=shelf)",
    "places.overview()",
    "rails.floor()",
-   "reports.reports()"
+   "reports.reports()",
+   "stock_labels.sheet()"
   ],
   "operator": [
    "auth.logout()",
@@ -702,9 +727,12 @@
    "inventory.inventory_request_detail(request_id=request)",
    "inventory.request_inventory()",
    "maintenance.maintenance_orders()",
+   "parts.photo_upload(item_id=belt)",
+   "parts.supplier_detail(supplier_id=supplier)",
    "places.detail(place_id=shelf)",
    "places.overview()",
-   "rails.floor()"
+   "rails.floor()",
+   "stock_labels.sheet()"
   ]
  },
  "/inventory/<int:item_id>/adjust_stock": {
@@ -797,6 +825,119 @@
    "reports.reports()"
   ]
  },
+ "/inventory/categories": {
+  "admin": [
+   "admin.manage_users()",
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "parts.category_delete(category_id=category)",
+   "parts.category_edit(category_id=category)",
+   "parts.category_new()",
+   "rails.floor()",
+   "reports.reports()"
+  ],
+  "manager": [
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "parts.category_delete(category_id=category)",
+   "parts.category_edit(category_id=category)",
+   "parts.category_new()",
+   "rails.floor()",
+   "reports.reports()"
+  ]
+ },
+ "/inventory/labels": {
+  "admin": [
+   "admin.manage_users()",
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "places.overview()",
+   "rails.floor()",
+   "reports.reports()",
+   "stock_labels.sheet()"
+  ],
+  "manager": [
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "places.overview()",
+   "rails.floor()",
+   "reports.reports()",
+   "stock_labels.sheet()"
+  ],
+  "operator": [
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "places.overview()",
+   "rails.floor()",
+   "stock_labels.sheet()"
+  ]
+ },
+ "/inventory/labels/sheet": {
+  "admin": [
+   "admin.manage_users()",
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "rails.floor()",
+   "reports.reports()",
+   "stock_labels.pick()",
+   "stock_labels.sheet()"
+  ],
+  "manager": [
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "rails.floor()",
+   "reports.reports()",
+   "stock_labels.pick()",
+   "stock_labels.sheet()"
+  ],
+  "operator": [
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "rails.floor()",
+   "stock_labels.pick()",
+   "stock_labels.sheet()"
+  ]
+ },
  "/inventory/low_stock_alerts": {
   "admin": [
    "admin.manage_users()",
@@ -828,6 +969,101 @@
    "reports.reports()"
   ]
  },
+ "/inventory/orders": {
+  "admin": [
+   "admin.manage_users()",
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "purchasing.order(order_id=purchase_order)",
+   "purchasing.order_new()",
+   "purchasing.orders()",
+   "purchasing.shopping()",
+   "rails.floor()",
+   "reports.reports()"
+  ],
+  "manager": [
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "purchasing.order(order_id=purchase_order)",
+   "purchasing.order_new()",
+   "purchasing.orders()",
+   "purchasing.shopping()",
+   "rails.floor()",
+   "reports.reports()"
+  ],
+  "operator": [
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "purchasing.order(order_id=purchase_order)",
+   "purchasing.orders()",
+   "rails.floor()"
+  ]
+ },
+ "/inventory/orders/<int:order_id>": {
+  "admin": [
+   "admin.manage_users()",
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_detail(item_id=?)",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "purchasing.line_receive(line_id=order_line, order_id=purchase_order)",
+   "purchasing.order_action(action=cancel, order_id=purchase_order)",
+   "purchasing.order_action(action=close, order_id=purchase_order)",
+   "purchasing.order_edit(order_id=purchase_order)",
+   "purchasing.orders()",
+   "rails.floor()",
+   "reports.reports()"
+  ],
+  "manager": [
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_detail(item_id=?)",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "purchasing.line_receive(line_id=order_line, order_id=purchase_order)",
+   "purchasing.order_action(action=cancel, order_id=purchase_order)",
+   "purchasing.order_action(action=close, order_id=purchase_order)",
+   "purchasing.order_edit(order_id=purchase_order)",
+   "purchasing.orders()",
+   "rails.floor()",
+   "reports.reports()"
+  ],
+  "operator": [
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_detail(item_id=?)",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "purchasing.line_receive(line_id=order_line, order_id=purchase_order)",
+   "purchasing.orders()",
+   "rails.floor()"
+  ]
+ },
  "/inventory/places/": {
   "admin": [
    "admin.manage_users()",
@@ -842,7 +1078,8 @@
    "places.detail(place_id=back_room)",
    "places.detail(place_id=shelf)",
    "rails.floor()",
-   "reports.reports()"
+   "reports.reports()",
+   "stock_labels.pick()"
   ],
   "manager": [
    "auth.logout()",
@@ -856,7 +1093,8 @@
    "places.detail(place_id=back_room)",
    "places.detail(place_id=shelf)",
    "rails.floor()",
-   "reports.reports()"
+   "reports.reports()",
+   "stock_labels.pick()"
   ],
   "operator": [
    "auth.logout()",
@@ -869,7 +1107,8 @@
    "places.create()",
    "places.detail(place_id=back_room)",
    "places.detail(place_id=shelf)",
-   "rails.floor()"
+   "rails.floor()",
+   "stock_labels.pick()"
   ]
  },
  "/inventory/places/<int:place_id>": {
@@ -883,12 +1122,14 @@
    "inventory.inventory_detail(item_id=belt)",
    "inventory.inventory_list()",
    "maintenance.maintenance_orders()",
+   "places.count(place_id=shelf)",
    "places.create()",
    "places.detail(place_id=back_room)",
    "places.edit(place_id=shelf)",
    "places.overview()",
    "rails.floor()",
-   "reports.reports()"
+   "reports.reports()",
+   "stock_labels.sheet()"
   ],
   "manager": [
    "auth.logout()",
@@ -899,12 +1140,14 @@
    "inventory.inventory_detail(item_id=belt)",
    "inventory.inventory_list()",
    "maintenance.maintenance_orders()",
+   "places.count(place_id=shelf)",
    "places.create()",
    "places.detail(place_id=back_room)",
    "places.edit(place_id=shelf)",
    "places.overview()",
    "rails.floor()",
-   "reports.reports()"
+   "reports.reports()",
+   "stock_labels.sheet()"
   ],
   "operator": [
    "auth.logout()",
@@ -915,10 +1158,59 @@
    "inventory.inventory_detail(item_id=belt)",
    "inventory.inventory_list()",
    "maintenance.maintenance_orders()",
+   "places.count(place_id=shelf)",
    "places.create()",
    "places.detail(place_id=back_room)",
    "places.edit(place_id=shelf)",
    "places.overview()",
+   "rails.floor()",
+   "stock_labels.sheet()"
+  ]
+ },
+ "/inventory/places/<int:place_id>/count": {
+  "admin": [
+   "admin.manage_users()",
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "places.count(place_id=shelf)",
+   "places.count_add(place_id=shelf)",
+   "places.create()",
+   "places.detail(place_id=shelf)",
+   "rails.floor()",
+   "reports.reports()"
+  ],
+  "manager": [
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "places.count(place_id=shelf)",
+   "places.count_add(place_id=shelf)",
+   "places.create()",
+   "places.detail(place_id=shelf)",
+   "rails.floor()",
+   "reports.reports()"
+  ],
+  "operator": [
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "places.count(place_id=shelf)",
+   "places.count_add(place_id=shelf)",
+   "places.create()",
+   "places.detail(place_id=shelf)",
    "rails.floor()"
   ]
  },
@@ -1050,6 +1342,126 @@
    "inventory.inventory_list()",
    "inventory.inventory_requests_list()",
    "maintenance.maintenance_orders()",
+   "rails.floor()"
+  ]
+ },
+ "/inventory/shopping": {
+  "admin": [
+   "admin.manage_users()",
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_detail(item_id=fuse)",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "purchasing.orders()",
+   "purchasing.shopping_order()",
+   "purchasing.shopping_request()",
+   "purchasing.shopping_settings()",
+   "rails.floor()",
+   "reports.reports()"
+  ],
+  "manager": [
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_detail(item_id=fuse)",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "purchasing.orders()",
+   "purchasing.shopping_order()",
+   "purchasing.shopping_request()",
+   "purchasing.shopping_settings()",
+   "rails.floor()",
+   "reports.reports()"
+  ]
+ },
+ "/inventory/suppliers": {
+  "admin": [
+   "admin.manage_users()",
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "parts.supplier_detail(supplier_id=supplier)",
+   "parts.supplier_new()",
+   "rails.floor()",
+   "reports.reports()"
+  ],
+  "manager": [
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "parts.supplier_detail(supplier_id=supplier)",
+   "parts.supplier_new()",
+   "rails.floor()",
+   "reports.reports()"
+  ],
+  "operator": [
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "parts.supplier_detail(supplier_id=supplier)",
+   "rails.floor()"
+  ]
+ },
+ "/inventory/suppliers/<int:supplier_id>": {
+  "admin": [
+   "admin.manage_users()",
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_detail(item_id=belt)",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "parts.supplier_archive(supplier_id=supplier)",
+   "parts.supplier_edit(supplier_id=supplier)",
+   "parts.suppliers()",
+   "rails.floor()",
+   "reports.reports()"
+  ],
+  "manager": [
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_detail(item_id=belt)",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "parts.supplier_archive(supplier_id=supplier)",
+   "parts.supplier_edit(supplier_id=supplier)",
+   "parts.suppliers()",
+   "rails.floor()",
+   "reports.reports()"
+  ],
+  "operator": [
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_detail(item_id=belt)",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "parts.suppliers()",
    "rails.floor()"
   ]
  },
@@ -1830,6 +2242,7 @@
    "games.game_detail(game_id=raider)",
    "games.games_list()",
    "games.scan()",
+   "inventory.inventory_detail(item_id=?)",
    "inventory.inventory_detail(item_id=fuse)",
    "inventory.inventory_list()",
    "inventory.inventory_request_detail(request_id=request)",
@@ -1853,6 +2266,7 @@
    "games.game_detail(game_id=raider)",
    "games.games_list()",
    "games.scan()",
+   "inventory.inventory_detail(item_id=?)",
    "inventory.inventory_detail(item_id=fuse)",
    "inventory.inventory_list()",
    "inventory.inventory_request_detail(request_id=request)",

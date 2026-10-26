@@ -1,0 +1,73 @@
+{% extends "layout.html" %}
+{% import "ui.html" as ui %}
+{% block title %}Inventory labels{% endblock %}
+
+{% block page_head %}
+{{ ui.page_head("Inventory labels", sub="QR labels for shelves, bins and parts", back=url_for("places.overview"), back_label="Places") }}
+{% endblock %}
+
+{% block content %}
+<div class="stack">
+  <p class="dim">Stick a place's label on the shelf, drawer or bin; a part's label on its box or
+     bag. Scanning one opens it in the tracker. The codes never change, so a label stays good
+     when a place is renamed or moved.</p>
+
+  <form id="print-form" class="filters" method="get" action="{{ url_for('stock_labels.sheet') }}">
+    <input type="hidden" name="ids" value="">
+    <div class="field">
+      <label for="format">Print on</label>
+      <select id="format" name="format">
+        {%- for f in formats %}<option value="{{ f.key }}">{{ f.name }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="filters__actions">
+      <button class="btn btn--primary" type="submit">Make the sheet</button>
+    </div>
+  </form>
+
+  <section class="stack" aria-labelledby="places-title">
+    <h2 id="places-title">Places</h2>
+    <div class="field field--check">
+      <input id="all-places" type="checkbox" data-select-all="place-ids">
+      <label for="all-places">All places · <span data-selected-count="place-ids">0 selected</span></label>
+    </div>
+    <ul class="rows">
+      {%- for node in tree %}
+      <li class="row places__row places__row--d{{ [node.depth, 6]|min }}">
+        <span class="row__main">
+          <span class="field field--check">
+            <input id="p{{ node.place.id }}" type="checkbox" name="ids" value="p{{ node.place.id }}" form="print-form" data-group="place-ids">
+            <label class="row__title" for="p{{ node.place.id }}">{{ node.place.name }}</label>
+          </span>
+        </span>
+      </li>
+      {%- endfor %}
+    </ul>
+  </section>
+
+  <section class="stack" aria-labelledby="parts-title">
+    <h2 id="parts-title">Parts</h2>
+    {%- if items %}
+    <div class="field field--check">
+      <input id="all-parts" type="checkbox" data-select-all="part-ids">
+      <label for="all-parts">All parts · <span data-selected-count="part-ids">0 selected</span></label>
+    </div>
+    <ul class="rows">
+      {%- for item in items %}
+      <li class="row">
+        <span class="row__main">
+          <span class="field field--check">
+            <input id="i{{ item.id }}" type="checkbox" name="ids" value="i{{ item.id }}" form="print-form" data-group="part-ids">
+            <label class="row__title" for="i{{ item.id }}">{{ item.name }}</label>
+          </span>
+          <span class="row__meta">{{ [item.part_number, item.code]|select|join(" · ") }}</span>
+        </span>
+      </li>
+      {%- endfor %}
+    </ul>
+    {%- else %}
+    {{ ui.empty("No parts yet") }}
+    {%- endif %}
+  </section>
+</div>
+{% endblock %}

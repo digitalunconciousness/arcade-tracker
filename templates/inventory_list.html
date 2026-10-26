@@ -6,9 +6,13 @@
 {% call ui.page_head("Parts", sub=data.items|length ~ (" shown" if search or low_only else " in the catalogue")) %}
   <a class="btn btn--sm btn--primary" href="{{ url_for('inventory.request_inventory') }}">Request a part</a>
   <a class="btn btn--sm" href="{{ url_for('places.overview') }}">Places</a>
+  <a class="btn btn--sm" href="{{ url_for('parts.suppliers') }}">Suppliers</a>
   <a class="btn btn--sm" href="{{ url_for('inventory.inventory_requests_list') }}">Requests{% if data.my_pending %} <span class="tabs__count">{{ data.my_pending }}</span>{% endif %}</a>
+  {%- if orders_on %}<a class="btn btn--sm" href="{{ url_for('purchasing.orders') }}">Purchase orders</a>{% endif %}
   {%- if current_user.has_role("manager") %}
   <a class="btn btn--sm" href="{{ url_for('inventory.add_inventory_item') }}">Add part</a>
+  <a class="btn btn--sm" href="{{ url_for('parts.categories') }}">Categories</a>
+  <a class="btn btn--sm" href="{{ url_for('purchasing.shopping') }}">Shopping list</a>
   {%- if data.low_count %}<a class="btn btn--sm" href="{{ url_for('inventory.low_stock_alerts') }}">Low-stock alerts</a>{% endif %}
   {%- endif %}
 {% endcall %}
@@ -27,13 +31,21 @@
       <label for="search">Search</label>
       <input id="search" name="search" type="search" value="{{ search }}" placeholder="Name, part number, supplier" autocomplete="off">
     </div>
+    <div class="field">
+      <label for="category">Category</label>
+      <select id="category" name="category">
+        <option value="">All</option>
+        {%- for c in categories %}<option value="{{ c.id }}"{% if category == c.id %} selected{% endif %}>{{ c.name }}</option>{% endfor %}
+        <option value="0"{% if category == 0 %} selected{% endif %}>No category</option>
+      </select>
+    </div>
     <div class="field field--check">
       <input id="low_stock" name="low_stock" type="checkbox" value="1"{% if low_only %} checked{% endif %}>
       <label for="low_stock">Low stock only</label>
     </div>
     <div class="filters__actions">
       <button class="btn" type="submit">Apply</button>
-      {%- if search or low_only %}<a class="btn btn--ghost" href="{{ url_for('inventory.inventory_list') }}">Clear</a>{% endif %}
+      {%- if search or low_only or category is not none %}<a class="btn btn--ghost" href="{{ url_for('inventory.inventory_list') }}">Clear</a>{% endif %}
     </div>
   </form>
 
@@ -45,9 +57,10 @@
         <span class="row__title">{{ item.name }}</span>
         <span class="row__meta">
           {%- set bits = [] %}
+          {%- if item.category %}{% set _ = bits.append(item.category.name) %}{% endif %}
           {%- if item.part_number %}{% set _ = bits.append(item.part_number) %}{% endif %}
           {%- if item.supplier %}{% set _ = bits.append(item.supplier) %}{% endif %}
-          {%- set _ = bits.append("$%.2f each"|format(item.unit_price or 0)) %}
+          {%- set _ = bits.append("$%.2f %s"|format(item.unit_price or 0, ui.per_unit(item.unit))) %}
           {{- bits|join(" · ") }}</span>
       </span>
       <span class="row__end">
@@ -58,7 +71,7 @@
     </a></li>
     {%- endfor %}
   </ul>
-  {%- elif search or low_only %}
+  {%- elif search or low_only or category is not none %}
   {{ ui.empty("No parts match", "Try another word, or clear the filters.", url_for("inventory.inventory_list"), "Clear filters") }}
   {%- elif current_user.has_role("manager") %}
   {{ ui.empty("No parts yet", "Add the spares you keep on the shelf, so a repair can take them out of stock.", url_for("inventory.add_inventory_item"), "Add part") }}
