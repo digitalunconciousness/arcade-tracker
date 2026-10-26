@@ -88,6 +88,7 @@ def _machine_choices(form):
 @requires_role("operator")
 def inventory_list():
     from app.services.parts import categories
+    from app.services.purchasing import orders_enabled
 
     search = request.args.get("search", "").strip()
     low_only = bool(request.args.get("low_stock"))
@@ -96,7 +97,7 @@ def inventory_list():
     return render_template("inventory_list.html",
                            data=inv.list_items(current_user, search, low_only, category),
                            search=search, low_only=low_only, category=category,
-                           categories=categories())
+                           categories=categories(), orders_on=orders_enabled())
 
 
 @inventory_bp.route("/add", methods=["GET", "POST"])
@@ -292,8 +293,14 @@ def inventory_request_detail(request_id):
     if not inv.can_view_request(current_user, req):
         flash("You can only view your own requests.", "error")
         return redirect(url_for("inventory.inventory_requests_list"))
+    from app.services import purchasing, stock_places
+
     tracking = inv.tracking_events(req)
+    default = (purchasing.default_place(req.item) if req.item
+               else stock_places.unsorted_place())
     return render_template("inventory_request_detail.html", req=req, history=req.history,
+                           outstanding=purchasing.request_outstanding(req),
+                           places=_place_choices(), default_place_id=default.id,
                            tracking=tracking, statuses=inv.REQUEST_STATUSES,
                            tracking_text=inv.TRACKING_TEXT, tracking_tone=inv.TRACKING_TONE,
                            can_delete=inv.can_delete_request(current_user, req))

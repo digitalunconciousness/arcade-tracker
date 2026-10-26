@@ -1034,6 +1034,28 @@ legend {
   a {
     color: #000;
   }
+  /* Panels and tables print as plain black on white (a purchase order, a report). */
+  .card,
+  .table-wrap,
+  .table,
+  .table th,
+  .table td,
+  .table tr {
+    background: #fff !important;
+    color: #000 !important;
+    border-color: #999 !important;
+    box-shadow: none !important;
+  }
+  .dim,
+  .kv dt,
+  .page-head__sub,
+  .table th {
+    color: #333 !important;
+  }
+  .app-footer,
+  .back-link {
+    display: none;
+  }
 }
 
 /* =========================================================================================

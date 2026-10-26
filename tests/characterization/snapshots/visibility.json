@@ -606,6 +606,7 @@
    "games.games_list()",
    "games.scan()",
    "inventory.add_inventory_item()",
+   "inventory.inventory_detail(item_id=?)",
    "inventory.inventory_detail(item_id=belt)",
    "inventory.inventory_detail(item_id=fuse)",
    "inventory.inventory_list()",
@@ -617,6 +618,8 @@
    "parts.categories()",
    "parts.suppliers()",
    "places.overview()",
+   "purchasing.orders()",
+   "purchasing.shopping()",
    "rails.floor()",
    "reports.reports()"
   ],
@@ -627,6 +630,7 @@
    "games.games_list()",
    "games.scan()",
    "inventory.add_inventory_item()",
+   "inventory.inventory_detail(item_id=?)",
    "inventory.inventory_detail(item_id=belt)",
    "inventory.inventory_detail(item_id=fuse)",
    "inventory.inventory_list()",
@@ -638,6 +642,8 @@
    "parts.categories()",
    "parts.suppliers()",
    "places.overview()",
+   "purchasing.orders()",
+   "purchasing.shopping()",
    "rails.floor()",
    "reports.reports()"
   ],
@@ -647,6 +653,7 @@
    "dashboard.home()",
    "games.games_list()",
    "games.scan()",
+   "inventory.inventory_detail(item_id=?)",
    "inventory.inventory_detail(item_id=belt)",
    "inventory.inventory_detail(item_id=fuse)",
    "inventory.inventory_list()",
@@ -656,6 +663,7 @@
    "maintenance.maintenance_orders()",
    "parts.suppliers()",
    "places.overview()",
+   "purchasing.orders()",
    "rails.floor()"
   ]
  },
@@ -961,6 +969,101 @@
    "reports.reports()"
   ]
  },
+ "/inventory/orders": {
+  "admin": [
+   "admin.manage_users()",
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "purchasing.order(order_id=purchase_order)",
+   "purchasing.order_new()",
+   "purchasing.orders()",
+   "purchasing.shopping()",
+   "rails.floor()",
+   "reports.reports()"
+  ],
+  "manager": [
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "purchasing.order(order_id=purchase_order)",
+   "purchasing.order_new()",
+   "purchasing.orders()",
+   "purchasing.shopping()",
+   "rails.floor()",
+   "reports.reports()"
+  ],
+  "operator": [
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "purchasing.order(order_id=purchase_order)",
+   "purchasing.orders()",
+   "rails.floor()"
+  ]
+ },
+ "/inventory/orders/<int:order_id>": {
+  "admin": [
+   "admin.manage_users()",
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_detail(item_id=?)",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "purchasing.line_receive(line_id=order_line, order_id=purchase_order)",
+   "purchasing.order_action(action=cancel, order_id=purchase_order)",
+   "purchasing.order_action(action=close, order_id=purchase_order)",
+   "purchasing.order_edit(order_id=purchase_order)",
+   "purchasing.orders()",
+   "rails.floor()",
+   "reports.reports()"
+  ],
+  "manager": [
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_detail(item_id=?)",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "purchasing.line_receive(line_id=order_line, order_id=purchase_order)",
+   "purchasing.order_action(action=cancel, order_id=purchase_order)",
+   "purchasing.order_action(action=close, order_id=purchase_order)",
+   "purchasing.order_edit(order_id=purchase_order)",
+   "purchasing.orders()",
+   "rails.floor()",
+   "reports.reports()"
+  ],
+  "operator": [
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_detail(item_id=?)",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "purchasing.line_receive(line_id=order_line, order_id=purchase_order)",
+   "purchasing.orders()",
+   "rails.floor()"
+  ]
+ },
  "/inventory/places/": {
   "admin": [
    "admin.manage_users()",
@@ -1240,6 +1343,41 @@
    "inventory.inventory_requests_list()",
    "maintenance.maintenance_orders()",
    "rails.floor()"
+  ]
+ },
+ "/inventory/shopping": {
+  "admin": [
+   "admin.manage_users()",
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_detail(item_id=fuse)",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "purchasing.orders()",
+   "purchasing.shopping_order()",
+   "purchasing.shopping_request()",
+   "purchasing.shopping_settings()",
+   "rails.floor()",
+   "reports.reports()"
+  ],
+  "manager": [
+   "auth.logout()",
+   "auth.profile()",
+   "dashboard.home()",
+   "games.games_list()",
+   "games.scan()",
+   "inventory.inventory_detail(item_id=fuse)",
+   "inventory.inventory_list()",
+   "maintenance.maintenance_orders()",
+   "purchasing.orders()",
+   "purchasing.shopping_order()",
+   "purchasing.shopping_request()",
+   "purchasing.shopping_settings()",
+   "rails.floor()",
+   "reports.reports()"
   ]
  },
  "/inventory/suppliers": {
@@ -2104,6 +2242,7 @@
    "games.game_detail(game_id=raider)",
    "games.games_list()",
    "games.scan()",
+   "inventory.inventory_detail(item_id=?)",
    "inventory.inventory_detail(item_id=fuse)",
    "inventory.inventory_list()",
    "inventory.inventory_request_detail(request_id=request)",
@@ -2127,6 +2266,7 @@
    "games.game_detail(game_id=raider)",
    "games.games_list()",
    "games.scan()",
+   "inventory.inventory_detail(item_id=?)",
    "inventory.inventory_detail(item_id=fuse)",
    "inventory.inventory_list()",
    "inventory.inventory_request_detail(request_id=request)",

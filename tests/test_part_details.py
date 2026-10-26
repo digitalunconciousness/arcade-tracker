@@ -299,7 +299,7 @@ def test_the_migration_turns_supplier_text_into_suppliers(app):
     from app.extensions import db
 
     db.session.remove()
-    stamp(directory=MIGRATIONS, revision="e0f1a2b3c4d5")
+    stamp(directory=MIGRATIONS, revision="head")
     downgrade(directory=MIGRATIONS, revision="d9e0f1a2b3c4")
     assert not sa.inspect(db.engine).has_table("supplier")
     with db.engine.begin() as conn:

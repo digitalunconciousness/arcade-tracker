@@ -108,3 +108,65 @@ class PriceChange(db.Model):
                                               order_by="PriceChange.id.desc()"))
     supplier = db.relationship("Supplier")
     user = db.relationship("User")
+
+
+# --- purchasing (inventory step 3) ---------------------------------------------------------
+
+PO_STATUSES = ("Draft", "Sent", "Partly received", "Received", "Cancelled")
+PO_OPEN = ("Draft", "Sent", "Partly received")
+
+
+class PurchaseOrder(db.Model):
+    """An order to one supplier, for arcades that want them (a setting; off by default).
+    Lines are in the part's unit; a delivery can come in pieces."""
+
+    __tablename__ = "purchase_order"
+
+    id = db.Column(db.Integer, primary_key=True)
+    supplier_id = db.Column(db.Integer, db.ForeignKey("supplier.id"), nullable=False,
+                            index=True)
+    status = db.Column(db.String(20), nullable=False, default="Draft")
+    notes = db.Column(db.Text, nullable=True)
+    expected = db.Column(db.Date, nullable=True)
+    created_by_id = db.Column(db.Integer, db.ForeignKey("user.id", ondelete="SET NULL",
+                                                        name="fk_purchase_order_created_by_id"),
+                              nullable=True, index=True)
+    created = db.Column(db.DateTime, nullable=False, default=_now)
+    sent = db.Column(db.DateTime, nullable=True)
+    closed = db.Column(db.DateTime, nullable=True)
+
+    supplier = db.relationship("Supplier", backref="orders")
+    created_by = db.relationship("User")
+    lines = db.relationship("PurchaseOrderLine", backref="order",
+                            cascade="all, delete-orphan", order_by="PurchaseOrderLine.id")
+
+    @property
+    def is_open(self) -> bool:
+        return self.status in PO_OPEN
+
+    @property
+    def total(self) -> float:
+        return sum(line.cost for line in self.lines)
+
+
+class PurchaseOrderLine(db.Model):
+    __tablename__ = "purchase_order_line"
+
+    id = db.Column(db.Integer, primary_key=True)
+    order_id = db.Column(db.Integer, db.ForeignKey("purchase_order.id", ondelete="CASCADE"),
+                         nullable=False, index=True)
+    item_id = db.Column(db.Integer, db.ForeignKey("inventory_item.id"), nullable=False,
+                        index=True)
+    quantity = db.Column(db.Integer, nullable=False)            # in the part's unit
+    unit_price = db.Column(db.Float, nullable=True)             # per unit
+    quantity_received = db.Column(db.Integer, nullable=False, default=0, server_default="0")
+
+    item = db.relationship("InventoryItem", backref="order_lines")
+
+    @property
+    def outstanding(self) -> int:
+        return max(0, self.quantity - (self.quantity_received or 0))
+
+    @property
+    def cost(self) -> float:
+        return (self.unit_price or 0.0) * self.quantity

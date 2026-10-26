@@ -32,6 +32,7 @@ class InventoryItemForm(FlaskForm):
     description = TextAreaField("Description", validators=[Optional()])
     stock_quantity = IntegerField("In stock", validators=[InputRequired(), NumberRange(min=0)])
     minimum_stock = IntegerField("Reorder at", validators=[InputRequired(), NumberRange(min=0)])
+    reorder_to = IntegerField("Order up to", validators=[Optional(), NumberRange(min=1)])
     unit_price = DecimalField("Unit price ($)", places=2,
                               validators=[Optional(), NumberRange(min=0)])
     supplier = StringField("Preferred supplier", validators=[Optional(), Length(max=200)])

@@ -190,7 +190,7 @@ def test_the_migration_puts_todays_stock_in_unsorted(app):
     from app.extensions import db
 
     db.session.remove()
-    stamp(directory=MIGRATIONS, revision="d9e0f1a2b3c4")
+    stamp(directory=MIGRATIONS, revision="head")
     downgrade(directory=MIGRATIONS, revision="c8d9e0f1a2b3")
     inspector = sa.inspect(db.engine)
     assert not inspector.has_table("stock_place")

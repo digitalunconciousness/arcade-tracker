@@ -8,9 +8,11 @@
   <a class="btn btn--sm" href="{{ url_for('places.overview') }}">Places</a>
   <a class="btn btn--sm" href="{{ url_for('parts.suppliers') }}">Suppliers</a>
   <a class="btn btn--sm" href="{{ url_for('inventory.inventory_requests_list') }}">Requests{% if data.my_pending %} <span class="tabs__count">{{ data.my_pending }}</span>{% endif %}</a>
+  {%- if orders_on %}<a class="btn btn--sm" href="{{ url_for('purchasing.orders') }}">Purchase orders</a>{% endif %}
   {%- if current_user.has_role("manager") %}
   <a class="btn btn--sm" href="{{ url_for('inventory.add_inventory_item') }}">Add part</a>
   <a class="btn btn--sm" href="{{ url_for('parts.categories') }}">Categories</a>
+  <a class="btn btn--sm" href="{{ url_for('purchasing.shopping') }}">Shopping list</a>
   {%- if data.low_count %}<a class="btn btn--sm" href="{{ url_for('inventory.low_stock_alerts') }}">Low-stock alerts</a>{% endif %}
   {%- endif %}
 {% endcall %}

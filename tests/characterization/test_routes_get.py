@@ -62,6 +62,13 @@ PAGES = [
     ("/inventory/suppliers/<int:supplier_id>",
      lambda f: f"/inventory/suppliers/{f['supplier']}", "operator", 200, "PD-BELT",
      "text/html"),
+    # Purchasing (inventory step 3).
+    ("/inventory/shopping", lambda f: "/inventory/shopping", "manager", 200, "Glass Fuse 2A",
+     "text/html"),
+    ("/inventory/orders", lambda f: "/inventory/orders", "operator", 200, "Parts Depot",
+     "text/html"),
+    ("/inventory/orders/<int:order_id>", lambda f: f"/inventory/orders/{f['order']}",
+     "operator", 200, "Synthetic order", "text/html"),
     ("/inventory/labels", lambda f: "/inventory/labels", "operator", 200, "Shelf A",
      "text/html"),
     ("/inventory/labels/sheet",

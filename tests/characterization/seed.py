@@ -73,6 +73,16 @@ def seed_floor() -> dict:
     db.session.add_all([belts, depot, ItemSupplier(item=belt, supplier=depot, price=4.0,
                                                    supplier_part_number="PD-BELT",
                                                    preferred=True)])
+    # Purchasing (inventory step 3): orders on, and fuses ordered from the depot.
+    from app.models import PurchaseOrder, PurchaseOrderLine, Setting
+
+    Setting.put("purchase_orders", "on")
+    # A part of its own, so the parts the other tests delete aren't held by the order.
+    spring = InventoryItem(name="Coin Mech Spring", stock_quantity=0, minimum_stock=0,
+                           unit_price=0.3, part_number="SPR-1")
+    order = PurchaseOrder(supplier=depot, status="Sent", notes="Synthetic order")
+    db.session.add_all([spring, order, PurchaseOrderLine(order=order, item=spring,
+                                                         quantity=20, unit_price=0.3)])
     db.session.flush()
     alert = LowStockAlert(item_id=fuse.id, email_sent=False)
     db.session.add(alert)
@@ -143,4 +153,5 @@ def seed_floor() -> dict:
         "channel": channel.id, "device": device.id,
         "back_room": back_room.id, "shelf": shelf.id,
         "category": belts.id, "supplier": depot.id, "supplier_link": belt.suppliers[0].id,
+        "order": order.id, "order_line": order.lines[0].id,
     }

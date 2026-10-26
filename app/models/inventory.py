@@ -59,6 +59,8 @@ class InventoryItem(db.Model):
     )
     unit: str = db.Column(db.String(20), nullable=False, default="each", server_default="each")
     pack_size: int | None = db.Column(db.Integer, nullable=True)
+    # Step 3: what the shopping list tops it up to (blank: twice the reorder level).
+    reorder_to: int | None = db.Column(db.Integer, nullable=True)
     photo_filename: str | None = db.Column(db.String(255), nullable=True)
     # The part's label (/i/<code>). Printed labels encode it, so it never changes.
     code: str | None = db.Column(db.String(16), nullable=True, unique=True, index=True,
@@ -208,6 +210,9 @@ class InventoryRequest(db.Model):
     notes: str | None = db.Column(db.Text, nullable=True)
     tracking_number: str | None = db.Column(db.String(200), nullable=True)
     vendor: str | None = db.Column(db.String(200), nullable=True)
+    # Step 3: how many have arrived so far, for a delivery that comes in pieces.
+    quantity_received: int = db.Column(db.Integer, nullable=False, default=0,
+                                       server_default="0")
     estimated_arrival = db.Column(db.Date, nullable=True)
     carrier: str | None = db.Column(db.String(50), nullable=True)
     tracking_status: str | None = db.Column(db.String(50), nullable=True)

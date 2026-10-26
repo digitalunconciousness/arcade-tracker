@@ -1,0 +1,29 @@
+{#- Receiving a delivery into a place: on a request and on each purchase-order line.
+    Needs: action, outstanding, places, default_place_id, unit, prefix. -#}
+{% macro receive_form(action, outstanding, places, default_place_id, unit="each", prefix="rcv", button="Receive") -%}
+<form class="form stack" method="post" action="{{ action }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="field-row">
+    <div class="field">
+      <label for="{{ prefix }}-qty">How many arrived</label>
+      <input id="{{ prefix }}-qty" name="quantity" inputmode="numeric" pattern="[0-9]*" maxlength="7" value="{{ outstanding }}">
+      <span class="field__help">In the part's unit ({{ unit or "each" }}). Fewer is fine: the rest stays on order.</span>
+    </div>
+    <div class="field">
+      <label for="{{ prefix }}-place">Put it in</label>
+      <select id="{{ prefix }}-place" name="place">
+        {%- for p, depth in places %}<option value="{{ p.id }}"{% if p.id == default_place_id %} selected{% endif %}>{{ p.path }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="field">
+      <label for="{{ prefix }}-price">Price paid per {{ unit or "each" }} ($)</label>
+      <input id="{{ prefix }}-price" name="price" inputmode="decimal" placeholder="Optional">
+    </div>
+  </div>
+  <div class="field field--check">
+    <input id="{{ prefix }}-upd" name="update_price" type="checkbox" value="1">
+    <label for="{{ prefix }}-upd">Also make it our unit price (what work orders are charged)</label>
+  </div>
+  <div class="form__actions"><button class="btn btn--primary" type="submit">{{ button }}</button></div>
+</form>
+{%- endmacro %}

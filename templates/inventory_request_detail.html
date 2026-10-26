@@ -1,5 +1,6 @@
 {% extends "layout.html" %}
 {% import "ui.html" as ui %}
+{% from "_receive_form.html" import receive_form %}
 {% set manager = current_user.has_role("manager") %}
 {% set closed = req.status in ("Received", "Rejected") %}
 {% block title %}Request #{{ req.id }}{% endblock %}
@@ -21,7 +22,7 @@
     <h2 id="req-title">Request</h2>
     <dl class="kv">
       <dt>Part</dt><dd>{% if req.item_id and req.item %}<a href="{{ url_for('inventory.inventory_detail', item_id=req.item_id) }}">{{ req.item.name }}</a> ({{ req.item.stock_quantity }} in stock){% else %}{{ req.item_name }}{% endif %}</dd>
-      <dt>Quantity</dt><dd class="num">{{ req.quantity_requested }}</dd>
+      <dt>Quantity</dt><dd class="num">{{ req.quantity_requested }}{% if req.quantity_received and req.quantity_received < req.quantity_requested %} · {{ req.quantity_received }} arrived so far{% endif %}</dd>
       <dt>Asked by</dt><dd>{{ req.requested_by.username }}</dd>
       <dt>Asked on</dt><dd>{{ req.date_requested.strftime("%Y-%m-%d %H:%M") }}</dd>
       {%- if req.date_fulfilled %}<dt>{{ "Received" if req.status == "Received" else "Closed" }}</dt><dd>{{ req.date_fulfilled.strftime("%Y-%m-%d %H:%M") }}</dd>{% endif %}
@@ -72,6 +73,13 @@
     {%- endif %}
   </section>
 
+  {%- if not closed and req.status != "Pending" %}
+  <section class="card stack" aria-labelledby="receive-title">
+    <h2 id="receive-title">Receive a delivery</h2>
+    {{ receive_form(url_for("purchasing.receive_request", request_id=req.id), outstanding, places, default_place_id, req.item.unit if req.item else "each", "rcv", "Receive into stock") }}
+  </section>
+  {%- endif %}
+
   {%- if manager %}
   <section class="card" aria-labelledby="update-title">
     <h2 id="update-title">Update</h2>
@@ -84,7 +92,7 @@
           <select id="u-status" name="status">
             {%- for s in statuses %}<option value="{{ s }}"{% if s == req.status %} selected{% endif %}>{{ s }}</option>{% endfor %}
           </select>
-          {%- if req.status != "Received" %}<span class="field__help">Received puts {{ req.quantity_requested }} into stock{% if not req.item_id %}, as a new part{% endif %}.</span>{% endif %}
+          {%- if req.status != "Received" %}<span class="field__help">Received puts the {{ outstanding }} still to come into stock{% if not req.item_id %}, as a new part{% endif %}, where most of it already is. To choose the place, or for part of a delivery, use “Receive a delivery”.</span>{% endif %}
         </div>
         <div class="field">
           <label for="u-eta">Due</label>
