@@ -25,7 +25,7 @@ def main():
     """Run basic functionality tests"""
     base_url = "http://127.0.0.1:5000"
     
-    print("🧪 Testing Arcade Tracker Application")
+    print("🧪 Testing Cabcrawl Application")
     print("=" * 50)
     
     tests_passed = 0

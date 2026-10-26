@@ -1,4 +1,4 @@
-/* Arcade Tracker UI behaviour. No framework, no build step, no inline handlers.
+/* Cabcrawl UI behaviour. No framework, no build step, no inline handlers.
  *
  *   - registers the service worker (offline icons and CSS only; it never sees a page);
  *   - marks <html class="js"> so CSS can hide the phone menu only when this script runs

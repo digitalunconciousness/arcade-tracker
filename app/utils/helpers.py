@@ -1,4 +1,4 @@
-"""General-purpose utility functions for the Arcade Tracker application."""
+"""General-purpose utility functions for the Cabcrawl application."""
 
 from __future__ import annotations
 

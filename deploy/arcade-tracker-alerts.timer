@@ -1,7 +1,7 @@
 [Unit]
 # Installed at /etc/systemd/system/arcade-tracker-alerts.timer.
 #   systemctl enable --now arcade-tracker-alerts.timer
-Description=Arcade Tracker: send alerts every minute
+Description=Cabcrawl: send alerts every minute
 
 [Timer]
 OnBootSec=1min

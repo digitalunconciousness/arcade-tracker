@@ -1,4 +1,4 @@
-"""Arcade Tracker application package.
+"""Cabcrawl application package.
 
 Provides the :func:`create_app` factory used to build and configure the
 Flask application instance.

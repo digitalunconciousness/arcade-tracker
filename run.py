@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Arcade Tracker — application entry point.
+"""Cabcrawl — application entry point.
 
 Usage::
 
@@ -14,7 +14,7 @@ app = create_app()
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description="Arcade Tracker")
+    parser = argparse.ArgumentParser(description="Cabcrawl")
     parser.add_argument("--port", type=int, default=5000)
     parser.add_argument("--host", default="0.0.0.0")
     parser.add_argument("--debug", action="store_true")

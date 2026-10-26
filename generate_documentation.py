@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Generate comprehensive PDF documentation for Arcade Tracker
+Generate comprehensive PDF documentation for Cabcrawl
 """
 
 import sys
@@ -82,7 +82,7 @@ def create_documentation():
     story = []
     
     # Title Page
-    story.append(Paragraph("🎮 Arcade Tracker", title_style))
+    story.append(Paragraph("🎮 Cabcrawl", title_style))
     story.append(Spacer(1, 0.2*inch))
     story.append(Paragraph("Comprehensive Arcade Management System", styles['Heading2']))
     story.append(Paragraph("with Advanced Work Logging", styles['Heading2']))
@@ -95,7 +95,7 @@ def create_documentation():
     
     # Abstract
     abstract_text = """
-    Arcade Tracker is a comprehensive management system designed for arcade operators, technicians, 
+    Cabcrawl is a comprehensive management system designed for arcade operators, technicians, 
     and business managers. It provides complete game inventory management, revenue tracking, and an 
     advanced maintenance system with timestamped work logging capabilities. This documentation covers 
     all features, user roles, workflows, and technical details.
@@ -138,7 +138,7 @@ def create_documentation():
     story.append(Paragraph("1. System Overview", heading1_style))
     
     overview_text = """
-    Arcade Tracker is a web-based application built with Flask that provides comprehensive management 
+    Cabcrawl is a web-based application built with Flask that provides comprehensive management 
     capabilities for arcade operations. The system is designed to handle everything from basic game 
     inventory to complex maintenance workflows with detailed work logging.
     """
@@ -227,7 +227,7 @@ def create_documentation():
     story.append(Paragraph("3. User Roles & Permissions", heading1_style))
     
     role_intro = """
-    Arcade Tracker implements a hierarchical role-based access control system with four user levels. 
+    Cabcrawl implements a hierarchical role-based access control system with four user levels. 
     Each higher level inherits all permissions from lower levels.
     """
     story.append(Paragraph(role_intro, body_style))
@@ -373,7 +373,7 @@ def create_documentation():
     story.append(Paragraph("6. Reporting & Analytics", heading1_style))
     
     reporting_intro = """
-    Arcade Tracker provides comprehensive reporting capabilities with professional PDF exports 
+    Cabcrawl provides comprehensive reporting capabilities with professional PDF exports 
     that include complete work history documentation.
     """
     story.append(Paragraph(reporting_intro, body_style))
@@ -480,7 +480,7 @@ def create_documentation():
     story.append(Paragraph("8.1 Installation", heading2_style))
     installation_steps = [
         "Ensure Python 3.8+ is installed",
-        "Download or clone the Arcade Tracker files",
+        "Download or clone the Cabcrawl files",
         "Install dependencies: pip install -r requirements.txt",
         "Run the application: python app.py",
         "Navigate to http://localhost:5000 in your browser"
@@ -528,7 +528,7 @@ def create_documentation():
     
     # Footer
     story.append(Spacer(1, 0.5*inch))
-    story.append(Paragraph("🎮 Arcade Tracker v2.0 - Professional Arcade Management System 🔧", 
+    story.append(Paragraph("🎮 Cabcrawl v2.0 - Professional Arcade Management System 🔧", 
                           styles['Heading2']))
     
     # Build PDF

@@ -1,4 +1,4 @@
-# 🎮 Arcade Tracker - Complete Documentation
+# 🎮 Cabcrawl - Complete Documentation
 
 **Your Complete Guide to Managing Your Arcade Business**
 

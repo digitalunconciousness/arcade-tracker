@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Create a complete ISO backup of the Arcade Tracker system
+Create a complete ISO backup of the Cabcrawl system
 Includes application files, database, documentation, and installer
 """
 
@@ -15,7 +15,7 @@ import tempfile
 def create_complete_backup():
     """Create a complete backup ISO with installer"""
     
-    print("🎮 Creating Arcade Tracker Complete Backup ISO...")
+    print("🎮 Creating Cabcrawl Complete Backup ISO...")
     
     # Create temporary directory for ISO contents
     iso_temp_dir = tempfile.mkdtemp(prefix="arcade_tracker_iso_")
@@ -116,7 +116,7 @@ def create_complete_backup():
             print(f"\n✅ SUCCESS! Complete backup ISO created: {iso_filename}")
             print(f"📦 Size: {get_file_size(iso_filename)}")
             print("\n🎯 This ISO contains:")
-            print("   • Complete Arcade Tracker application")
+            print("   • Complete Cabcrawl application")
             print("   • Current database with all data")
             print("   • Comprehensive documentation")
             print("   • Automated installers for Linux and Windows")
@@ -146,12 +146,12 @@ def create_linux_installer(installer_dir, app_dir):
     """Create Linux installer script"""
     
     installer_script = '''#!/bin/bash
-# Arcade Tracker Complete Installation Script for Linux
-# This script will install Arcade Tracker with all dependencies
+# Cabcrawl Complete Installation Script for Linux
+# This script will install Cabcrawl with all dependencies
 
 set -e
 
-echo "🎮 Arcade Tracker Complete Installation"
+echo "🎮 Cabcrawl Complete Installation"
 echo "========================================"
 
 # Check for Python 3
@@ -226,7 +226,7 @@ if command -v desktop-file-install &> /dev/null; then
     echo "🖥️ Creating desktop entry..."
     cat > /tmp/arcade-tracker.desktop << EOF
 [Desktop Entry]
-Name=Arcade Tracker
+Name=Cabcrawl
 Comment=Professional Arcade Management System
 Exec=$INSTALL_DIR/start_arcade_tracker.sh
 Icon=$INSTALL_DIR/static/favicon.ico
@@ -241,7 +241,7 @@ fi
 echo ""
 echo "✅ Installation Complete!"
 echo ""
-echo "🎯 To start Arcade Tracker:"
+echo "🎯 To start Cabcrawl:"
 echo "   cd $INSTALL_DIR"
 echo "   ./start_arcade_tracker.sh"
 echo ""
@@ -251,7 +251,7 @@ echo "📋 Documentation available in: $INSTALL_DIR/../documentation/"
 echo ""
 
 # Ask if user wants to start now
-read -p "Start Arcade Tracker now? (y/n): " -n 1 -r
+read -p "Start Cabcrawl now? (y/n): " -n 1 -r
 echo
 if [[ $REPLY =~ ^[Yy]$ ]]; then
     cd "$INSTALL_DIR"
@@ -269,10 +269,10 @@ def create_windows_installer(installer_dir, app_dir):
     """Create Windows installer batch script"""
     
     installer_script = '''@echo off
-REM Arcade Tracker Complete Installation Script for Windows
-REM This script will install Arcade Tracker with all dependencies
+REM Cabcrawl Complete Installation Script for Windows
+REM This script will install Cabcrawl with all dependencies
 
-echo 🎮 Arcade Tracker Complete Installation
+echo 🎮 Cabcrawl Complete Installation
 echo ========================================
 
 REM Check for Python
@@ -345,7 +345,7 @@ echo pause >> start_arcade_tracker.bat
 echo.
 echo ✅ Installation Complete!
 echo.
-echo 🎯 To start Arcade Tracker:
+echo 🎯 To start Cabcrawl:
 echo    Double-click start_arcade_tracker.bat
 echo    OR
 echo    cd %INSTALL_DIR%
@@ -357,7 +357,7 @@ echo 📋 Documentation available in the documentation folder
 echo.
 
 REM Ask if user wants to start now
-set /p START_NOW="Start Arcade Tracker now? (y/n): "
+set /p START_NOW="Start Cabcrawl now? (y/n): "
 if /i "%START_NOW%"=="y" (
     start_arcade_tracker.bat
 )
@@ -371,13 +371,13 @@ pause
 def create_iso_readme(iso_dir):
     """Create README for the ISO"""
     
-    readme_content = '''# 🎮 Arcade Tracker Complete Backup ISO
+    readme_content = '''# 🎮 Cabcrawl Complete Backup ISO
 
-This ISO contains a complete backup of your Arcade Tracker system including:
+This ISO contains a complete backup of your Cabcrawl system including:
 
 ## 📦 Contents
 
-- **Application Files**: Complete Arcade Tracker v2.0 application
+- **Application Files**: Complete Cabcrawl v2.0 application
 - **Database**: Current database with all your games, plays, and maintenance records
 - **Documentation**: Comprehensive PDF documentation and README
 - **Installers**: Automated installation scripts for Linux and Windows
@@ -455,7 +455,7 @@ Complete documentation is available in the `documentation` directory, including:
 
 ---
 
-**🎮 Arcade Tracker v2.0 - Professional Arcade Management System 🔧**
+**🎮 Cabcrawl v2.0 - Professional Arcade Management System 🔧**
 
 Created: ''' + datetime.now().strftime('%Y-%m-%d %H:%M:%S') + '''
 '''
@@ -527,7 +527,7 @@ if __name__ == '__main__':
     iso_file = create_complete_backup()
     if iso_file:
         print(f"\n🎯 Your complete backup ISO is ready: {iso_file}")
-        print("Keep this file safe - it contains your complete Arcade Tracker system!")
+        print("Keep this file safe - it contains your complete Cabcrawl system!")
     else:
         print("❌ Failed to create backup ISO")
         sys.exit(1)

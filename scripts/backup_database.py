@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Database backup script for Arcade Tracker
+Database backup script for Cabcrawl
 Creates timestamped backups and manages backup retention
 """
 
@@ -154,7 +154,7 @@ def list_backups():
         print(f"{filename:<30} {file_time.strftime('%Y-%m-%d %H:%M:%S')} ({size_mb:.2f} MB)")
 
 def main():
-    parser = argparse.ArgumentParser(description='Database backup management for Arcade Tracker')
+    parser = argparse.ArgumentParser(description='Database backup management for Cabcrawl')
     parser.add_argument('action', choices=['backup', 'list', 'cleanup'], 
                        help='Action to perform')
     parser.add_argument('--max-backups', type=int, default=30,
