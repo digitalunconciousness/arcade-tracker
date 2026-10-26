@@ -80,8 +80,9 @@ def test_an_open_order_is_flagged_in_the_list(client, floor):
 
 
 def test_revenue_column_is_for_managers(client, floor):
-    assert "Revenue" not in get(client, "operator", "/games")
-    assert "Revenue" in get(client, "manager", "/games")
+    """Called token value since the wording pass (2026-10-26); still managers only."""
+    assert "Token value" not in get(client, "operator", "/games")
+    assert "Token value" in get(client, "manager", "/games")
 
 
 def test_bulk_export_forwards_the_selection_to_the_csv(client, floor):

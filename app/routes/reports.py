@@ -46,40 +46,25 @@ def reports():
         PlayRecord.date_recorded >= thirty_days_ago
     ).all()
 
-    # Calculate daily revenue
-    daily_revenue: dict[str, float] = {}
+    # Plays first, token value second (wording pass, 2026-10-26).
+    daily_plays: dict[str, int] = {}
     for record in recent_records:
         day = record.date_recorded.strftime("%Y-%m-%d")
-        daily_revenue[day] = daily_revenue.get(day, 0) + record.revenue
+        daily_plays[day] = daily_plays.get(day, 0) + (record.plays_count or 0)
+    total_plays_30days = sum(daily_plays.values())
+    total_value_30days = sum(r.revenue or 0.0 for r in recent_records)
 
-    # Top and worst performers — only floor games with working counters
-    floor_games = Game.query.filter_by(location="Floor", counter_status="Working").all()
-    performers = []
-    for game in floor_games:
-        date_added = game.date_added
-        if date_added.tzinfo is None:
-            date_added = date_added.replace(tzinfo=dt.UTC)
-        days_active = (datetime.now(dt.UTC) - date_added).days or 1
-        daily_revenue_avg = game.total_revenue / days_active
-        performers.append(
-            {
-                "game": {
-                    "id": game.id,
-                    "name": game.name,
-                    "times_in_top_5": game.times_in_top_5,
-                    "times_in_top_10": game.times_in_top_10,
-                },
-                "daily_revenue": daily_revenue_avg,
-                "total_revenue": game.total_revenue,
-            }
-        )
+    # Ranked by plays per working day, the rotation planner's measure (app/services/popularity.py).
+    from app.services.popularity import WINDOW_DAYS, floor_ranking
 
-    top_performers = sorted(performers, key=lambda x: x["daily_revenue"], reverse=True)[:10]
-    worst_performers = sorted(performers, key=lambda x: x["daily_revenue"])[:10]
-
+    ranked = floor_ranking()
+    performers = [{"game": m.game, "plays_per_day": m.rate.per_day,
+                   "value_per_day": m.rate.value_per_day} for m in ranked]
+    top_performers = performers[:10]
+    worst_performers = list(reversed(performers))[:10]
     top_5_games = top_performers[:5]
     bottom_3_games = worst_performers[:3]
-    total_revenue_30days = sum(daily_revenue.values())
+    floor_games = Game.query.filter_by(location="Floor", counter_status="Working").all()
 
     # Inventory data
     low_stock_items = InventoryItem.query.filter(
@@ -106,19 +91,21 @@ def reports():
 
     return render_template(
         "reports.html",
-        daily_revenue=daily_revenue,
+        daily_plays=daily_plays,
         top_performers=top_performers,
         worst_performers=worst_performers,
         floor_games_count=len(floor_games),
         top_5_games=top_5_games,
         bottom_3_games=bottom_3_games,
-        total_revenue_30days=total_revenue_30days,
+        total_plays_30days=total_plays_30days,
+        total_value_30days=total_value_30days,
+        window_days=WINDOW_DAYS,
         low_stock_items=low_stock_items,
         pending_requests=pending_requests,
         open_maintenance=open_maintenance,
-        daily_chart=series(daily_revenue),
-        games_chart={"labels": [p["game"]["name"] for p in top_performers],
-                     "values": [round(p["total_revenue"] or 0, 2) for p in top_performers]},
+        daily_chart=series(daily_plays),
+        games_chart={"labels": [p["game"].name for p in top_performers],
+                     "values": [round(p["plays_per_day"], 1) for p in top_performers]},
     )
 
 
@@ -156,12 +143,14 @@ def revenue_reports():
         game_revenues[record.game.id]["revenue"] += record.revenue
         game_revenues[record.game.id]["plays"] += record.plays_count
 
-    top_games = sorted(game_revenues.values(), key=lambda x: x["revenue"], reverse=True)[:10]
+    # Most played first; token value second (wording pass, 2026-10-26).
+    top_games = sorted(game_revenues.values(), key=lambda x: (x["plays"], x["revenue"]),
+                       reverse=True)[:10]
 
-    daily_revenue: dict[str, float] = {}
+    daily_plays: dict[str, int] = {}
     for record in all_records:
         day_str = record.date_recorded.strftime("%Y-%m-%d")
-        daily_revenue[day_str] = daily_revenue.get(day_str, 0) + record.revenue
+        daily_plays[day_str] = daily_plays.get(day_str, 0) + (record.plays_count or 0)
 
     locations = db.session.query(Game.location.distinct()).all()
 
@@ -176,8 +165,8 @@ def revenue_reports():
         total_revenue=total_revenue,
         total_plays=total_plays,
         avg_daily_revenue=avg_daily_revenue,
-        daily_revenue=daily_revenue,
-        daily_chart=series(daily_revenue),
+        avg_daily_plays=total_plays / days if days > 0 else 0,
+        daily_chart=series(daily_plays),
         location_options=location_options(loc[0] for loc in locations),
         scope=scope_label(location_filter),
     )
@@ -204,26 +193,15 @@ def graphs():
         )
         .all()
     )
-    daily_revenue: dict = {}
+    daily_plays: dict = {}
     for record in recent_records:
         day = record.date_recorded
-        daily_revenue[day] = daily_revenue.get(day, 0) + record.revenue
+        daily_plays[day] = daily_plays.get(day, 0) + (record.plays_count or 0)
 
-    performers = []
-    for game in floor_games:
-        try:
-            date_added = game.date_added
-            if date_added.tzinfo is None:
-                date_added = date_added.replace(tzinfo=dt.UTC)
-            days_active = (datetime.now(dt.UTC) - date_added).days or 1
-            daily_revenue_avg = game.total_revenue / days_active if game.total_revenue else 0
-            performers.append(
-                {"game": game, "daily_revenue": daily_revenue_avg, "total_revenue": game.total_revenue or 0}
-            )
-        except Exception:
-            continue
+    # Most played first, by plays per working day (app/services/popularity.py).
+    from app.services.popularity import floor_ranking
 
-    top_performers = sorted(performers, key=lambda x: x["daily_revenue"], reverse=True)
+    top_performers = floor_ranking()
 
     status_distribution = Counter(game.status for game in all_games)
     location_distribution = Counter(game.location for game in all_games)
@@ -235,14 +213,14 @@ def graphs():
         total_revenue=total_revenue,
         floor_games=floor_games,
         all_games=all_games,
-        daily_revenue=daily_revenue,
+        daily_plays=daily_plays,
         top_performers=top_performers,
         status_distribution=status_distribution,
         location_distribution=location_distribution,
         # JSON islands, so a machine name with an apostrophe can't break the script.
-        daily_chart=series(daily_revenue),
-        top_chart={"labels": [p["game"].name for p in top_performers[:8]],
-                   "values": [round(p["daily_revenue"], 2) for p in top_performers[:8]]},
+        daily_chart=series(daily_plays),
+        top_chart={"labels": [m.game.name for m in top_performers[:8]],
+                   "values": [round(m.rate.per_day, 1) for m in top_performers[:8]]},
         status_chart={"labels": [status_label(k) for k in status_distribution],
                       "values": list(status_distribution.values()),
                       "tones": [status_tone(k) for k in status_distribution]},
@@ -271,13 +249,16 @@ def export_report_debug():
 
     total_games = Game.query.count()
     floor_games = Game.query.filter_by(location="Floor").count()
-    total_revenue = sum(g.total_revenue for g in Game.query.all())
+    every_game = Game.query.all()
+    total_plays = sum(g.total_plays or 0 for g in every_game)
+    total_revenue = sum(g.total_revenue or 0 for g in every_game)
 
     summary_data = [
         ["Metric", "Value"],
         ["Total Games", str(total_games)],
         ["Games on Floor", str(floor_games)],
-        ["Total Revenue", f"${total_revenue:.2f}"],
+        ["Total Plays", f"{total_plays:,}"],
+        ["Token Value", f"${total_revenue:,.2f}"],
     ]
     story.append(Table(summary_data))
 
@@ -321,13 +302,17 @@ def export_report():
     # Summary stats
     total_games = Game.query.count()
     floor_games_count = Game.query.filter_by(location="Floor").count()
-    total_revenue = sum(g.total_revenue for g in Game.query.all())
+    every_game = Game.query.all()
+    total_plays = sum(g.total_plays or 0 for g in every_game)
+    total_revenue = sum(g.total_revenue or 0 for g in every_game)
 
+    # Plays first, token value second (wording pass, 2026-10-26).
     summary_data = [
         ["Metric", "Value"],
         ["Total Games", str(total_games)],
         ["Games on Floor", str(floor_games_count)],
-        ["Total Revenue", f"${total_revenue:.2f}"],
+        ["Total Plays", f"{total_plays:,}"],
+        ["Token Value", f"${total_revenue:,.2f}"],
     ]
     summary_table = Table(summary_data)
     summary_table.setStyle(
@@ -347,25 +332,16 @@ def export_report():
     story.append(summary_table)
     story.append(Spacer(1, 12))
 
-    # Worst performers table
-    story.append(Paragraph("Worst Performing Games (Recommended for Replacement)", styles["Heading2"]))
+    # Least played, by plays per working day (app/services/popularity.py)
+    from app.services.popularity import WINDOW_DAYS, floor_ranking
 
-    floor_games = Game.query.filter_by(location="Floor", counter_status="Working").all()
-    worst_data = [["Game Name", "Daily Revenue", "Total Revenue", "Days Active"]]
-
-    performers = []
-    for game in floor_games:
-        date_added = game.date_added
-        if date_added.tzinfo is None:
-            date_added = date_added.replace(tzinfo=dt.UTC)
-        days_active = (datetime.now(dt.UTC) - date_added).days or 1
-        daily_revenue_val = game.total_revenue / days_active
-        performers.append((game, daily_revenue_val, days_active))
-
-    performers.sort(key=lambda x: x[1])
-
-    for game, daily_rev, days in performers[:5]:
-        worst_data.append([game.name, f"${daily_rev:.2f}", f"${game.total_revenue:.2f}", str(days)])
+    ranked = floor_ranking()
+    story.append(Paragraph(f"Least Played Games, last {WINDOW_DAYS} days (candidates to swap out)",
+                           styles["Heading2"]))
+    worst_data = [["Game Name", "Plays per Day", "Token Value per Day", "Days Counted"]]
+    for m in list(reversed(ranked))[:5]:
+        worst_data.append([m.game.name, f"{m.rate.per_day:.1f}", f"${m.rate.value_per_day:.2f}",
+                           str(m.rate.days)])
 
     worst_table = Table(worst_data)
     worst_table.setStyle(
@@ -392,7 +368,7 @@ def export_report():
     temp_dir = tempfile.mkdtemp()
     charts_added = 0
 
-    # Chart 1: Daily Revenue Trend
+    # Chart 1: Daily plays
     try:
         thirty_days_ago = date.today() - timedelta(days=30)
         recent_records = (
@@ -404,19 +380,19 @@ def export_report():
             )
             .all()
         )
-        daily_rev: dict = {}
+        daily_plays: dict = {}
         for record in recent_records:
             day = record.date_recorded
-            daily_rev[day] = daily_rev.get(day, 0) + record.revenue
+            daily_plays[day] = daily_plays.get(day, 0) + (record.plays_count or 0)
 
-        if daily_rev:
+        if daily_plays:
             plt.figure(figsize=(10, 6))
-            sorted_dates = sorted(daily_rev.keys())
-            revenues = [daily_rev[d] for d in sorted_dates]
-            plt.plot(sorted_dates, revenues, marker="o", linewidth=2, markersize=4)
-            plt.title("Daily Revenue Trend (Last 30 Days)", fontsize=14, fontweight="bold")
+            sorted_dates = sorted(daily_plays.keys())
+            plays = [daily_plays[d] for d in sorted_dates]
+            plt.plot(sorted_dates, plays, marker="o", linewidth=2, markersize=4)
+            plt.title("Plays by Day (Last 30 Days)", fontsize=14, fontweight="bold")
             plt.xlabel("Date")
-            plt.ylabel("Revenue ($)")
+            plt.ylabel("Plays")
             plt.xticks(rotation=45)
             plt.grid(True, alpha=0.3)
             plt.tight_layout()
@@ -425,36 +401,36 @@ def export_report():
             plt.savefig(revenue_chart_path, dpi=150, bbox_inches="tight")
             plt.close()
 
-            story.append(Paragraph("Daily Revenue Trend", styles["Heading2"]))
+            story.append(Paragraph("Plays by Day", styles["Heading2"]))
             story.append(Image(revenue_chart_path, width=6 * inch, height=3.6 * inch))
             story.append(Spacer(1, 12))
             charts_added += 1
     except Exception:
-        current_app.logger.exception("PDF report: daily revenue chart failed")
-        story.append(Paragraph("Daily Revenue Chart: could not be drawn (see the server log).",
+        current_app.logger.exception("PDF report: daily plays chart failed")
+        story.append(Paragraph("Plays by Day Chart: could not be drawn (see the server log).",
                                styles["Normal"]))
 
-    # Chart 2: Top 10 Games by Total Revenue
+    # Chart 2: the 10 most played, per working day
     try:
-        top_performers = sorted(performers, key=lambda x: x[1], reverse=True)[:10]
+        top_performers = ranked[:10]
         if top_performers:
             plt.figure(figsize=(10, 6))
             game_names = [
-                p[0].name[:15] + ("..." if len(p[0].name) > 15 else "") for p in top_performers
+                m.game.name[:15] + ("..." if len(m.game.name) > 15 else "") for m in top_performers
             ]
-            revenues = [p[0].total_revenue for p in top_performers]
+            per_day = [m.rate.per_day for m in top_performers]
 
-            bars = plt.bar(range(len(game_names)), revenues, color="skyblue", edgecolor="navy")
-            plt.title("Top 10 Games by Total Revenue", fontsize=14, fontweight="bold")
+            bars = plt.bar(range(len(game_names)), per_day, color="skyblue", edgecolor="navy")
+            plt.title("Top 10 Games by Plays per Working Day", fontsize=14, fontweight="bold")
             plt.xlabel("Games")
-            plt.ylabel("Total Revenue ($)")
+            plt.ylabel("Plays per day")
             plt.xticks(range(len(game_names)), game_names, rotation=45, ha="right")
 
-            for bar, revenue in zip(bars, revenues):
+            for bar, value in zip(bars, per_day):
                 plt.text(
                     bar.get_x() + bar.get_width() / 2,
-                    bar.get_height() + max(revenues) * 0.01,
-                    f"${revenue:.0f}",
+                    bar.get_height() + max(per_day) * 0.01,
+                    f"{value:.1f}",
                     ha="center",
                     va="bottom",
                     fontsize=8,
@@ -554,7 +530,7 @@ def export_revenue_report():
                    location_filter)
     # The location comes from the query string, and ReportLab reads markup in a Paragraph.
     from xml.sax.saxutils import escape
-    title = escape(f"Revenue Report - {scope_label(location_filter)}, working counters "
+    title = escape(f"Plays and Token Value - {scope_label(location_filter)}, working counters "
                    f"(Last {days} Days)")
 
     records = query.order_by(PlayRecord.date_recorded.desc()).all()
@@ -575,9 +551,10 @@ def export_revenue_report():
     summary_data = [
         ["Metric", "Value"],
         ["Total Records", str(len(records))],
-        ["Total Revenue", f"${total_revenue:.2f}"],
-        ["Total Plays", str(total_plays)],
-        ["Avg Daily Revenue", f"${avg_daily_revenue:.2f}"],
+        ["Total Plays", f"{total_plays:,}"],
+        ["Plays per Day", f"{total_plays / days if days > 0 else 0:,.1f}"],
+        ["Token Value", f"${total_revenue:,.2f}"],
+        ["Token Value per Day", f"${avg_daily_revenue:,.2f}"],
     ]
     summary_table = Table(summary_data)
     summary_table.setStyle(
@@ -599,7 +576,7 @@ def export_revenue_report():
 
     # Top games table
     if records:
-        story.append(Paragraph("Top Performing Games", styles["Heading2"]))
+        story.append(Paragraph("Most Played Games", styles["Heading2"]))
 
         game_revenues: dict[int, dict] = {}
         for record in records:
@@ -608,21 +585,22 @@ def export_revenue_report():
             game_revenues[record.game.id]["revenue"] += record.revenue
             game_revenues[record.game.id]["plays"] += record.plays_count
 
-        top_games = sorted(game_revenues.values(), key=lambda x: x["revenue"], reverse=True)[:10]
+        top_games = sorted(game_revenues.values(), key=lambda x: (x["plays"], x["revenue"]),
+                           reverse=True)[:10]
 
-        revenue_data = [["Game", "Revenue", "Plays", "Avg per Play"]]
+        revenue_data = [["Game", "Plays", "Token Value", "Token Value per Play"]]
         for game_data in top_games:
             avg_per_play = game_data["revenue"] / game_data["plays"] if game_data["plays"] > 0 else 0
             revenue_data.append(
                 [
                     game_data["game"].name[:20] + ("..." if len(game_data["game"].name) > 20 else ""),
+                    f"{game_data['plays']:,}",
                     f"${game_data['revenue']:.2f}",
-                    str(game_data["plays"]),
                     f"${avg_per_play:.2f}",
                 ]
             )
 
-        revenue_table = Table(revenue_data, colWidths=[150, 80, 60, 80])
+        revenue_table = Table(revenue_data, colWidths=[150, 60, 80, 110])
         revenue_table.setStyle(
             TableStyle(
                 [
@@ -643,9 +621,9 @@ def export_revenue_report():
     doc.build(story)
     buffer.seek(0)
 
-    filename = f"revenue_report_{days}days.pdf"
+    filename = f"plays_report_{days}days.pdf"
     if location_filter:
-        filename = f"revenue_report_{location_filter}_{days}days.pdf"
+        filename = f"plays_report_{location_filter}_{days}days.pdf"
 
     return send_file(buffer, as_attachment=True, download_name=filename, mimetype="application/pdf")
 

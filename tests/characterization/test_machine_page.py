@@ -39,8 +39,9 @@ def test_everyone_sees_open_orders_and_history(client, floor):
 
 
 def test_revenue_stays_with_managers(client, floor):
-    assert "Total revenue" not in page(client, floor, "operator")
-    assert "Total revenue" in page(client, floor, "manager")
+    """Called token value since the wording pass (2026-10-26); still managers only."""
+    assert "Token value" not in page(client, floor, "operator")
+    assert "Token value" in page(client, floor, "manager")
 
 
 def test_a_broken_counter_says_why_plays_cannot_be_recorded(client, floor):

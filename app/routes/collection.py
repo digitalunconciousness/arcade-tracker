@@ -108,7 +108,7 @@ def stop(game_id):
     reading.notes = note
     record = record_reading(game, reading, here.last_count)
     db.session.commit()
-    flash(f"{game.name}: {record.plays_count:,} plays (${record.revenue:,.2f}).", "success")
+    flash(f"{game.name}: {record.plays_count:,} plays (${record.revenue:,.2f} in tokens).", "success")
     for f in flags:
         if f.kind == "high":
             continue        # already shown and confirmed; the round's list still marks it

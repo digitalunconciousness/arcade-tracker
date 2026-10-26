@@ -90,7 +90,7 @@ def test_a_reading_records_plays_and_moves_on(client, floor):
     assert (latest.coin_count, latest.plays_count, latest.date_recorded) == (160, 20, TODAY)
     assert latest.revenue == 10.0
     assert resp.headers["Location"].endswith(f"/round/{nxt}")
-    assert ("success", "Neon Raider: 20 plays ($10.00).") in flashes(client)
+    assert ("success", "Neon Raider: 20 plays ($10.00 in tokens).") in flashes(client)
 
 
 def test_the_last_machine_goes_back_to_the_overview(client, floor):

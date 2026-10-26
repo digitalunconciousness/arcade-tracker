@@ -571,3 +571,10 @@ anything is changed.
     Jellyfin's; the logo replaces the wordmark and appears on the sign-in page, coin-door form,
     labels and PDFs; SVG is accepted (cleaned, and served so it can't run script). A separate
     dark-on-light logo for printing is optional.
+16. **Wording** (2026-10-26): plays first, token value second, everywhere. The money figure is
+    "token value" (plays times the token price; specials and packages make it approximate), not
+    revenue. Machines are ranked by plays per working day -- the rotation planner's measure
+    (`app/services/popularity.py`) -- on Reports, Graphs and the PDFs, and the monthly top 5 /
+    top 10 by last month's plays. The CSV exports keep their column names ("Total Revenue",
+    "Daily Revenue") so a spreadsheet reading them by name doesn't break; the
+    `/revenue_reports` address is unchanged.
