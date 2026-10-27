@@ -7,7 +7,7 @@ This guide shows how to integrate the skeeball control system into your arcade-t
 
 ### 1. Copy Skeeball Files to Arcade-Tracker
 
-Copy these files from `/home/jackiegreybard/Skeeball/` to your arcade-tracker directory:
+Copy these files from `/home/user/Skeeball/` to your arcade-tracker directory:
 
 ```bash
 # Core modules

@@ -1,8 +1,8 @@
 #!/bin/bash
 # Deploy GPIO API Server to Raspberry Pi
 
-PI_HOST="${1:-skeeproto@sp1.local}"
-PI_USER="${2:-skeeproto}"
+PI_HOST="${1:-pi@sp1.local}"
+PI_USER="${2:-pi}"
 
 echo "🚀 Deploying GPIO API Server to $PI_HOST"
 echo "==========================================="

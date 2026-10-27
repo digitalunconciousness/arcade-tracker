@@ -5,7 +5,7 @@
 
 ## What Was Done
 
-### 1. Files Transferred from /home/jackiegreybard/Skeeball
+### 1. Files Transferred from /home/user/Skeeball
 
 #### Python Modules (7 files)
 - ✅ `config.py` - Pin configuration for GPIO

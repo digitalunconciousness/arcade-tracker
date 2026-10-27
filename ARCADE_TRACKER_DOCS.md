@@ -8,14 +8,14 @@
 
 ### Starting the System
 ```bash
-cd /home/jackiegreybard/arcade-tracker
+cd /home/user/arcade-tracker
 source venv/bin/activate
 python app.py
 ```
 
 **Access URLs:**
 - **Local:** http://localhost:5000
-- **Network:** http://192.168.0.206:5000 (accessible from other devices)
+- **Network:** http://10.0.0.206:5000 (accessible from other devices)
 
 ### First Time Setup
 1. Visit `/setup` to create your admin account

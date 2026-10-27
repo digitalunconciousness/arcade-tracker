@@ -376,7 +376,7 @@ def api_hardware_control():
     
     # For hardware controls, forward to Raspberry Pi GPIO API server
     # Get Pi address from environment or use default
-    pi_host = os.getenv('RPI_GPIO_HOST', 'skeeproto@sp1.local')
+    pi_host = os.getenv('RPI_GPIO_HOST', 'pi@sp1.local')
     pi_port = os.getenv('RPI_GPIO_PORT', '5001')
     pi_url = f"http://{pi_host}:{pi_port}/gpio/control"
     

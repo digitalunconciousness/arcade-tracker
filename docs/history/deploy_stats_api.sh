@@ -3,9 +3,9 @@
 
 set -e
 
-PI_USER="skeeproto"
+PI_USER="pi"
 PI_HOST="sp1.local"
-PI_DIR="/home/skeeproto/skeeball"
+PI_DIR="/home/pi/skeeball"
 
 echo "🚀 Deploying Skeeball Stats API to ${PI_USER}@${PI_HOST}"
 echo ""

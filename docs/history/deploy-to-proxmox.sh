@@ -3,7 +3,7 @@
 
 set -e
 
-PROXMOX_HOST="root@192.168.0.59"
+PROXMOX_HOST="root@10.0.0.59"
 DEPLOY_PATH="/opt/arcade-tracker"
 REPO_URL="https://github.com/digitalunconciousness/arcade-tracker.git"
 
@@ -126,7 +126,7 @@ ssh "$PROXMOX_HOST" "cd $DEPLOY_PATH && docker compose -f docker-compose.yml log
 
 echo ""
 echo "✅ Deployment complete!"
-echo "🌐 Application should be accessible at: http://192.168.0.59:5000"
+echo "🌐 Application should be accessible at: http://10.0.0.59:5000"
 echo ""
 echo "Useful commands:"
 echo "  ssh $PROXMOX_HOST 'cd $DEPLOY_PATH && docker compose -f docker-compose.yml logs -f'  # View logs"

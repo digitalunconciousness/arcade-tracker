@@ -380,7 +380,7 @@ def test_a_public_base_url_gets_no_warning(app, signed_in, floor):
 
 @pytest.mark.parametrize(("url", "bad"), [
     ("http://localhost:5000/report/x", True),
-    ("http://192.168.1.20/report/x", True),
+    ("http://10.0.1.20/report/x", True),
     ("http://10.0.0.5/report/x", True),
     ("http://arcade-box/report/x", True),
     ("http://arcade.local/report/x", True),

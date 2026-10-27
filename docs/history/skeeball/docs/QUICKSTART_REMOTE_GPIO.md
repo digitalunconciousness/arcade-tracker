@@ -23,7 +23,7 @@ Create/edit `.env` file:
 
 ```bash
 cd ~/arcade-tracker
-echo "RPI_GPIO_HOST=skeeproto@sp1.local" >> .env
+echo "RPI_GPIO_HOST=pi@sp1.local" >> .env
 echo "RPI_GPIO_PORT=5001" >> .env
 ```
 
@@ -47,15 +47,15 @@ You should see:
 
 ```bash
 # Health check
-curl http://skeeproto@sp1.local:5001/health
+curl http://pi@sp1.local:5001/health
 
 # LED ON
-curl -X POST http://skeeproto@sp1.local:5001/gpio/control \
+curl -X POST http://pi@sp1.local:5001/gpio/control \
   -H "Content-Type: application/json" \
   -d '{"device": "led_power", "action": "on"}'
 
 # Ball Release
-curl -X POST http://skeeproto@sp1.local:5001/gpio/control \
+curl -X POST http://pi@sp1.local:5001/gpio/control \
   -H "Content-Type: application/json" \
   -d '{"device": "solenoid", "action": "pulse"}'
 ```
@@ -65,23 +65,23 @@ curl -X POST http://skeeproto@sp1.local:5001/gpio/control \
 **"Cannot connect to Raspberry Pi"**
 ```bash
 # Check if API is running on Pi
-ssh skeeproto@sp1.local "sudo systemctl status gpio-api"
+ssh pi@sp1.local "sudo systemctl status gpio-api"
 
 # View logs
-ssh skeeproto@sp1.local "sudo journalctl -u gpio-api -f"
+ssh pi@sp1.local "sudo journalctl -u gpio-api -f"
 
 # Restart service
-ssh skeeproto@sp1.local "sudo systemctl restart gpio-api"
+ssh pi@sp1.local "sudo systemctl restart gpio-api"
 ```
 
 **DNS not resolving?**
 ```bash
 # Get Pi's IP address
-ssh skeeproto@sp1.local "hostname -I"
+ssh pi@sp1.local "hostname -I"
 
 # Update .env with IP instead of hostname
 # Example:
-# RPI_GPIO_HOST=192.168.1.123
+# RPI_GPIO_HOST=10.0.1.123
 ```
 
 ## What Was Installed?
@@ -108,13 +108,13 @@ On your Fedora machine:
 ./deploy_to_pi.sh
 
 # Check Pi GPIO status
-ssh skeeproto@sp1.local "sudo systemctl status gpio-api"
+ssh pi@sp1.local "sudo systemctl status gpio-api"
 
 # View Pi logs
-ssh skeeproto@sp1.local "sudo journalctl -u gpio-api -f"
+ssh pi@sp1.local "sudo journalctl -u gpio-api -f"
 
 # Test connection
-curl http://skeeproto@sp1.local:5001/health
+curl http://pi@sp1.local:5001/health
 ```
 
 That's it! Your skeeball system is now online with remote GPIO control! 🎮

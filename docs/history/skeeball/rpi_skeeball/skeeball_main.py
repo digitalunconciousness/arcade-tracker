@@ -97,7 +97,7 @@ class SkeeballGame:
         """Create sample configuration file."""
         sample = {
             "server": {
-                "url": "http://192.168.1.100:5000",
+                "url": "http://10.0.1.100:5000",
                 "game_id": 1,
                 "username": "operator",
                 "password": "your-password",

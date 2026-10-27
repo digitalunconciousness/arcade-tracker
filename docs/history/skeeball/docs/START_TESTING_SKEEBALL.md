@@ -4,7 +4,7 @@
 
 ### 1. Start the Application
 ```bash
-cd /home/jackiegreybard/arcade-tracker
+cd /home/user/arcade-tracker
 python app.py
 ```
 
@@ -112,7 +112,7 @@ View accumulated game statistics.
 pip install pyserial gpiozero
 
 # Wrong directory
-cd /home/jackiegreybard/arcade-tracker
+cd /home/user/arcade-tracker
 
 # Check imports work
 python -c "from skeeball_routes import register_skeeball_routes"

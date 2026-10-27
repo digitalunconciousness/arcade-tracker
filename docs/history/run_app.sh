@@ -1,4 +1,4 @@
 #!/bin/bash
-cd /home/jackiegreybard/arcade-tracker
+cd /home/user/arcade-tracker
 source venv/bin/activate
 exec python app.py

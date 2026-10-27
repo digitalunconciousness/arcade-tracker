@@ -169,7 +169,7 @@ Switch:    0     0     0     0     0     0     0
 ```json
 {
   "server": {
-    "url": "http://192.168.1.100:5000",  // Flask server
+    "url": "http://10.0.1.100:5000",  // Flask server
     "game_id": 1,                         // Game ID in database
     "username": "operator",               // Login credentials
     "password": "your-password",
