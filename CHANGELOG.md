@@ -57,6 +57,9 @@ and runs the migrations.
   held outside opening hours.
 - **Branding**: the arcade's own name, logo and sign-in background.
 - **The AGPL-3.0**, with a link to the source in every page's footer.
+- **Docker**: `docker-compose.yml` runs Cabcrawl with PostgreSQL 17 and an alerts container.
+  The image runs as a non-root user with waitress, creates the database on first start and
+  migrates it on later ones.
 
 ### Security
 - CSRF on every form. A strict content security policy. Secure cookies through the tunnel. Login

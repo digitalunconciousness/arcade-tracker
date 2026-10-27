@@ -33,6 +33,14 @@ matches the code.
 
 See [Configuration](Configuration) for every setting.
 
+## Or run it with Docker
+
+`docker-compose.yml` in the repository runs Cabcrawl with PostgreSQL, and a small container that
+sends [alerts](Alerts). Put `SECRET_KEY` and `POSTGRES_PASSWORD` in a `.env` file beside it, then
+`docker compose up -d`. The database is created on the first start and migrated on later ones.
+The README's "Run it with Docker" has the commands, and the settings for printing labels and for
+running behind a reverse proxy.
+
 ## First sign-in
 
 ![Sign in](images/sign-in-phone.png)

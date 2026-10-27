@@ -52,6 +52,26 @@ Open `/setup` to create the first admin account. After pulling a newer version, 
 `flask --app run:app db upgrade`. Every setting is described on the wiki's
 [Configuration](https://github.com/digitalunconciousness/cabcrawl/wiki/Configuration) page.
 
+## Run it with Docker
+
+`docker-compose.yml` runs Cabcrawl with PostgreSQL 17, plus a small container that sends alerts.
+
+```bash
+git clone https://github.com/digitalunconciousness/cabcrawl.git
+cd cabcrawl
+cat > .env <<EOF
+SECRET_KEY=$(python3 -c "import secrets; print(secrets.token_urlsafe(48))")
+POSTGRES_PASSWORD=$(python3 -c "import secrets; print(secrets.token_urlsafe(24))")
+EOF
+docker compose up -d
+```
+
+Then open `http://localhost:5000/setup` to make the first admin. The database is created on the
+first start and migrated on later ones; data lives in Docker volumes, so `docker compose down`
+keeps it (`down -v` deletes it). Before printing QR labels, add `BASE_URL` to `.env`. Behind a
+reverse proxy that serves HTTPS, add `TRUSTED_PROXY` with the proxy's address, so sign-in cookies
+are marked Secure. To update: `git pull && docker compose up -d --build`.
+
 ## Run it for real
 
 Production runs Cabcrawl with PostgreSQL, under systemd, behind a Cloudflare tunnel.
