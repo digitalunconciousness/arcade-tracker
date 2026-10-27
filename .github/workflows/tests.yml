@@ -49,7 +49,7 @@ jobs:
           python -m compileall -q app run.py scripts tests
       - name: Shell scripts parse
         run: |
-          for f in deploy/*.sh run.sh; do
+          for f in deploy/*.sh scripts/*.sh; do
             [ -e "$f" ] || continue
             bash -n "$f" && echo "ok $f"
           done
