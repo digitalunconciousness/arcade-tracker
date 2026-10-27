@@ -47,17 +47,17 @@ Complete skeeball control system with **interactive Flask UI** built in. All tes
 cd /path/to/arcade-tracker
 
 # Core Python modules
-cp /home/jackiegreybard/Skeeball/game_logic.py .
-cp /home/jackiegreybard/Skeeball/input_manager.py .
-cp /home/jackiegreybard/Skeeball/lane_controller.py .
-cp /home/jackiegreybard/Skeeball/lane_manager.py .
-cp /home/jackiegreybard/Skeeball/serial_bridge.py .
-cp /home/jackiegreybard/Skeeball/skeeball_routes.py .
-cp /home/jackiegreybard/Skeeball/config.py .
+cp /home/user/Skeeball/game_logic.py .
+cp /home/user/Skeeball/input_manager.py .
+cp /home/user/Skeeball/lane_controller.py .
+cp /home/user/Skeeball/lane_manager.py .
+cp /home/user/Skeeball/serial_bridge.py .
+cp /home/user/Skeeball/skeeball_routes.py .
+cp /home/user/Skeeball/config.py .
 
 # Templates
 mkdir -p templates/skeeball
-cp -r /home/jackiegreybard/Skeeball/templates/skeeball/* templates/skeeball/
+cp -r /home/user/Skeeball/templates/skeeball/* templates/skeeball/
 ```
 
 ### 2. Update app.py (1 minute)
@@ -215,7 +215,7 @@ lane_manager.py (Coordinator)
 ## Files Summary
 
 ```
-/home/jackiegreybard/Skeeball/
+/home/user/Skeeball/
 ├── game_logic.py              ← Core game logic (lane_id ready)
 ├── input_manager.py           ← GPIO handler
 ├── config.py                  ← Pin config

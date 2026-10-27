@@ -27,7 +27,7 @@ y
 y.pub
 
 # Mounted directories
-skeeproto@*/
+pi@*/
 
 # Static uploads
 static/maintenance_photos/

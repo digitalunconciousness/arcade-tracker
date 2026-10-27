@@ -7,7 +7,7 @@ Your skeeball system now uses a **client-server architecture**:
 ```
 ┌─────────────────────────┐         ┌──────────────────────────┐
 │  Fedora Machine         │         │  Raspberry Pi            │
-│  (jackiegreybard)       │         │  (skeeproto@sp1.local)   │
+│  (user)       │         │  (pi@sp1.local)   │
 │                         │         │                          │
 │  Flask App (port 5000)  │◄───────►│  GPIO API (port 5001)    │
 │  - Web Interface        │  HTTP   │  - Real GPIO Control     │
@@ -27,7 +27,7 @@ Your skeeball system now uses a **client-server architecture**:
 
 SSH into your Raspberry Pi:
 ```bash
-ssh skeeproto@sp1.local
+ssh pi@sp1.local
 ```
 
 Navigate to the project directory:
@@ -59,7 +59,7 @@ nano .env
 Add these lines:
 ```bash
 # Raspberry Pi GPIO API Configuration
-RPI_GPIO_HOST=skeeproto@sp1.local
+RPI_GPIO_HOST=pi@sp1.local
 RPI_GPIO_PORT=5001
 ```
 
@@ -104,26 +104,26 @@ You should now see:
 
 Test LED control:
 ```bash
-curl -X POST http://skeeproto@sp1.local:5001/gpio/control \
+curl -X POST http://pi@sp1.local:5001/gpio/control \
   -H "Content-Type: application/json" \
   -d '{"device": "led_power", "action": "on"}'
 ```
 
 Test solenoid:
 ```bash
-curl -X POST http://skeeproto@sp1.local:5001/gpio/control \
+curl -X POST http://pi@sp1.local:5001/gpio/control \
   -H "Content-Type: application/json" \
   -d '{"device": "solenoid", "action": "pulse"}'
 ```
 
 Check GPIO status:
 ```bash
-curl http://skeeproto@sp1.local:5001/gpio/status
+curl http://pi@sp1.local:5001/gpio/status
 ```
 
 Health check:
 ```bash
-curl http://skeeproto@sp1.local:5001/health
+curl http://pi@sp1.local:5001/health
 ```
 
 ## Troubleshooting
@@ -132,27 +132,27 @@ curl http://skeeproto@sp1.local:5001/health
 
 **Check if GPIO API is running on the Pi:**
 ```bash
-ssh skeeproto@sp1.local
+ssh pi@sp1.local
 sudo systemctl status gpio-api
 ```
 
 **View logs:**
 ```bash
-ssh skeeproto@sp1.local
+ssh pi@sp1.local
 sudo journalctl -u gpio-api -f
 ```
 
 **Restart the service:**
 ```bash
-ssh skeeproto@sp1.local
+ssh pi@sp1.local
 sudo systemctl restart gpio-api
 ```
 
 ### DNS Resolution Issues
 
-If `skeeproto@sp1.local` doesn't resolve, find the Pi's IP:
+If `pi@sp1.local` doesn't resolve, find the Pi's IP:
 ```bash
-ssh skeeproto@sp1.local "hostname -I"
+ssh pi@sp1.local "hostname -I"
 ```
 
 Then update your `.env` file with the actual IP address.
@@ -161,7 +161,7 @@ Then update your `.env` file with the actual IP address.
 
 Check what's using the port:
 ```bash
-ssh skeeproto@sp1.local "sudo netstat -tlnp | grep 5001"
+ssh pi@sp1.local "sudo netstat -tlnp | grep 5001"
 ```
 
 Kill the process or change the port in both:
@@ -172,7 +172,7 @@ Kill the process or change the port in both:
 
 If you get permission errors on the Pi:
 ```bash
-ssh skeeproto@sp1.local
+ssh pi@sp1.local
 sudo usermod -a -G gpio $USER
 # Logout and login again for group changes to take effect
 ```
@@ -181,7 +181,7 @@ sudo usermod -a -G gpio $USER
 
 On the Raspberry Pi, ensure port 5001 is open:
 ```bash
-ssh skeeproto@sp1.local
+ssh pi@sp1.local
 sudo ufw allow 5001/tcp
 # Or if using firewalld:
 sudo firewall-cmd --permanent --add-port=5001/tcp
@@ -308,7 +308,7 @@ sudo journalctl -u gpio-api -f
 
 Start the GPIO API manually for testing:
 ```bash
-ssh skeeproto@sp1.local
+ssh pi@sp1.local
 cd arcade-tracker/rpi_skeeball
 python3 gpio_api_server.py
 ```

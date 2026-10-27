@@ -29,7 +29,7 @@ rpi_skeeball/
 ### Option 1: SCP (Over Network)
 ```bash
 # From your dev machine (in arcade-tracker directory):
-cd /home/jackiegreybard/arcade-tracker
+cd /home/user/arcade-tracker
 scp -r rpi_skeeball/ pi@raspberrypi.local:~/
 ```
 
@@ -66,7 +66,7 @@ nano config.json
 Edit these values in `config.json`:
 
 1. **Server settings:**
-   - `url`: Your Flask server IP (e.g., "http://192.168.1.100:5000")
+   - `url`: Your Flask server IP (e.g., "http://10.0.1.100:5000")
    - `game_id`: The game ID from your database (check `/games` in web UI)
    - `username`: Login username (need at least "operator" role)
    - `password`: User password

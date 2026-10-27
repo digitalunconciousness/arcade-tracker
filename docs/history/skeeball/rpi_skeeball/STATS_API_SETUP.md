@@ -68,7 +68,7 @@ You should see:
 ✅ Stats API Server started on port 5002
 🎳 SKEEBALL SYSTEM STARTED
 ==================================================
-   Server: http://192.168.1.100:5000
+   Server: http://10.0.1.100:5000
    Game ID: 1
    Balls per game: 9
    Bonus at: 360+ pts
@@ -132,15 +132,15 @@ On your Flask app server, create or update `.env`:
 
 ```bash
 # Raspberry Pi Stats API
-RPI_STATS_HOST=sp1.local  # or IP address like 192.168.1.50
+RPI_STATS_HOST=sp1.local  # or IP address like 10.0.1.50
 RPI_STATS_PORT=5002
 
 # Optional: GPIO API (for hardware control)
-RPI_GPIO_HOST=skeeproto@sp1.local
+RPI_GPIO_HOST=pi@sp1.local
 RPI_GPIO_PORT=5001
 ```
 
-**Note:** The hostname can include the username (like `skeeproto@sp1.local`) or just the hostname/IP. The code will handle both formats.
+**Note:** The hostname can include the username (like `pi@sp1.local`) or just the hostname/IP. The code will handle both formats.
 
 ### 2. Restart Flask App
 

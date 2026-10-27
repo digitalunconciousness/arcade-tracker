@@ -98,7 +98,7 @@ nano config.json
 ```json
 {
   "server": {
-    "url": "http://192.168.1.100:5000",  // Your Flask server IP
+    "url": "http://10.0.1.100:5000",  // Your Flask server IP
     "game_id": 1,                         // Game ID in database
     "username": "operator",               // Login credentials
     "password": "your-password",

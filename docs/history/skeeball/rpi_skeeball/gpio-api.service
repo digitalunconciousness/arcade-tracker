@@ -4,9 +4,9 @@ After=network.target
 
 [Service]
 Type=simple
-User=skeeproto
-WorkingDirectory=/home/skeeproto/arcade-tracker/rpi_skeeball
-ExecStart=/usr/bin/python3 /home/skeeproto/arcade-tracker/rpi_skeeball/gpio_api_server.py
+User=pi
+WorkingDirectory=/home/pi/arcade-tracker/rpi_skeeball
+ExecStart=/usr/bin/python3 /home/pi/arcade-tracker/rpi_skeeball/gpio_api_server.py
 Restart=always
 RestartSec=10
 

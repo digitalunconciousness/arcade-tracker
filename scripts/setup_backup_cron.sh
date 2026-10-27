@@ -7,7 +7,7 @@
 set -e
 
 # Configuration
-PROJECT_DIR="/home/jackiegreybard/arcade-tracker"
+PROJECT_DIR="/home/user/arcade-tracker"
 BACKUP_SCRIPT="$PROJECT_DIR/scripts/backup_database.py"
 BACKUP_TIME="0 2 * * *"  # Daily at 2 AM
 LOG_FILE="$PROJECT_DIR/logs/backup.log"

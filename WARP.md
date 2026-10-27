@@ -261,7 +261,7 @@ Environment variables in `.env` (see `.env.example`):
 
 11. **Skeeball Real-Time Updates**: The skeeball control panel updates every 500ms, statistics every 1000ms. State synchronization:
    - `skeeball_main.py` calls `save_state()` on coin insert, switch trigger, and ball completion
-   - `state_sync.py` watches `/home/skeeproto/rpi_skeeball/skeeball_state.json` and syncs to `realtime_state.json`
+   - `state_sync.py` watches `/home/pi/rpi_skeeball/skeeball_state.json` and syncs to `realtime_state.json`
    - `stats_api_server.py` (port 5002) reads `realtime_state.json` and serves via HTTP API
    - Flask app polls API and displays live score, balls remaining, and game status
 

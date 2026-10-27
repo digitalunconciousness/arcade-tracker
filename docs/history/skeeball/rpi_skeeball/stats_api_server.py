@@ -68,7 +68,7 @@ def load_realtime_state():
                             game_state.update(file_state)
                         
                         # Also reload game_history from source file for accurate stats
-                        source_file = Path('/home/skeeproto/rpi_skeeball/skeeball_state.json')
+                        source_file = Path('/home/pi/rpi_skeeball/skeeball_state.json')
                         if source_file.exists():
                             try:
                                 with open(source_file, 'r') as sf:
@@ -121,7 +121,7 @@ def load_state_from_file():
     """Load persisted state on startup."""
     global game_state, game_history, game_stats
     
-    state_file = Path('/home/skeeproto/rpi_skeeball/skeeball_state.json')
+    state_file = Path('/home/pi/rpi_skeeball/skeeball_state.json')
     if state_file.exists():
         try:
             with open(state_file, 'r') as f:

@@ -70,7 +70,7 @@ Add this temporarily to games.html after line 4:
 ```
 
 ## Files Modified
-- /home/jackiegreybard/arcade-tracker/templates/games.html
-- /home/jackiegreybard/arcade-tracker/templates/maintenance_orders.html
-- /home/jackiegreybard/arcade-tracker/templates/add_game.html
-- /home/jackiegreybard/arcade-tracker/app.py (games_list function)
+- /home/user/arcade-tracker/templates/games.html
+- /home/user/arcade-tracker/templates/maintenance_orders.html
+- /home/user/arcade-tracker/templates/add_game.html
+- /home/user/arcade-tracker/app.py (games_list function)

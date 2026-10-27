@@ -353,7 +353,7 @@ def api_hardware_control():
             return jsonify({"error": f"System reset failed: {str(e)}"}), 500
 
     # Forward to Raspberry Pi GPIO API server
-    pi_host = os.getenv("RPI_GPIO_HOST", "skeeproto@sp1.local")
+    pi_host = os.getenv("RPI_GPIO_HOST", "pi@sp1.local")
     pi_port = os.getenv("RPI_GPIO_PORT", "5001")
     pi_url = f"http://{pi_host}:{pi_port}/gpio/control"
 
