@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.0.0] - 2026-10-27
+
 The biggest release since 1.0: a new name, a new design, a full inventory system, the GATBOX
 link, and two security reviews. Printed QR labels, the database and the GATBOX contract all
 carry over: an existing install upgrades with `deploy/deploy.sh`, which backs up the database
