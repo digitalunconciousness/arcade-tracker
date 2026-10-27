@@ -1,67 +1,67 @@
+# Cabcrawl with PostgreSQL, on one machine. Settings come from .env next to this file:
+#
+#   SECRET_KEY=<32 or more random characters>     required
+#   POSTGRES_PASSWORD=<a password for the database> required
+#   BASE_URL=https://cabcrawl.example.org          before printing QR labels
+#   TRUSTED_PROXY=<your reverse proxy's address>   if a proxy terminates HTTPS in front of it
+#
+# Then: docker compose up -d, and open http://localhost:5000/setup to make the first admin.
+# Any other setting from .env.example can go in .env too.
+
 services:
+  db:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: cabcrawl
+      POSTGRES_USER: cabcrawl
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cabcrawl -d cabcrawl"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
   cabcrawl:
     build: .
     image: cabcrawl
-    container_name: cabcrawl
     restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+    environment: &app-env
+      SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in .env}
+      DATABASE_URL: postgresql://cabcrawl:${POSTGRES_PASSWORD}@db:5432/cabcrawl
+      BASE_URL: ${BASE_URL:-}
+      TRUSTED_PROXY: ${TRUSTED_PROXY:-}
     ports:
       - "5000:5000"
     volumes:
-      # Persistent data volumes
-      - ./instance:/app/instance
-      - ./arcade.db:/app/arcade.db
-      - ./uploads:/app/uploads
-      - ./static/maintenance_photos:/app/static/maintenance_photos
-      - ./static/profile_pics:/app/static/profile_pics
-      - ./backups:/app/backups
-      - ./logs:/app/logs
+      - uploads:/app/uploads
+      - photos:/app/static/maintenance_photos
+      - profile-pics:/app/static/profile_pics
+    depends_on:
+      db:
+        condition: service_healthy
+
+  alerts:
+    image: cabcrawl
+    command: alerts
+    restart: unless-stopped
+    healthcheck:
+      disable: true          # it serves nothing; the image's check is for the web container
     env_file:
-      - .env
-    environment:
-      - FLASK_ENV=development
-    networks:
-      - arcade-net
-    labels:
-      - "com.centurylinklabs.watchtower.enable=true"
+      - path: .env
+        required: false
+    environment: *app-env
+    depends_on:
+      cabcrawl:
+        condition: service_healthy
 
-  # Watchtower for automatic updates (disabled - permission issues)
-  # To enable: fix Docker socket permissions on host
-  # watchtower:
-  #   image: containrrr/watchtower
-  #   container_name: arcade-watchtower
-  #   restart: unless-stopped
-  #   group_add:
-  #     - "990"  # docker group ID on Proxmox
-  #   volumes:
-  #     - /var/run/docker.sock:/var/run/docker.sock:rw
-  #     - ./watchtower-config.json:/config.json
-  #   environment:
-  #     - WATCHTOWER_POLL_INTERVAL=300  # Check every 5 minutes
-  #     - WATCHTOWER_CLEANUP=true
-  #     - WATCHTOWER_INCLUDE_RESTARTING=true
-  #     - WATCHTOWER_LABEL_ENABLE=true  # Only update labeled containers
-  #     - WATCHTOWER_NOTIFICATIONS=shoutrrr
-  #     - WATCHTOWER_NOTIFICATION_URL=logger://
-  #   command: --debug --label-enable
-  #   networks:
-  #     - arcade-net
-
-  # Optional: Nginx reverse proxy for HTTPS
-  # nginx:
-  #   image: nginx:alpine
-  #   container_name: arcade-nginx
-  #   restart: unless-stopped
-  #   ports:
-  #     - "80:80"
-  #     - "443:443"
-  #   volumes:
-  #     - ./nginx.conf:/etc/nginx/nginx.conf:ro
-  #     - ./ssl:/etc/nginx/ssl:ro
-  #   depends_on:
-  #     - cabcrawl
-  #   networks:
-  #     - arcade-net
-
-networks:
-  arcade-net:
-    driver: bridge
+volumes:
+  pgdata:
+  uploads:
+  photos:
+  profile-pics:

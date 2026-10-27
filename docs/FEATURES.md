@@ -313,7 +313,7 @@ anything is changed.
     `reports.update_monthly_rankings_if_due`).
   - `_check_low_stock_alert` exists twice (maintenance and inventory).
   - The work-order-with-parts logic is copied three times (M1, M2, M5).
-- **F-4 Root-level clutter (not imported):**
+- **F-4 Root-level clutter (not imported):** *Moved to `docs/history/root/` in Step 6, except the container files (rebuilt in Step 6).*
   - Python: `security_config.py`, `load_env.py`, `create_tables.py`, `create_docs_pdf.py`,
     `generate_documentation.py`, `generate_icons.py`, `remove_emojis.py`, `create_iso_backup.py`.
   - Container files: `Dockerfile` and `docker-compose.yml` (the deployment is a systemd unit).

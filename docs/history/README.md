@@ -49,4 +49,27 @@ compares the live schema against the models, `scripts/create_admin.py` handles
 accounts (`--list`, `--reset-password`), and `deploy/deploy.sh` runs the whole
 deployment including the `pg_dump` backup.
 
-Still at the repository root on purpose: `run.py`, `run.sh` and `config.py`.
+Still at the repository root on purpose: `run.py` (the entry point), `arcade-tracker.service`
+(the systemd unit keeps its old name, see `deploy/RUNBOOK.md`), and the container files, which
+are being rebuilt.
+
+## The old root documents and scripts (retired 2026-10-27, Step 6)
+
+Moved to `root/` when the README was rewritten for Cabcrawl (F-4). None of them is imported or
+run by the application, and the documents describe the v1.0 app, a Docker deployment that
+production never used, and SQLite backups. What is still true is in the README, the wiki
+(`docs/wiki/`) and `deploy/RUNBOOK.md`.
+
+| File | Superseded by |
+|---|---|
+| `ARCADE_TRACKER_DOCS.md`, `FLASK_INTEGRATION.md`, `FLASK_READY.md`, `CHANGES_SUMMARY.md`, `VERSION_1.0_RELEASE_NOTES.md` | `README.md`, `CHANGELOG.md` and the wiki |
+| `AUTHENTICATION.md` | the wiki's Roles and permissions and Security overview pages |
+| `BACKUP_SYSTEM.md` | `deploy/RUNBOOK.md` (PostgreSQL dumps before every deploy) |
+| `DEPLOYMENT.md`, `DEPLOYMENT_CHECKLIST.md` | `deploy/RUNBOOK.md` |
+| `BRANCHES.md` | nothing: the branches it describes are gone |
+| `CLOUD_SETUP.md`, `TRACKING_SETUP.md` | the wiki's Configuration page |
+| `WARP.md` | `CLAUDE.md` |
+| `run.sh` | the README's "Run it locally" |
+| `create_tables.py`, `load_env.py`, `security_config.py` | the application factory, `app/config.py` |
+| `create_docs_pdf.py`, `generate_documentation.py`, `create_iso_backup.py`, `generate_icons.py`, `remove_emojis.py` | nothing: one-off tools for the v1.0 documents and icons |
+

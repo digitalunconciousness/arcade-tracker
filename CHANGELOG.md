@@ -7,14 +7,86 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+The biggest release since 1.0: a new name, a new design, a full inventory system, the GATBOX
+link, and two security reviews. Printed QR labels, the database and the GATBOX contract all
+carry over: an existing install upgrades with `deploy/deploy.sh`, which backs up the database
+and runs the migrations.
+
 ### Changed
 - **The app is now called Cabcrawl** (it was Arcade Tracker). The header wordmark reads CABCRAWL,
   the browser tab and home-screen icon say Cabcrawl, and so does the footer credit when an arcade
-  sets its own name or logo. GATBOX tests the board; Cabcrawl runs the floor.
+  sets its own name or logo. GATBOX tests the board; Cabcrawl runs the floor. The repository is
+  `digitalunconciousness/cabcrawl`.
 - Nothing a machine, a label or a server depends on changed: every URL (including `/g/<barcode>`
   on printed QR labels), the GATBOX API contract, the database, role, cookie and environment
   variable names, the systemd unit `arcade-tracker.service` and the server paths keep their
   names. `deploy/RUNBOOK.md` says so.
+- **A new design**, phone first, in GATBOX's colours: one stylesheet set and one base template,
+  every component on `/styleguide`, no CDN assets and a strict content security policy. Every
+  page was rebuilt on it and the old templates were deleted.
+- **Plays come first**, token value second, so nobody mistakes token value for revenue. Machines
+  are ranked by how often they're played.
+- **Production runs on PostgreSQL** under systemd behind a Cloudflare tunnel, deployed by
+  `deploy/deploy.sh`, which backs up the database before every deploy.
+- The README is rewritten, the user guide is the wiki (its source is `docs/wiki/`), and the old
+  root documents and scripts moved to `docs/history/`.
+
+### Added
+- **Machines**: a page per cabinet with three big buttons (record plays, report problem, log
+  work), how it was fixed last time, and every location and status change with dates. Camera
+  scanning on the Scan page. Whole-floor label sheets.
+- **Coin-door reports**: a label inside the coin door lets anyone report a problem without
+  signing in.
+- **Collection round**: walk the floor and read every meter, with odd readings flagged on the
+  spot.
+- **Rotation planner**: ranks floor games by plays per working day, leaves out days a game was
+  down, and suggests swaps with the warehouse.
+- **Maintenance tasks** that open work orders when they come due, reserving the parts they need.
+- **Inventory**:
+  - places (rooms, shelves, drawers) and how many of each part are in each;
+  - labels for places and parts, and count mode;
+  - full and cycle counts, reviewed by a manager;
+  - part categories, suppliers and price history;
+  - a shopping list, and purchase orders;
+  - serial-numbered units;
+  - parts reserved for work orders.
+- **GATBOX**: each device has its own token and can be limited to some machines. Rail sessions
+  are stored and drawn against their window, and a reading can be attached to a work order.
+- **Alerts** to ntfy and Discord: coin-door reports, machines down, rails out of window, low
+  stock, maintenance due, collection-round flags, part requests, and a daily summary. They're
+  held outside opening hours.
+- **Branding**: the arcade's own name, logo and sign-in background.
+- **The AGPL-3.0**, with a link to the source in every page's footer.
+- **Docker**: `docker-compose.yml` runs Cabcrawl with PostgreSQL 17 and an alerts container.
+  The image runs as a non-root user with waitress, creates the database on first start and
+  migrates it on later ones.
+
+### Security
+- CSRF on every form. A strict content security policy. Secure cookies through the tunnel. Login
+  rate limits by the visitor's real address. One-time passwords for new and reset accounts.
+- Two full security reviews (`docs/FEATURES.md`, F-43 and F-44). Every finding is fixed, each
+  with a test.
+
+### Fixed
+- Dozens of long-standing bugs, each recorded in `docs/FEATURES.md` with its F-number and
+  fixed with a test. Among them:
+  - deleting a game or a part left orphaned rows;
+  - "Received" requests could add stock twice;
+  - photo cleanup deleted live photos;
+  - the first-run setup page returned an error;
+  - forms were refused through the tunnel.
+
+## [2.0.0] - 2026-03-25
+
+### Changed
+- A major refactor for readability: the `app/` package (an application factory with routes,
+  models and forms) beside the old `app.py`, every dependency updated, and the Raspberry Pi
+  hardware packages for skeeball added.
+
+## [1.0.1] - 2025-11-30
+
+### Fixed
+- Tab buttons work again.
 
 ## [1.0.0] - 2025-11-13
 
@@ -130,21 +202,4 @@ This is the first major release of Arcade Tracker, featuring a complete arcade m
 
 ---
 
-## Future Roadmap
-
-### Planned for v1.1
-- Enhanced reporting with custom date ranges
-- Bulk game import/export
-- Email notifications for low stock and maintenance alerts
-- API documentation with Swagger/OpenAPI
-
-### Under Consideration
-- Mobile-responsive improvements
-- Dark/light theme toggle
-- Advanced analytics and forecasting
-- Integration with additional hardware systems
-- Multi-tenant support for multiple arcades
-
----
-
-**Full Changelog**: https://github.com/digitalunconciousness/arcade-tracker/compare/v0.1...v1.0.0
+**Full changelog**: https://github.com/digitalunconciousness/cabcrawl/commits/master
