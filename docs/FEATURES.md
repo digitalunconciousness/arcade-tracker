@@ -459,6 +459,13 @@ anything is changed.
   The old folder is still read until `scripts/move_maintenance_photos.py --apply` has moved its
   files (deploy/RUNBOOK.md); storage, cleanup, machine delete and the history reset cover both.
 
+- **F-46 Photos and uploads weren't backed up.** Found 2026-10-28. *Fixed the same day, test in
+  `tests/test_backup_uploads.py`.* Production's only backup is the `pg_dump` `deploy/deploy.sh`
+  takes before each deploy (the `daily_backup.sh` scripts are SQLite-only, F-11), so the photos,
+  machine and part images and branding on disk were in none. deploy.sh now archives them with
+  `scripts/backup_uploads.py` beside each dump, same stamp, same retention, and the RUNBOOK says
+  how to restore them.
+
 ### Unreachable or unclear
 
 - **F-25 Two tunnel setups.** `scripts/setup_autostart.sh` installs `arcade-tracker-ngrok.service`, which

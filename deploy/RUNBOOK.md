@@ -33,6 +33,14 @@ It backs the database up with `pg_dump` before touching anything, refuses to
 continue if the dump is too small to restore from, and stops at the first
 failure. If the health check fails it prints the exact rollback commands.
 
+Beside each dump it archives the uploaded files with the same stamp,
+`arcade_tracker-uploads-<stamp>.tar.gz`: everything under `uploads/` (work-order photos,
+machine and part images, branding), any photos still in `static/maintenance_photos/`, and
+`static/profile_pics/`. `scripts/backup_uploads.py` decides what goes in. It keeps the newest
+`ARCADE_KEEP` (14) of each, so budget roughly 14 times the size of those folders in
+`/var/backups/arcade-tracker` (Admin, Storage shows the photos' share). Restoring is under
+"Restoring photos and uploads".
+
 ## One-time: Secure cookies through the tunnel (Step 5.1)
 
 The app now refuses to start without `SECRET_KEY`, and marks its cookies `Secure` on HTTPS
@@ -69,6 +77,14 @@ nothing left to do.
 ```bash
 # 1. Deploy as usual.
 /opt/arcade-tracker/deploy/deploy.sh
+
+# 1b. Archive the uploads by hand this once. The deploy that brings this change runs the
+#     deploy.sh that was on disk before the pull, which doesn't archive them yet; every
+#     deploy after it does.
+cd /opt/arcade-tracker
+/opt/arcade-tracker-venv/bin/python scripts/backup_uploads.py --repo /opt/arcade-tracker \
+  --out "/var/backups/arcade-tracker/arcade_tracker-uploads-$(date -u +%Y%m%dT%H%M%SZ).tar.gz"
+chmod 600 /var/backups/arcade-tracker/arcade_tracker-uploads-*.tar.gz
 
 # 2. Dry run: lists what it would move. Changes nothing.
 cd /opt/arcade-tracker
@@ -585,6 +601,27 @@ systemctl restart arcade-tracker
 ```
 
 `deploy.sh` prints the two values to substitute when it fails.
+
+A deploy doesn't touch the uploaded files, so a rollback leaves them alone.
+
+## Restoring photos and uploads
+
+Each deploy's `arcade_tracker-uploads-<stamp>.tar.gz` holds the files as they were when its
+dump of the same stamp was taken; restore the pair together after a loss. Paths in the
+archive are relative to the checkout, so it unpacks straight into it. Files that are on disk
+now but not in the archive are kept (a later cleanup removes any no order uses).
+
+```bash
+ls -1t /var/backups/arcade-tracker/arcade_tracker-uploads-*.tar.gz | head -3     # newest first
+tar -tzf /var/backups/arcade-tracker/arcade_tracker-uploads-<stamp>.tar.gz | head  # what it holds
+systemctl stop arcade-tracker
+tar -xzf /var/backups/arcade-tracker/arcade_tracker-uploads-<stamp>.tar.gz -C /opt/arcade-tracker
+chown -R arcade-tracker:arcade-tracker /opt/arcade-tracker/uploads \
+  /opt/arcade-tracker/static/maintenance_photos /opt/arcade-tracker/static/profile_pics
+systemctl start arcade-tracker
+```
+
+With the database too (the dump of the same stamp), restore it first, as under "Rollback".
 
 ## Reading the logs
 
