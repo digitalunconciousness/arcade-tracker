@@ -57,6 +57,38 @@ curl -s -o /dev/null -D - https://<public-hostname>/login | grep -i set-cookie
 Between steps 2 and 3 nothing breaks: the cookies are simply not `Secure` yet, as before.
 Nobody is signed out unless `SECRET_KEY` changes.
 
+## One-time: move work-order photos behind the login (2026-10-28) ⏸
+
+Work-order photos used to be saved in `static/maintenance_photos/`, which the app served to
+anyone with the address. New ones go in `uploads/maintenance_photos/` and every photo is now
+shown only to signed-in users; the old addresses redirect to the login. The app reads both
+folders, so deploying first breaks nothing. Then move the old files across, as the service
+user so they keep their owner. The script never overwrites a file, and a second run finds
+nothing left to do.
+
+```bash
+# 1. Deploy as usual.
+/opt/arcade-tracker/deploy/deploy.sh
+
+# 2. Dry run: lists what it would move. Changes nothing.
+cd /opt/arcade-tracker
+runuser -u arcade-tracker -- /opt/arcade-tracker-venv/bin/python scripts/move_maintenance_photos.py
+
+# 3. Move them.
+runuser -u arcade-tracker -- /opt/arcade-tracker-venv/bin/python scripts/move_maintenance_photos.py --apply
+
+# 4. Check: the old folder is empty (or holds only files it said it left alone), and an old
+#    address now answers 302 to /maintenance/photos/<name>, which asks for a login.
+ls /opt/arcade-tracker/static/maintenance_photos | wc -l
+name=$(ls /opt/arcade-tracker/uploads/maintenance_photos | head -1)
+curl -s -o /dev/null -w '%{http_code} %{redirect_url}\n' "http://127.0.0.1:5000/static/maintenance_photos/$name"
+curl -s -o /dev/null -w '%{http_code} %{redirect_url}\n' "http://127.0.0.1:5000/maintenance/photos/$name"
+```
+
+Leave the empty `static/maintenance_photos/` folder in place: the unit's `ReadWritePaths` names
+it, and systemd won't start the service if it is missing. Admin, Storage counts any photo still
+in the old folder.
+
 ## One-time: alerts (feature step 6)
 
 Alerts are written to the database as things happen; a systemd timer runs

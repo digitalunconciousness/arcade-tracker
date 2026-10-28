@@ -142,10 +142,12 @@ a DOCTYPE or entities are refused.
 | M6 | `/close_maintenance/<id>` | POST | operator | — | raw | Quick close from M3. |
 | M7 | `/delete_maintenance/<id>` | POST | manager | — | raw | Deletes a work order. |
 | M8 | `/download_maintenance_record/<id>` | GET | login | — (PDF) | — | ReportLab PDF of one work order. |
-| M9 | `/maintenance_photos/<id>` | GET, POST | operator | `maintenance_photos.html` | `MaintenancePhotoForm` (checked by hand) | **Photo uploads:** at most 10 per order and 500 MB in total; re-encoded to JPEG at 1200px max; optional S3 copy (`USE_CLOUD_STORAGE`). |
+| M9 | `/maintenance_photos/<id>` | GET, POST | operator | `maintenance_photos.html` | `MaintenancePhotoForm` (checked by hand) | **Photo uploads:** at most 10 per order and 500 MB in total; re-encoded to JPEG at 1200px max; saved in `uploads/maintenance_photos/` and shown through M13 (F-45); optional S3 copy (`USE_CLOUD_STORAGE`). |
 | M10 | `/delete_maintenance_photo/<id>/<filename>` | POST | manager | — | raw | Removes a photo from the order and from disk. |
 | M11 | `/maintenance_reports` | GET | manager | `maintenance_reports.html` | GET `?days=` | Counts, cost and average resolution days over a window. |
 | M12 | `/export_maintenance_report` | GET | manager | — (PDF) | — | ReportLab PDF (`?type=open|closed|all&days=`). |
+| M13 | `/maintenance/photos/<filename>` | GET | login | — (image) | — | A work-order photo, only for a name the app gives photos (`maintenance_<order>_<8 hex>.<ext>`), from `uploads/maintenance_photos/`, else the old `static/maintenance_photos/` until its files are moved. `Cache-Control: private`. |
+| M14 | `/static/maintenance_photos/<filename>` | GET | public | — (302) | — | The old photo address: redirects to M13 (which asks for a login) and never sends the file. Wins over the static route; other spellings of that folder are refused by the static view (F-45). |
 
 ## 6. Inventory, requests and shipments (`app/routes/inventory.py`, prefix `/inventory`)
 
@@ -447,6 +449,15 @@ anything is changed.
   - CSV exports passed a machine name starting with `=`, `+`, `-` or `@` to the spreadsheet as a
     formula. Such cells now start with an apostrophe.
   - Supplier account numbers are shown to managers and up only (owner's decision).
+
+- **F-45 Work-order photos were public.** Found 2026-10-28. *Fixed the same day (owner: "these need
+  fixed for sure"), tests in `tests/test_photo_storage.py`.* Photos were saved in
+  `static/maintenance_photos/` and Flask's static route served them to anyone with the address, no
+  login, through the tunnel. New photos are saved in `uploads/maintenance_photos/` and served by M13
+  to signed-in users only; the old address (M14) redirects there, and the static view refuses any
+  other path into the old folder (`/static/css/../maintenance_photos/...` would have served it).
+  The old folder is still read until `scripts/move_maintenance_photos.py --apply` has moved its
+  files (deploy/RUNBOOK.md); storage, cleanup, machine delete and the history reset cover both.
 
 ### Unreachable or unclear
 
