@@ -27,9 +27,18 @@ OPEN_STATUSES = ("Open", "In_Progress")
 CLOSED_STATUSES = ("Fixed", "Deferred")
 STATUSES = OPEN_STATUSES + CLOSED_STATUSES
 PRIORITIES = ("Low", "Medium", "High", "Critical")
+# GATBOX's deck offers a fifth, "Urgent", which this app stores as "Critical", its top one
+# (api_v1 DEVICE_PRIORITIES). An order that already holds "Urgent" is treated as Critical
+# everywhere: sorted, shown and edited as one (priority_level).
+PRIORITY_ALIASES = {"Urgent": "Critical"}
 URGENCIES = ("Low", "Normal", "High", "Urgent")
 SOURCES = {"gatbox": "GATBOX at the bench", "coindoor": "the coin door", "web": "this app"}
-PRIORITY_RANK = {"Critical": 0, "High": 1, "Medium": 2, "Low": 3}
+PRIORITY_RANK = {"Critical": 0, "Urgent": 0, "High": 1, "Medium": 2, "Low": 3}
+
+
+def priority_level(value: str | None) -> str | None:
+    """An order's priority as this app knows it: a stored "Urgent" reads as "Critical"."""
+    return PRIORITY_ALIASES.get(value, value) if value else value
 
 MAX_PART_ROWS = 10
 

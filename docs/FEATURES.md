@@ -466,6 +466,15 @@ anything is changed.
   `scripts/backup_uploads.py` beside each dump, same stamp, same retention, and the RUNBOOK says
   how to restore them.
 
+- **F-47 The device API stored any priority.** Found 2026-10-28. *Fixed the same day, tests in
+  `tests/test_order_priority.py`.* V2 stored an order's `priority` unchecked, and GATBOX's deck
+  offers a fifth, "Urgent", that no page knew: it sorted below Low, and the edit form, having
+  no such option, preselected Low, so saving any change demoted the order. Now Low, Medium,
+  High, Critical and Urgent are accepted, Urgent is stored as Critical, a missing one is Medium,
+  and anything else rejects that item with a reason (the rest of the batch goes through). A
+  row already holding "Urgent" sorts, shows and edits as Critical (`priority_level`); the
+  orders read (V4) still returns what is stored. The contract text is updated separately.
+
 ### Unreachable or unclear
 
 - **F-25 Two tunnel setups.** `scripts/setup_autostart.sh` installs `arcade-tracker-ngrok.service`, which

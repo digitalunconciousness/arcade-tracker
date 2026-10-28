@@ -22,7 +22,7 @@
 
   <div class="cluster">
     {{ ui.status(r.status) }}
-    {%- if r.priority %}{{ ui.status(r.priority) }}{% endif %}
+    {%- if r.priority %}{{ ui.status(r.priority|priority) }}{% endif %}
     {%- if r.machine_down is sameas true %}{{ ui.chip("fault", "Machine down") }}
     {%- elif r.machine_down is sameas false %}{{ ui.chip("muted", "Still playable") }}{% endif %}
     {%- if r.source in ("gatbox", "coindoor") %}<span class="badge is-info">from {{ sources[r.source] }}</span>{% endif %}
