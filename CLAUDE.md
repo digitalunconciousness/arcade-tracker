@@ -5,6 +5,10 @@ GATBOX sends. It's a Flask app, deployed as a systemd service behind a Cloudflar
 PostgreSQL in production and SQLite for development and tests. The user guide is in `docs/wiki/`
 (published to the GitHub wiki), and the server runbook is in `deploy/RUNBOOK.md`.
 
+**Read `docs/agents/RULES.md` first.** It is the one set of agent rules for GATBOX, cabcrawl and
+the tech tracker (GATBOX owns it; this copy is vendored, byte-identical), and it wins where this
+file disagrees, except on this repository's own facts and the hard rules below.
+
 ## Hard rules
 
 - **No personal data in the repository.** The repository is public. Don't commit usernames,
@@ -73,9 +77,11 @@ scripts/privacy_check.sh master..HEAD              # what a push would publish (
 - **The privacy check guards every push.** Enable it once per clone with `git config core.hooksPath
   .githooks`; it needs the owner's patterns file (`.githooks/patterns.local`, git-ignored, or
   `~/.config/gatbox-family/patterns.local`) and refuses the push without one. Never print or
-  copy that file's contents.
-- After a step: show the diff stat, the test results and screenshots (390 and 1280), then wait
-  for the owner's go.
+  copy that file's contents. The script and hook are the shared ones, the same in all three
+  repositories; what only this one must never commit is in `.githooks/privacy.conf`.
+- One OK per change (the rules, §3): the owner's OK on the design note covers the code and the
+  push. The PR shows the diff stat, the test results, the privacy-check output and screenshots
+  (390 and 1280); the owner merges and deploys.
 - Ask rather than guess when a decision belongs to the owner.
 - Say plainly what was and wasn't checked.
 - Use invented data in every test, screenshot and doc.
