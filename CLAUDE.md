@@ -33,6 +33,7 @@ python -m pytest                                   # the whole suite, on SQLite
 python -m pytest tests/test_inventory_links.py     # one file
 ruff check <files you changed>                     # no new findings in what you touch
 python scripts/check_schema.py                     # the database matches the models
+scripts/privacy_check.sh master..HEAD              # what a push would publish (clean before any push)
 ```
 
 - **Screenshots** of every page, at 390 and 1280 wide, on the synthetic arcade:
@@ -68,6 +69,10 @@ python scripts/check_schema.py                     # the database matches the mo
 ## How changes are made
 
 - Small steps and small commits, each with a test that fails without the change.
+- **The privacy check guards every push.** Enable it once per clone with `git config core.hooksPath
+  .githooks`; it needs the owner's patterns file (`.githooks/patterns.local`, git-ignored, or
+  `~/.config/gatbox-family/patterns.local`) and refuses the push without one. Never print or
+  copy that file's contents.
 - After a step: show the diff stat, the test results and screenshots (390 and 1280), then wait
   for the owner's go.
 - Ask rather than guess when a decision belongs to the owner.
