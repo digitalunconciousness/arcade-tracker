@@ -1,42 +1,62 @@
 #!/usr/bin/env bash
 # The privacy check: what a range of commits would publish, checked before it leaves this
-# machine. The repository is public, and history keeps whatever is pushed even after a
-# delete. Run it by hand before a push, and .githooks/pre-push runs it on every push and
-# refuses the push when anything is found. Ported from the tech tracker's check.
+# machine. The repositories are public, and history keeps whatever is pushed even after a
+# delete. Run it by hand before a push; .githooks/pre-push runs it on every push and refuses
+# the push when anything is found.
 #
-#   scripts/privacy_check.sh                         # origin/master..HEAD (all of HEAD if no origin/master)
-#   scripts/privacy_check.sh <rev-list args...>      # e.g. master..HEAD
+# ONE SCRIPT FOR THE THREE REPOSITORIES (GATBOX, cabcrawl, the tech tracker), byte-identical,
+# owned by GATBOX and vendored like docs/agents/RULES.md. What differs per repository is in its
+# .githooks/privacy.conf, beside this script's checkout: the paths that repository must never
+# commit, on top of the shared list below.
+#
+#   scripts/privacy_check.sh                         # origin's default branch..HEAD (all of HEAD
+#                                                    # if there is no origin)
+#   scripts/privacy_check.sh <rev-list args...>      # e.g. main..HEAD
+#   PRIVACY_CI=1 scripts/privacy_check.sh ...        # CI: no owner patterns exist there, so
+#                                                    # section 4 is skipped (and says so)
 #
 # Every commit in the range is checked on its own (git log -p), not just the net diff: a
 # secret added in one commit and deleted in the next is still in the history.
 #
 # Owner-specific values (names, hostnames, the LAN) live outside the repository, one
 # extended regex per line, # comments and blank lines skipped. The file is the first of:
-#   $CABCRAWL_HOOK_PATTERNS (when set, it is the only one tried)
-#   .githooks/patterns.local            (git-ignored)
-#   ~/.config/gatbox-family/patterns.local
+#   $PRIVACY_PATTERNS_FILE (when set, it is the only one tried; so are the older names
+#                           $GATBOX_HOOK_PATTERNS, $CABCRAWL_HOOK_PATTERNS, $SHOP_HOOK_PATTERNS)
+#   .githooks/patterns.local                (git-ignored)
+#   ~/.config/gatbox-family/patterns.local  (a cloud session writes it from $PRIVACY_PATTERNS)
+#   ~/.config/shop-hub/patterns.local       (the tech tracker's older place)
 # Without one the check fails: a push is never let through unchecked. A match from that
-# file is never printed, only where it is. The login name and home directory are checked
-# without being written anywhere.
+# file is never printed, only where it is, and neither is the pattern. The login name and
+# home directory are checked without being written anywhere.
 set -uo pipefail
 
+# This script's own checkout, for its .githooks/privacy.conf. The repository checked is the
+# one the current directory is in (the same one, except in the tests).
+HERE=$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd) || exit 2
+CONF=$HERE/.githooks/privacy.conf
 ROOT=$(git rev-parse --show-toplevel) || exit 2
 cd "$ROOT" || exit 2
+CI=${PRIVACY_CI:-${SHOP_PRIVACY_CI:-}}
 
-if [ -n "${CABCRAWL_HOOK_PATTERNS:-}" ]; then
-  PATTERNS=$CABCRAWL_HOOK_PATTERNS
-elif [ -r "$ROOT/.githooks/patterns.local" ]; then
-  PATTERNS=$ROOT/.githooks/patterns.local
-else
-  PATTERNS=$HOME/.config/gatbox-family/patterns.local
+PATTERNS=
+for v in PRIVACY_PATTERNS_FILE GATBOX_HOOK_PATTERNS CABCRAWL_HOOK_PATTERNS SHOP_HOOK_PATTERNS; do
+  if [ -n "${!v:-}" ]; then PATTERNS=${!v}; PATTERNS_FROM=\$$v; break; fi
+done
+if [ -z "$PATTERNS" ]; then
+  PATTERNS_FROM="any of .githooks/patterns.local, ~/.config/gatbox-family/patterns.local"
+  for f in "$ROOT/.githooks/patterns.local" "$HOME/.config/gatbox-family/patterns.local" \
+           "$HOME/.config/shop-hub/patterns.local"; do
+    if [ -r "$f" ]; then PATTERNS=$f; break; fi
+  done
 fi
 
 if [ "$#" -gt 0 ]; then
   RANGE=("$@")
-elif git rev-parse -q --verify origin/master >/dev/null; then
-  RANGE=(origin/master..HEAD)
 else
   RANGE=(HEAD)          # nothing published yet: the whole history is about to be
+  for b in origin/HEAD origin/main origin/master; do
+    if git rev-parse -q --verify "refs/remotes/$b" >/dev/null; then RANGE=("$b..HEAD"); break; fi
+  done
 fi
 
 # The only addresses allowed in commits and content. RFC 2606 / 6761 names are reserved and
@@ -99,18 +119,31 @@ done
 [ "$bad_meta" = 0 ] && clean
 
 # --- 2. paths that must never be committed --------------------------------------------------
-# Data, uploads, secrets and binaries: the database and its backups, the photos and other
-# uploads (they show the floor and the people on it), .env, keys, the owner's local files,
-# manuals and ROM images.
-section "forbidden paths (.env, instance/, backups/, uploads/, photos, databases, dumps, keys, *.local*, *.pdf, *.bin)"
-FORBIDDEN_PATHS='(^|/)\.env(\.|$)|\.(sql|dump|db|sqlite[0-9]*|db-(journal|wal|shm)|pem|key|p12|pfx|pdf|bin)$|(^|/)(instance|backups|uploads|logs)/|(^|/)static/(maintenance_photos|profile_pics)/|\.local|(^|/)id_(rsa|ed25519|ecdsa)'
+# Shared: secrets, keys, databases and dumps, the owner's local files (*.local*), manuals
+# (PDF) and ROM images. Then this repository's own list from .githooks/privacy.conf: its
+# data, uploads and photos.
+FORBIDDEN_PATHS='(^|/)\.env(\.|$)|\.(sql|dump|db|sqlite[0-9]*|db-(journal|wal|shm)|pem|key|p12|pfx|psk|token|pdf|bin|rom)$|\.local|(^|/)id_(rsa|ed25519|ecdsa)'
+extra=0
+ALLOWED_ADDRESSES=
+if [ -r "$CONF" ]; then
+  while IFS= read -r line || [ -n "$line" ]; do
+    case "$line" in
+      forbid=?*) FORBIDDEN_PATHS="$FORBIDDEN_PATHS|${line#forbid=}"; extra=$((extra + 1)) ;;
+      allow_address=?*) ALLOWED_ADDRESSES="${ALLOWED_ADDRESSES:+$ALLOWED_ADDRESSES|}${line#allow_address=}" ;;
+    esac
+  done < "$CONF"
+fi
+section "forbidden paths (.env, databases, dumps, keys, *.local*, *.pdf, *.bin, and $extra of this repository's own)"
 paths=$(git log --no-merges --format= --name-only --diff-filter=ACMR "${RANGE[@]}" | sort -u \
         | grep -iE -- "$FORBIDDEN_PATHS" | grep -vE '(^|/)(\.env\.example|patterns\.local\.example)$')
 if [ -n "$paths" ]; then while IFS= read -r p; do hit "$p"; done <<<"$paths"; else clean; fi
 
 # --- 3. added content -----------------------------------------------------------------------
+# A documented default this repository may name (.githooks/privacy.conf allow_address=) is
+# left out; anything else private is site data.
 grep_added "private IP addresses (RFC 1918, CGNAT, IPv6 ULA)" 1 \
-  '(^|[^0-9.])(10\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}|172\.(1[6-9]|2[0-9]|3[01])\.[0-9]{1,3}\.[0-9]{1,3}|192\.168\.[0-9]{1,3}\.[0-9]{1,3}|100\.(6[4-9]|[7-9][0-9]|1[01][0-9]|12[0-7])\.[0-9]{1,3}\.[0-9]{1,3}|f[cd][0-9a-f]{2}:[0-9a-f:]+)([^0-9]|$)'
+  '(^|[^0-9.])(10\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}|172\.(1[6-9]|2[0-9]|3[01])\.[0-9]{1,3}\.[0-9]{1,3}|192\.168\.[0-9]{1,3}\.[0-9]{1,3}|100\.(6[4-9]|[7-9][0-9]|1[01][0-9]|12[0-7])\.[0-9]{1,3}\.[0-9]{1,3}|f[cd][0-9a-f]{2}:[0-9a-f:]+)([^0-9]|$)' \
+  "${ALLOWED_ADDRESSES:-}"
 
 emails=$(printf '%s\n' "$ADDED" | while IFS=$'\t' read -r sha path line text; do
            printf '%s\n' "$text" | grep -oiE '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}' \
@@ -119,25 +152,36 @@ emails=$(printf '%s\n' "$ADDED" | while IFS=$'\t' read -r sha path line text; do
 section "email addresses (allowed: the noreply ones and reserved example/test domains)"
 if [ -n "$emails" ]; then while IFS= read -r l; do hit "$l"; done <<<"$emails"; else clean; fi
 
-# The login name identifies the owner only on the owner's machine. In a cloud session (root)
-# it's a generic word that appears in legitimate content, so there only the generic
-# home-path patterns are checked.
+# The login name identifies the owner only on the owner's machine. In CI (runner) or a cloud
+# session (root) it's a generic word that appears in legitimate content, so there only the
+# generic home-path patterns are checked.
 me=$(id -un)
-if [ "$me" = root ]; then
-  grep_added "home paths (login name not checked: running as root)" 1 \
+if [ -n "$CI" ] || [ "$me" = root ]; then
+  grep_added "home paths (login name not checked: CI or root)" 1 \
     "(/home/[A-Za-z0-9._-]+|/Users/[A-Za-z0-9._-]+)"
 else
   grep_added "login name and home paths" 1 \
     "(/home/[A-Za-z0-9._-]+|/Users/[A-Za-z0-9._-]+|${HOME//./\\.}|(^|[^A-Za-z0-9])${me}([^A-Za-z0-9]|$))"
 fi
 
+# shellcheck disable=SC2016  # a $ in these patterns is a regex character, not a variable
 grep_added "token- and key-shaped strings" 0 \
-  'gbx_[0-9a-f]{12}\.[A-Za-z0-9_-]{20,}|-----BEGIN [A-Z ]*PRIVATE KEY-----|(ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{40,}|AKIA[0-9A-Z]{16}|sk-(ant-)?[A-Za-z0-9_-]{20,}|xox[abprs]-[A-Za-z0-9-]{10,}|tk_[A-Za-z0-9]{29}|discord(app)?\.com/api/webhooks/[0-9]+/[A-Za-z0-9_-]{20,}|eyJ[A-Za-z0-9_-]{30,}\.?|postgres(ql)?(\+psycopg[0-9]?)?://[^:/@[:space:]]+:[^<${@[:space:]][^@[:space:]]*@|(secret[_-]?key|api[_-]?key|access[_-]?token|auth[_-]?token|password|passwd|totp[_-]?secret)["'"'"']?[[:space:]]*[:=][[:space:]]*["'"'"'][^"'"'"'[:space:]]{8,}["'"'"']' \
+  'gbx_[0-9a-f]{12}\.[A-Za-z0-9_-]{20,}|-----BEGIN [A-Z ]*PRIVATE KEY-----|(ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{40,}|AKIA[0-9A-Z]{16}|sk-(ant-)?[A-Za-z0-9_-]{20,}|xox[abprs]-[A-Za-z0-9-]{10,}|tk_[A-Za-z0-9]{29}|discord(app)?\.com/api/webhooks/[0-9]+/[A-Za-z0-9_-]{20,}|eyJ[A-Za-z0-9_-]{30,}\.?|postgres(ql)?(\+psycopg[0-9]?)?://[^:/@[:space:]]+:[^<${@[:space:]][^@[:space:]]*@|(secret[_-]?key|api[_-]?key|access[_-]?token|auth[_-]?token|password|passwd|passphrase|psk|totp[_-]?secret)["'"'"']?[[:space:]]*[:=][[:space:]]*["'"'"'][^"'"'"'[:space:]]{8,}["'"'"']' \
+  '(test|example|dummy|fake|changeme|not-a-real|synthetic|placeholder|your-)'
+
+# A literal is a secret; an expression is code. A Wi-Fi key or a password written bare, to the
+# end of the line or a comment (a keyfile, a note: psk=..., password: ...). A value with a
+# call, an attribute, a comma or a variable in it is code, and so is "password = x", which
+# is how Python assigns one, so neither is matched.
+grep_added "bare Wi-Fi keys and passwords" 0 \
+  '(psk|passphrase)[[:space:]]*[:=][[:space:]]*[^"'"'"'[:space:](),.$]{6,}[[:space:]]*(#.*)?$|(password|passwd)([[:space:]]*:[[:space:]]*|=)[^"'"'"'[:space:](),.$]{6,}[[:space:]]*(#.*)?$|wpa[_-]?passphrase' \
   '(test|example|dummy|fake|changeme|not-a-real|synthetic|placeholder|your-)'
 
 # --- 4. owner-specific patterns -------------------------------------------------------------
 section "owner patterns (never shown, only where they match)"
-if [ -r "$PATTERNS" ]; then
+if [ -n "$CI" ]; then
+  printf '  skipped (CI: owner patterns are local-only; the pre-push hook checks them)\n'
+elif [ -n "$PATTERNS" ] && [ -r "$PATTERNS" ]; then
   n=0; lhits=0
   while IFS= read -r pat || [ -n "$pat" ]; do
     case "$pat" in ''|\#*) continue ;; esac
@@ -160,16 +204,16 @@ if [ -r "$PATTERNS" ]; then
     clean
   fi
 else
-  hit "MISSING: no owner patterns file. Looked for \$CABCRAWL_HOOK_PATTERNS, .githooks/patterns.local"
-  hit "and ~/.config/gatbox-family/patterns.local. Copy .githooks/patterns.local.example to one"
-  hit "of them and fill it in. NOTHING MAY BE PUSHED UNTIL IT EXISTS."
+  hit "MISSING: no owner patterns file (looked for $PATTERNS_FROM)."
+  hit "Copy .githooks/patterns.local.example to ~/.config/gatbox-family/patterns.local and fill"
+  hit "it in. NOTHING MAY BE PUSHED UNTIL IT EXISTS."
 fi
 
 # --- 5. commit messages ---------------------------------------------------------------------
 section "commit messages (IPs, emails, home paths)"
 mhits=$(printf '%s' "$MESSAGES" | tr '\036' '\n' \
         | grep -oiE '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}|(10|192\.168)\.[0-9]{1,3}\.[0-9]{1,3}(\.[0-9]{1,3})?|/home/[A-Za-z0-9._-]+' \
-        | grep -viE "$EMAIL_OK")
+        | grep -viE "$EMAIL_OK" | { if [ -n "$ALLOWED_ADDRESSES" ]; then grep -vE -- "$ALLOWED_ADDRESSES"; else cat; fi; })
 if [ -n "$mhits" ]; then while IFS= read -r l; do hit "$l"; done <<<"$mhits"; else clean; fi
 
 printf '\n'

@@ -3,7 +3,9 @@
 The repository is public, so the pre-push hook runs this check on everything a push would
 publish. Each test builds a small repository in a temporary folder, commits something, and
 runs the real script on it with an invented owner pattern. Nothing here reads the owner's
-real patterns file: CABCRAWL_HOOK_PATTERNS and HOME point into the temporary folder.
+real patterns file: CABCRAWL_HOOK_PATTERNS and HOME point into the temporary folder. The script
+is the shared one (the same in GATBOX and the tech tracker); this repository's own paths are in
+.githooks/privacy.conf.
 """
 from __future__ import annotations
 
@@ -210,3 +212,59 @@ def test_the_pre_push_hook_refuses_what_the_check_refuses(repo):
     assert push(good).returncode == 0
     refused = push(bad)
     assert refused.returncode == 1 and "REFUSED" in refused.stderr
+
+
+def test_code_that_handles_a_password_is_not_a_secret(repo):
+    """The shared check refuses a bare password or Wi-Fi key written to the end of a line (a
+    keyfile, a note), but not the code that handles one."""
+    path, env = repo
+    code = ("password = form.password.data\n"
+            "user.set_password(password)\n"
+            "create(name=name, password=new_password,\n")
+    commit(path, env, "app/auth.py", code, "Handle a password")
+    result = check(path, env)
+    assert result.returncode == 0, result.stdout
+
+
+def test_a_bare_password_in_a_note_fails_without_being_printed(repo):
+    path, env = repo
+    # Built in pieces, like the address above: written out, the note's line would be refused
+    # from this file too.
+    key, value = "pass" + "word", "Zq" + "8rTw" + "Lm3x"
+    commit(path, env, "notes.md", f"{key}: {value}  # the office PC\n", "A note")
+    result = check(path, env)
+    assert result.returncode == 1 and "notes.md:1" in result.stdout
+    assert value not in result.stdout
+
+
+# One check and one hook for the three repositories, owned by GATBOX: this copy must be the same
+# as any sibling checkout's. CONTRACT_SIBLINGS overrides where to look, as for the contract.
+SIBLINGS = ("gatbox", "Gatbox", "arcadetech-tracker", "ArcadeTech-Tracker", "shop-hub")
+
+
+def test_the_check_and_hook_are_the_same_as_the_siblings():
+    parent = os.path.dirname(ROOT)
+    env = os.environ.get("CONTRACT_SIBLINGS")
+    repos = env.split() if env is not None else (
+        [os.path.join(parent, n) for n in SIBLINGS] + [os.path.join("/opt/refs", n) for n in SIBLINGS])
+    found = [r for r in repos if os.path.isfile(os.path.join(r, "scripts", "privacy_check.sh"))
+             and os.path.realpath(r) != os.path.realpath(ROOT)]
+    if not found:
+        pytest.skip("no sibling checkout found")
+    def read(path):
+        with open(path, "rb") as fh:
+            return fh.read()
+
+    mine = [read(SCRIPT), read(HOOK)]
+    differ = [r for r in found
+              if [read(os.path.join(r, "scripts", "privacy_check.sh")),
+                  read(os.path.join(r, ".githooks", "pre-push"))] != mine]
+    assert not differ, "scripts/privacy_check.sh or .githooks/pre-push differs from: " + ", ".join(differ)
+
+
+def test_this_repository_lists_its_own_paths():
+    """What only this repository must never commit is in its .githooks/privacy.conf."""
+    with open(os.path.join(ROOT, ".githooks", "privacy.conf")) as fh:
+        conf = fh.read()
+    assert "forbid=(^|/)(instance|backups|uploads|logs)/" in conf
+    assert "forbid=(^|/)static/(maintenance_photos|profile_pics)/" in conf
