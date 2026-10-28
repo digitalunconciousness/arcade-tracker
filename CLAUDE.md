@@ -15,9 +15,10 @@ PostgreSQL in production and SQLite for development and tests. The user guide is
   `/p/<code>`, `/i/<code>`, `/u/<code>` and `/report/<token>`. Never change those routes or the
   stored codes (`Game.barcode` and the others). Any other URL change needs a redirect from the
   old address.
-- **The GATBOX API contract is frozen.** `/api/v1` and `contract/v1/` change only on purpose,
-  together with GATBOX's copy; `tests/test_api_v1_contract.py` and the checksums enforce it. The
-  skeeball API is left exactly as it is.
+- **The GATBOX API contract is frozen.** `/api/v1` and `contract/v1/` change only on purpose.
+  GATBOX owns the contract (since 2026-10-28) and this copy is vendored from its
+  `docs/contract/v1/`, byte-identical; `tests/test_api_v1_contract.py` and the checksums enforce
+  it, and compare it with any sibling checkout. The skeeball API is left exactly as it is.
 - **Never touch the production database** or `instance/arcade.db`. Work against a scratch
   database.
 - **Commits use UTC** (`TZ=UTC git commit ...`).

@@ -468,8 +468,10 @@ def roster():
     return jsonify({
         "contract": CONTRACT,
         "machines": [
+            # model_key: the game a machine is, in GATBOX's library (contract v1 additions).
+            # Not kept here yet, so null, which the contract allows.
             {"slug": m.barcode, "name": m.name, "status": m.status,
-             "location": m.location}
+             "location": m.location, "model_key": None}
             for m in machines
         ],
     })
